@@ -1,0 +1,3 @@
+from Base.Service.keywordService import register_keyword_into_jieba
+
+register_keyword_into_jieba()
