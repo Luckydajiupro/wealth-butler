@@ -13,3 +13,11 @@ env/
 
 # 本机 Claude Code 权限配置（各成员本机不同，不入库）
 .claude/settings.local.json
+
+# 老师素材与答辩要求（非团队产出，本地保留、不入远程仓库）
+需求文档.html
+功能设计文档.html
+记忆架构设计.html
+开发引导.md
+答辩所需文本交付物清单.txt
+答辩须知.md
