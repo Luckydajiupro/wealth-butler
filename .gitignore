@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 密钥（真实 .env 不入库，需共享的用 .env.example 模板）
+.env
+.env.local
+
+# 本机 Claude Code 权限配置（各成员本机不同，不入库）
+.claude/settings.local.json

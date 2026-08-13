@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XX科技·智能财富管家系统 — Agent 功能设计文档</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --navy-900: #0a1628;
+  --navy-800: #121e33;
+  --navy-700: #1a2a44;
+  --navy-600: #243552;
+  --navy-500: #2d4160;
+  --gold-500: #c9a84c;
+  --gold-400: #d4b966;
+  --gold-300: #e0cc85;
+  --gold-600: #a8873a;
+  --bg: #f4f1eb;
+  --bg-white: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2ddd5;
+  --code-bg: #0d1117;
+  --sidebar-w: 280px;
+  --topbar-h: 56px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.75;
+  font-size: 15px;
+}
+
+#progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px; z-index: 9999;
+  background: linear-gradient(90deg, var(--gold-600), var(--gold-400), var(--gold-500));
+  width: 0%; transition: width 0.15s ease-out;
+}
+
+#sidebar {
+  position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+  background: linear-gradient(180deg, var(--navy-900), var(--navy-800));
+  z-index: 1000; display: flex; flex-direction: column;
+  border-right: 1px solid rgba(201,168,76,0.15);
+}
+
+.sidebar-header {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid rgba(201,168,76,0.12);
+}
+
+.sidebar-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Noto Serif SC', serif; font-weight: 700;
+  font-size: 17px; color: var(--gold-400);
+  letter-spacing: 0.5px;
+}
+
+.sidebar-brand .brand-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: var(--navy-900);
+}
+
+.sidebar-subtitle {
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  margin-top: 6px; letter-spacing: 1px; text-transform: uppercase;
+}
+
+#toc-search {
+  margin: 12px 16px; padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; color: #fff;
+  font-size: 13px; font-family: 'Inter', sans-serif;
+  outline: none; transition: border-color 0.2s;
+}
+#toc-search::placeholder { color: rgba(255,255,255,0.3); }
+#toc-search:focus { border-color: var(--gold-500); }
+
+#toc-container {
+  flex: 1; overflow-y: auto; padding: 8px 0 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201,168,76,0.3) transparent;
+}
+#toc-container::-webkit-scrollbar { width: 4px; }
+#toc-container::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.3); border-radius: 2px; }
+
+.toc-item {
+  display: block; padding: 6px 20px;
+  color: rgba(255,255,255,0.6); font-size: 13px;
+  text-decoration: none; border-left: 3px solid transparent;
+  transition: all 0.15s; line-height: 1.5;
+}
+.toc-item:hover { color: var(--gold-400); background: rgba(201,168,76,0.06); }
+.toc-item.active {
+  color: var(--gold-400);
+  border-left-color: var(--gold-500);
+  background: rgba(201,168,76,0.08);
+  font-weight: 500;
+}
+.toc-h1 { font-weight: 600; color: rgba(255,255,255,0.85); font-size: 13.5px; }
+.toc-h2 { padding-left: 28px; font-size: 12.5px; }
+.toc-h3 { padding-left: 40px; font-size: 11.5px; color: rgba(255,255,255,0.4); }
+
+/* Collapsible TOC */
+.toc-group { margin-bottom: 2px; }
+.toc-toggle {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 5px 16px;
+  color: rgba(255,255,255,0.85);
+  font-weight: 600; font-size: 13.5px;
+  font-family: inherit;
+  background: none; border: none;
+  cursor: pointer; text-align: left;
+  line-height: 1.4;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+}
+.toc-toggle:hover { color: var(--gold-400); background: rgba(201,168,76,0.06); }
+.toc-toggle.active { color: var(--gold-400); border-left-color: var(--gold-500); background: rgba(201,168,76,0.1); }
+.toc-toggle .arr {
+  display: inline-block; width: 14px; flex-shrink: 0;
+  font-size: 10px; color: rgba(255,255,255,0.25);
+  transition: transform 0.2s ease;
+}
+.toc-toggle .arr.open { transform: rotate(90deg); }
+.toc-kids { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+.toc-kids.open { max-height: 3000px; }
+.toc-kids .toc-item { padding-left: 36px; }
+.toc-kids .toc-item.toc-h3 { padding-left: 52px; }
+
+#topbar {
+  position: fixed; top: 0; left: var(--sidebar-w); right: 0;
+  height: var(--topbar-h); z-index: 999;
+  background: rgba(244,241,235,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+}
+
+#topbar-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 14px; font-weight: 600; color: var(--navy-800);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+#topbar-badge {
+  font-size: 11px; padding: 3px 10px;
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+  color: var(--navy-900); border-radius: 12px;
+  font-weight: 600; letter-spacing: 0.5px;
+}
+
+#main {
+  margin-left: var(--sidebar-w);
+  margin-top: var(--topbar-h);
+  padding: 0;
+  min-height: calc(100vh - var(--topbar-h));
+}
+
+.doc-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 40px 80px;
+}
+
+.doc-header {
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 2px solid var(--gold-500);
+}
+
+.doc-eyebrow {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--gold-600); font-weight: 600; margin-bottom: 12px;
+}
+
+.doc-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 32px; font-weight: 700;
+  color: var(--navy-900); line-height: 1.35;
+  margin-bottom: 20px;
+}
+
+.doc-meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.doc-meta-item {
+  display: flex; flex-direction: column;
+  padding: 12px 16px;
+  background: var(--bg-white);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.doc-meta-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-muted); font-weight: 500;
+}
+
+.doc-meta-value {
+  font-size: 14px; font-weight: 500; color: var(--navy-800);
+  margin-top: 2px;
+}
+
+.doc-container h1 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 26px; font-weight: 700;
+  color: var(--navy-900);
+  margin: 48px 0 16px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.doc-container h1:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+.doc-container h2 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 21px; font-weight: 600;
+  color: var(--navy-800);
+  margin: 40px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-container h3 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 17px; font-weight: 600;
+  color: var(--navy-700);
+  margin: 28px 0 10px;
+}
+
+.doc-container h4 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 15px; font-weight: 600;
+  color: var(--navy-600);
+  margin: 20px 0 8px;
+}
+
+.phase-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.phase-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--gold-500);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(201,168,76,0.4);
+}
+
+.phase-card {
+  background: var(--bg-white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 32px 32px 28px;
+  margin: 24px 0 32px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.phase-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%;
+  border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, var(--gold-500), var(--gold-600));
+}
+
+.phase-card > h3:first-child {
+  border-bottom: none;
+  margin-top: 0;
+  padding-left: 12px;
+  padding-bottom: 0;
+}
+
+.agent-card {
+  background: var(--bg-white);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 32px 32px 28px;
+  margin: 28px 0 32px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.agent-card.customer::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%; border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, #4fc3f7, #0288d1);
+}
+.agent-card.advisor::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%; border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, #81c784, #2e7d32);
+}
+.agent-card.risk::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%; border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, #ef5350, #c62828);
+}
+.agent-card.analyst::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%; border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, #ab47bc, #6a1b9a);
+}
+.agent-card.operator::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%; border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, #ff7043, #d84315);
+}
+
+.agent-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: 12px; font-weight: 600; margin-bottom: 12px;
+}
+.agent-badge.customer { background: #e3f2fd; color: #0288d1; }
+.agent-badge.advisor { background: #e8f5e9; color: #2e7d32; }
+.agent-badge.risk { background: #ffebee; color: #c62828; }
+.agent-badge.analyst { background: #f3e5f5; color: #6a1b9a; }
+.agent-badge.operator { background: #fbe9e7; color: #d84315; }
+
+/* Mermaid diagrams */
+.mermaid {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0 28px;
+  text-align: center;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+table {
+  width: 100%; border-collapse: collapse;
+  margin: 16px 0 24px;
+  font-size: 14px;
+  background: var(--bg-white);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  border: 1px solid var(--border);
+}
+
+thead th {
+  background: var(--navy-800);
+  color: var(--gold-400);
+  font-weight: 600; font-size: 13px;
+  padding: 12px 16px;
+  text-align: left;
+  letter-spacing: 0.3px;
+}
+
+tbody td {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+
+tbody tr:hover { background: rgba(201,168,76,0.04); }
+
+pre {
+  background: var(--code-bg);
+  color: #e6edf3;
+  padding: 20px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.code-block {
+  margin: 16px 0 24px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(201,168,76,0.12);
+  background: var(--code-bg);
+}
+
+.code-header {
+  padding: 6px 14px;
+  background: rgba(201,168,76,0.06);
+  border-bottom: 1px solid rgba(201,168,76,0.1);
+}
+
+.code-lang {
+  font-size: 11px; font-weight: 600; color: var(--gold-400);
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.code-block pre {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  padding: 16px 20px;
+}
+
+:not(pre) > code {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(26,42,68,0.08);
+  color: var(--navy-700);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+blockquote {
+  background: linear-gradient(135deg, #c7e6b5, #7598d2);
+  border-left: 4px solid var(--gold-500);
+  color: rgba(255,255,255,0.85);
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  margin: 16px 0 24px;
+  font-size: 14px;
+}
+
+blockquote.callout-warn {
+  border-left-color: #ff6b6b;
+  background: linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.03));
+}
+
+blockquote.callout-info {
+  border-left-color: #4fc3f7;
+  background: linear-gradient(135deg, rgba(79,195,247,0.08), rgba(79,195,247,0.03));
+}
+
+blockquote.callout-design {
+  border-left-color: #ab47bc;
+  background: linear-gradient(135deg, rgba(171,71,188,0.08), rgba(171,71,188,0.03));
+}
+
+blockquote a { color: var(--gold-400); }
+blockquote code { background: rgba(255,255,255,0.1); color: var(--gold-300); }
+blockquote p { margin: 0; }
+blockquote p + p { margin-top: 8px; }
+
+.doc-container ul, .doc-container ol {
+  padding-left: 24px;
+  margin: 12px 0;
+}
+
+.doc-container li {
+  margin: 6px 0;
+  line-height: 1.7;
+}
+
+.doc-container ul { list-style: none; padding-left: 0; }
+.doc-container ul li {
+  padding-left: 20px;
+  position: relative;
+}
+.doc-container ul li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 10px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--gold-500);
+}
+
+.intent-table thead th {
+  background: var(--navy-800);
+}
+
+.intent-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+.intent-tag.high { background: #ffebee; color: #c62828; }
+.intent-tag.mid { background: #fff3e0; color: #e65100; }
+.intent-tag.low { background: #e8f5e9; color: #2e7d32; }
+
+hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+  margin: 32px 0;
+}
+
+.doc-container p {
+  margin: 10px 0;
+  line-height: 1.8;
+  color: black;
+}
+
+.doc-container a {
+  color: var(--gold-600);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold-300);
+  transition: border-color 0.2s;
+}
+.doc-container a:hover { border-bottom-color: var(--gold-500); }
+
+.doc-container strong { font-weight: 600; color: var(--navy-900); }
+blockquote strong { color: inherit; }
+
+@media print {
+  #sidebar, #topbar, #progress-bar { display: none !important; }
+  #main { margin-left: 0; margin-top: 0; }
+  .doc-container { padding: 20px; max-width: 100%; }
+  .phase-card, .agent-card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+  table { break-inside: avoid; }
+  blockquote { background: #f9f9f9; border-left-color: #666; color: #333; }
+  pre { background: #f5f5f5; color: #333; }
+}
+
+@media (max-width: 1024px) {
+  #sidebar { display: none; }
+  #topbar { left: 0; }
+  #main { margin-left: 0; }
+  .doc-container { padding: 24px 20px 60px; }
+  .doc-title { font-size: 24px; }
+}
+
+.doc-container h1[id], .doc-container h2[id], .doc-container h3[id], .doc-container h4[id] {
+  scroll-margin-top: calc(var(--topbar-h) + 16px);
+}
+</style>
+
+</head>
+<body>
+<div id="progress-bar"></div>
+
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⚙️</div>
+      <span>XX科技</span>
+    </div>
+    <div class="sidebar-subtitle">功能设计文档 v1.5</div>
+  </div>
+  <input type="text" id="toc-search" placeholder="搜索目录...">
+  <div id="toc-container">
+
+<!-- 1 -->
+<div class="toc-group">
+<button class="toc-toggle active" data-group="1"><span class="arr open">▶</span><span>1. Agent 设计总览</span></button>
+<div class="toc-kids open">
+<a class="toc-item toc-h3" href="#1.1-统一执行骨架">1.1 统一执行骨架</a>
+<a class="toc-item toc-h3" href="#1.2-五 Agent 职责矩阵">1.2 五 Agent 职责矩阵</a>
+<a class="toc-item toc-h3" href="#1.3-统一推理范式">1.3 统一推理范式</a>
+</div></div>
+
+<!-- 2 -->
+<div class="toc-group">
+<button class="toc-toggle" data-group="2"><span class="arr">▶</span><span>2. 智能客服 Agent</span></button>
+<div class="toc-kids">
+<a class="toc-item toc-h3" href="#2.1-架构设计">2.1 架构设计</a>
+<a class="toc-item toc-h3" href="#2.2-意图分类体系">2.2 意图分类体系</a>
+<a class="toc-item toc-h3" href="#2.3-推理范式">2.3 推理范式</a>
+<a class="toc-item toc-h3" href="#2.4-设计原因">2.4 设计原因</a>
+</div></div>
+
+<!-- 3 -->
+<div class="toc-group">
+<button class="toc-toggle" data-group="3"><span class="arr">▶</span><span>3. 投顾助手 Agent</span></button>
+<div class="toc-kids">
+<a class="toc-item toc-h3" href="#3.1-架构设计">3.1 架构设计</a>
+<a class="toc-item toc-h3" href="#3.2-意图分类体系">3.2 意图分类体系</a>
+<a class="toc-item toc-h3" href="#3.3-推理范式">3.3 推理范式</a>
+<a class="toc-item toc-h3" href="#3.4-设计原因">3.4 设计原因</a>
+</div></div>
+
+<!-- 4 -->
+<div class="toc-group">
+<button class="toc-toggle" data-group="4"><span class="arr">▶</span><span>4. 风控监测 Agent</span></button>
+<div class="toc-kids">
+<a class="toc-item toc-h3" href="#4.1-架构设计">4.1 架构设计</a>
+<a class="toc-item toc-h3" href="#4.2-意图分类体系">4.2 意图分类体系</a>
+<a class="toc-item toc-h3" href="#4.3-推理范式">4.3 推理范式</a>
+<a class="toc-item toc-h3" href="#4.4-设计原因">4.4 设计原因</a>
+</div></div>
+
+<!-- 5 -->
+<div class="toc-group">
+<button class="toc-toggle" data-group="5"><span class="arr">▶</span><span>5. 数据分析 Agent</span></button>
+<div class="toc-kids">
+<a class="toc-item toc-h3" href="#5.1-架构设计">5.1 架构设计</a>
+<a class="toc-item toc-h3" href="#5.2-意图分类体系">5.2 意图分类体系</a>
+<a class="toc-item toc-h3" href="#5.3-推理范式">5.3 推理范式</a>
+<a class="toc-item toc-h3" href="#5.4-设计原因">5.4 设计原因</a>
+</div></div>
+
+<!-- 6 -->
+<div class="toc-group">
+<button class="toc-toggle" data-group="6"><span class="arr">▶</span><span>6. 业务操作 Agent</span></button>
+<div class="toc-kids">
+<a class="toc-item toc-h3" href="#6.1-架构设计">6.1 架构设计</a>
+<a class="toc-item toc-h3" href="#6.2-意图分类体系">6.2 意图分类体系</a>
+<a class="toc-item toc-h3" href="#6.3-推理范式">6.3 推理范式</a>
+<a class="toc-item toc-h3" href="#6.4-设计原因">6.4 设计原因</a>
+</div></div>
+
+<!-- 7 -->
+<div class="toc-group">
+<button class="toc-toggle" data-group="7"><span class="arr">▶</span><span>7. 跨 Agent 协作</span></button>
+<div class="toc-kids">
+<a class="toc-item toc-h3" href="#7.1-事件通信架构">7.1 事件通信架构</a>
+<a class="toc-item toc-h3" href="#7.2-意图路由与转发">7.2 意图路由与转发</a>
+<a class="toc-item toc-h3" href="#7.3-协作场景示例">7.3 协作场景示例</a>
+</div></div>
+
+<!-- 8 -->
+<div class="toc-group">
+<button class="toc-toggle" data-group="8"><span class="arr">▶</span><span>8. 工具清单与接口</span></button>
+<div class="toc-kids">
+<a class="toc-item toc-h3" href="#8.1-全量工具清单">8.1 全量工具清单</a>
+<a class="toc-item toc-h3" href="#8.2-工具调用协议">8.2 工具调用协议</a>
+</div></div>
+
+  </div>
+</nav>
+
+<header id="topbar">
+  <div id="topbar-title">智能财富管家系统 — Agent 功能设计文档</div>
+  <span id="topbar-badge">v1.5 · 2025-06-26</span>
+</header>
+
+<main id="main">
+<div class="doc-container">
+<div class="doc-header">
+  <div class="doc-eyebrow">功能设计文档</div>
+  <h1 class="doc-title">XX科技·智能财富管家系统</h1>
+  <div class="doc-meta">
+    <div class="doc-meta-item">
+      <span class="doc-meta-label">版本</span>
+      <span class="doc-meta-value">v1.5</span>
+    </div>
+    <div class="doc-meta-item">
+      <span class="doc-meta-label">编写日期</span>
+      <span class="doc-meta-value">2025-06-26</span>
+    </div>
+    <div class="doc-meta-item">
+      <span class="doc-meta-label">编写单位</span>
+      <span class="doc-meta-value">XX科技有限公司 · 智能金融事业部</span>
+    </div>
+    <div class="doc-meta-item">
+      <span class="doc-meta-label">文档密级</span>
+      <span class="doc-meta-value">内部公开</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 1 ==================== -->
+<h1 id="1. Agent 设计总览">1. Agent 设计总览</h1>
+
+<h2 id="1.1-统一执行骨架">1.1 统一执行骨架</h2>
+
+<p>所有 Agent 共享同一个执行骨架。这不是"5 个独立系统"，而是"1 个骨架 + 5 个策略配置"。统一骨架的好处在于：错误处理、日志、链路追踪、记忆召回、流式输出等基础设施只需实现一次，每个 Agent 只需定义自己的意图分类器、工具集和回复策略。</p>
+
+<div class="mermaid">
+flowchart LR
+    A[输入接收] --> B[短期记忆召回]
+    B --> C[中期记忆召回]
+    C --> D[长期记忆召回]
+    D --> E[意图路由]
+    E --> F[置信度重排]
+    F --> G[核心逻辑<br/>Agent-specific]
+    G --> H[工具调用]
+    H --> I[结果生成]
+    I --> J[流式输出]
+    J --> K[数据沉淀]
+    K --> L[事件广播]
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style B fill:#c8e6c9,stroke:#388e3c
+    style C fill:#c8e6c9,stroke:#388e3c
+    style D fill:#c8e6c9,stroke:#388e3c
+    style E fill:#fff3e0,stroke:#f57c00
+    style F fill:#e1bee7,stroke:#6a1b9a
+    style G fill:#ffcc80,stroke:#f57c00
+    style H fill:#ffe0b2,stroke:#f57c00
+    style I fill:#a5d6a7,stroke:#2e7d32
+    style J fill:#a5d6a7,stroke:#2e7d32
+    style K fill:#b3e5fc,stroke:#0288d1
+    style L fill:#b3e5fc,stroke:#0288d1
+</div>
+
+<p><strong>骨架伪代码</strong>：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">python · 统一骨架</span></div>
+<pre><code>class AgentBase(ABC):
+    """所有 Agent 的抽象基类"""
+
+    def __init__(self, agent_type: str, memory: MemoryOrchestrator,
+                 tools: list[BaseTool], llm: LLMClient):
+        self.agent_type = agent_type
+        self.memory = memory
+        self.tools = {t.name: t for t in tools}
+        self.llm = llm
+
+    async def handle(self, request: ChatRequest) -> ChatResponse:
+        """统一入口 — 不可被子类覆写"""
+        # 1. 召回记忆
+        context = self.memory.recall(
+            customer_id=request.customer_id,
+            scenario=self._scenario_name(),
+            query=request.message,
+            top_k=5
+        )
+
+        # 2. 意图分类
+        intent = await self.classify_intent(request.message)
+
+        # 3. 置信度校验
+        if intent.confidence < self._intent_threshold():
+            return self._clarify(request.message)
+
+        # 4. 路由到具体处理逻辑
+        handler = self._get_handler(intent)
+        result = await handler(request, context)
+
+        # 5. 归档 + 广播
+        self.memory.archive(request, result)
+        await self._maybe_broadcast(result)
+
+        return result
+
+    @abstractmethod
+    async def classify_intent(self, message: str) -> Intent: ...
+
+    @abstractmethod
+    def _get_handler(self, intent: Intent) -> Handler: ...
+
+    @abstractmethod
+    def _intent_threshold(self) -> float: ...
+
+    @abstractmethod
+    def _scenario_name(self) -> str: ...</code></pre>
+</div>
+
+<blockquote class="callout-design"><p><strong>🎨 设计原因</strong>：统一骨架使新增 Agent 的成本从"重写整套流程"降低到"实现4个抽象方法"。同时保证了所有 Agent 在记忆召回、置信度校验、归档、事件广播等行为上的一致性，便于后期联调和维护。</p></blockquote>
+
+<h2 id="1.2-五 Agent 职责矩阵">1.2 五 Agent 职责矩阵</h2>
+
+<table>
+<thead><tr><th>维度</th><th>智能客服</th><th>投顾助手</th><th>风控监测</th><th>数据分析</th><th>业务操作</th></tr></thead>
+<tbody>
+<tr><td><strong>服务对象</strong></td><td>客户</td><td>理财顾问</td><td>风控专员</td><td>内部员工</td><td>客户经理</td></tr>
+<tr><td><strong>核心能力</strong></td><td>知识问答</td><td>产品推荐</td><td>异常检测</td><td>自然语言查数据</td><td>自然语言执行操作</td></tr>
+<tr><td><strong>关键技术</strong></td><td>RAG + 短期记忆</td><td>GraphRAG + 中期记忆</td><td>规则引擎 + 置信度</td><td>NL2SQL</td><td>NL2API + 权限校验</td></tr>
+<tr><td><strong>记忆依赖</strong></td><td>短期（会话上下文）</td><td>中期（画像）+ 长期（图谱）</td><td>中期（画像+历史预警）</td><td>短期（会话上下文）</td><td>短期 + 中期（权限）</td></tr>
+<tr><td><strong>回复模式</strong></td><td>文本 + 来源引用</td><td>推荐列表 + 理由</td><td>预警 + 处置建议</td><td>数据表格 + 解读</td><td>确认框 + 执行结果</td></tr>
+<tr><td><strong>安全等级</strong></td><td>低（只读+推荐）</td><td>中（涉及推荐）</td><td>高（涉及预警）</td><td>中（涉及数据）</td><td>高（涉及写操作）</td></tr>
+</tbody>
+</table>
+
+<h2 id="1.3-统一推理范式">1.3 统一推理范式</h2>
+
+<p>所有 Agent 的推理过程都遵循 <strong>"观察 → 判断 → 行动 → 反思"</strong> 四步范式，区别仅在于每一步的"粒度"和"工具"不同：</p>
+
+<div class="mermaid">
+flowchart LR
+    A[Observe<br/>观察输入] --> B[Judge<br/>意图判断]
+    B --> C[Act<br/>执行动作]
+    C --> D[Reflect<br/>结果反思]
+
+    subgraph 客服
+        A1[用户问题] --> B1[意图分类]
+        B1 --> C1[RAG 检索 + LLM 回复]
+        C1 --> D1[来源引用]
+    end
+
+    subgraph 投顾
+        A2[用户请求 + 画像] --> B2[需求拆解]
+        B2 --> C2[适当性过滤+图谱分析]
+        C2 --> D2[推荐理由生成]
+    end
+
+    subgraph 风控
+        A3[交易事件流] --> B3[规则匹配]
+        B3 --> C3[预警分级 + 工单生成]
+        C3 --> D3[置信度评估]
+    end
+
+    subgraph 数据分析
+        A4[自然语言查询] --> B4[SQL 生成]
+        B4 --> C4[执行 + 安全校验]
+        C4 --> D4[结果解读]
+    end
+
+    subgraph 业务操作
+        A5[操作指令] --> B5[意图识别 + 参数提取]
+        B5 --> C5[权限校验 + 二次确认]
+        C5 --> D5[执行结果验证]
+    end
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style B fill:#fff3e0,stroke:#f57c00
+    style C fill:#c8e6c9,stroke:#388e3c
+    style D fill:#e1bee7,stroke:#6a1b9a
+</div>
+
+<hr>
+
+<!-- ==================== 2 ==================== -->
+<h1 id="2. 智能客服 Agent">2. 智能客服 Agent</h1>
+
+<div class="agent-card customer">
+<span class="agent-badge customer">Agent: Customer Service</span>
+<h3>服务对象：零售客户 / 高净值客户</h3>
+<p>核心职责：提供 7×24 小时金融产品咨询、政策解读、FAQ 回复，并在无法回答时优雅地转人工。</p>
+
+<h2 id="2.1-架构设计">2.1 架构设计</h2>
+
+<div class="mermaid">
+flowchart TD
+    A[用户输入] --> B{意图分类器<br/>5 类意图}
+
+    B -->|产品咨询| C1[知识库检索]
+    B -->|政策解读| C2[政策库检索]
+    B -->|FAQ| C3[FAQ 库检索]
+    B -->|闲聊| C4[LLM 直接回复]
+    B -->|转人工| C5[返回转接消息]
+
+    C1 --> D{Score ≥ 0.7?}
+    C2 --> D
+    C3 --> D
+
+    D -->|是| E[LLM 生成回答<br/>+ 来源引用]
+    D -->|否| F[兜底回复<br/>引导人工客服]
+
+    E --> G[流式输出]
+    F --> G
+    C4 --> G
+    C5 --> G
+
+    G --> H[会话写入 Redis<br/>30min TTL]
+    H --> I[归档至 conversation_archive]
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style B fill:#fff3e0,stroke:#f57c00
+    style E fill:#c8e6c9,stroke:#2e7d32
+    style F fill:#ffcdd2,stroke:#c62828
+    style G fill:#b3e5fc,stroke:#0288d1
+</div>
+
+<h2 id="2.2-意图分类体系">2.2 意图分类体系</h2>
+
+<p>客服 Agent 识别 5 类意图，设计原因见下：</p>
+
+<table class="intent-table">
+<thead><tr><th>意图</th><th>Intent Key</th><th>触发条件</th><th>处理策略</th><th>设计原因</th></tr></thead>
+<tbody>
+<tr><td><strong>产品咨询</strong></td><td><code>product_inquiry</code></td><td>含产品名/收益率/风险等级/起投金额等关键词</td><td>RAG 检索 <code>fin_product_collection</code> → LLM 生成回答</td><td>客户最高频需求，需要精确匹配产品知识库，不可仅靠 LLM 编造</td></tr>
+<tr><td><strong>政策解读</strong></td><td><code>policy_explain</code></td><td>含政策名/监管要求/合规问题/资管新规等关键词</td><td>RAG 检索 <code>fin_policy_collection</code> → LLM 解释</td><td>政策类回答需要权威来源，错误回答有合规风险，必须绑定知识库</td></tr>
+<tr><td><strong>FAQ</strong></td><td><code>faq</code></td><td>操作类问题（申购流程/确认时间/手续费等）</td><td>RAG 检索 <code>fin_faq_collection</code> → 直接返回答案</td><td>FAQ 问题有标准答案，检索效率优先于语义理解深度</td></tr>
+<tr><td><strong>闲聊</strong></td><td><code>chitchat</code></td><td>问候/感谢/无实质内容的表达</td><td>LLM 直接回复 + 友好引导业务话题</td><td>不需要检索资源，避免浪费知识库配额；但不可冷落用户</td></tr>
+<tr><td><strong>转人工</strong></td><td><code>transfer_human</code></td><td>用户明确说"转人工"/"找客服"/多次追问无法回答</td><td>返回转接消息 + 记录原因</td><td>AI 有无法覆盖的边界，优雅转接是服务质量的保障</td></tr>
+</tbody>
+</table>
+
+<p><strong>意图分类器实现</strong>：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">python · 意图分类</span></div>
+<pre><code>CUSTOMER_INTENT_PROMPT = """
+判断用户意图，从以下 5 类中选择：
+- product_inquiry: 询问具体产品信息（名称/收益率/风险/起投金额）
+- policy_explain: 询问政策、法规、监管要求
+- faq: 操作流程、常见问题（申购流程、确认时间、手续费）
+- chitchat: 问候、感谢、闲聊
+- transfer_human: 要求转人工
+
+只返回 JSON: {"intent": "...", "confidence": 0.X}
+"""
+
+class CustomerAgent(AgentBase):
+    async def classify_intent(self, message: str) -> Intent:
+        result = await self.llm.classify(
+            system=CUSTOMER_INTENT_PROMPT,
+            user=message,
+            schema=IntentSchema
+        )
+        return Intent(**result)
+
+    def _intent_threshold(self) -> float:
+        return 0.6  # 低于此值触发"澄清提问"
+
+    def _scenario_name(self) -> str:
+        return "知识检索"  # 记忆重排场景</code></pre>
+</div>
+
+<h2 id="2.3-推理范式">2.3 推理范式</h2>
+
+<p>客服 Agent 的推理遵循 <strong>"检索优先"（Retrieve-then-Generate）</strong> 范式：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">python · 推理范式</span></div>
+<pre><code>async def _handle_knowledge_intent(self, intent: str, request: ChatRequest) -> str:
+    """知识类意图的推理范式：检索 → 评分 → 生成/兜底"""
+    # 1. 检索
+    collection = self._select_collection(intent)  # product/policy/faq
+    results = await self.rag_tool.search(
+        query=request.message,
+        collection=collection,
+        top_k=5,
+        min_score=0.7
+    )
+
+    # 2. 评分判断
+    if not results or results[0].score < 0.7:
+        return self._fallback_response()  # 兜底
+
+    # 3. 构建 System Prompt（含检索结果 + 来源）
+    system = self._build_rag_system(results, intent)
+
+    # 4. LLM 生成回答（要求附带来源）
+    reply = await self.llm.generate(
+        system=system,
+        user=request.message,
+        temperature=0.3  # 低温度：要求事实准确
+    )
+
+    return reply
+
+def _build_rag_system(self, results: list, intent: str) -> str:
+    """构建 RAG System Prompt"""
+    context = "\n".join(
+        f"【来源{i+1}】{r.source}\n{r.content}"
+        for i, r in enumerate(results)
+    )
+    return f"""你是XX科技的智能财富管家。请基于以下知识回答用户问题：
+
+{context}
+
+回答要求：
+1. 仅基于上述知识回答，不要编造信息
+2. 回答末尾注明引用来源：【来源：《XXX》】
+3. 如果知识不足以回答问题，诚实告知并建议联系人工客服
+4. 语言友好、专业、简洁"""</code></pre>
+</div>
+
+<h2 id="2.4-设计原因">2.4 设计原因</h2>
+
+<ul>
+  <li><strong>为什么用 RAG 而非纯 LLM？</strong>——金融产品的收益率、风险等级、起投金额等数据频繁变化，LLM 的训练数据是静态的，无法保证时效性。RAG 从知识库实时检索，确保回答基于最新数据。</li>
+  <li><strong>为什么 FAQ 用独立集合？</strong>——FAQ 数据量小（40条），但命中率极高。独立集合可以用 HNSW 索引实现亚秒级响应，无需与产品/政策数据混用 IVF_FLAT。</li>
+  <li><strong>为什么 temperature=0.3？</strong>——客服回答需要事实准确性，低 temperature 减少 LLM 的自由发挥，防止编造不存在的利率或条款。</li>
+  <li><strong>为什么 Score 阈值 0.7？</strong>——低于 0.7 意味着检索到的知识与用户问题的关联度不足，强行生成容易"幻觉"，此时兜底比编造更安全。</li>
+</ul>
+
+</div><!-- end agent-card -->
+
+<!-- ==================== 3 ==================== -->
+<h1 id="3. 投顾助手 Agent">3. 投顾助手 Agent</h1>
+
+<div class="agent-card advisor">
+<span class="agent-badge advisor">Agent: Investment Advisor</span>
+<h3>服务对象：理财顾问</h3>
+<p>核心职责：基于客户画像和知识图谱，为理财顾问提供个性化的产品推荐、资产配置建议和持仓分析。</p>
+
+<h2 id="3.1-架构设计">3.1 架构设计</h2>
+
+<div class="mermaid">
+flowchart TD
+    A[理财顾问输入] --> B[读取客户画像<br/>Redis/MySQL]
+    B --> C{画像是否存在?}
+    C -->|否| D[提示：该客户暂无画像<br/>建议先做风评]
+    C -->|是| E[意图分类]
+
+    E -->|产品推荐| F1[适当性过滤]
+    E -->|持仓分析| F2[图谱穿透查询]
+    E -->|资产配置| F3[画像分析 + 配置模型]
+    E -->|对比分析| F4[多客户/多产品图谱对比]
+
+    F1 --> G1[图谱增强检索<br/>行业/市场/经理关联]
+    G1 --> H1[综合排序<br/>收益率×风险×期限]
+    H1 --> I1[生成推荐理由]
+
+    F2 --> G2[Neo4j 多跳<br/>客户→持仓→产品→行业]
+    G2 --> H2[集中度分析]
+    H2 --> I2[风险提示]
+
+    F3 --> G3[画像标签提取]
+    G3 --> H3[配置模型匹配]
+    H3 --> I3[比例建议]
+
+    F4 --> G4[图谱交集查询]
+    G4 --> H4[差异对比]
+    H4 --> I4[对比报告]
+
+    I1 --> J[流式输出]
+    I2 --> J
+    I3 --> J
+    I4 --> J
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style B fill:#c8e6c9,stroke:#388e3c
+    style E fill:#fff3e0,stroke:#f57c00
+    style F1 fill:#fff9c4,stroke:#f9a825
+    style F2 fill:#fff9c4,stroke:#f9a825
+    style F3 fill:#fff9c4,stroke:#f9a825
+    style F4 fill:#fff9c4,stroke:#f9a825
+    style J fill:#b3e5fc,stroke:#0288d1
+</div>
+
+<h2 id="3.2-意图分类体系">3.2 意图分类体系</h2>
+
+<table class="intent-table">
+<thead><tr><th>意图</th><th>Intent Key</th><th>触发条件</th><th>处理策略</th><th>设计原因</th></tr></thead>
+<tbody>
+<tr><td><strong>产品推荐</strong></td><td><code>product_recommend</code></td><td>"推荐"/"有什么适合"/"给客户推荐"</td><td>画像读取 → 适当性过滤 → 图谱增强 → 综合排序 → 理由生成</td><td>投顾最核心场景，需串联画像、适当性、图谱、排序多个模块</td></tr>
+<tr><td><strong>持仓分析</strong></td><td><code>portfolio_analysis</code></td><td>"持仓"/"集中"/"分布在哪些行业"</td><td>Neo4j 多跳查询 → 行业集中度计算 → 风险提示</td><td>纯 RAG 无法做结构化分析，必须依赖图谱的多跳关联能力</td></tr>
+<tr><td><strong>资产配置</strong></td><td><code>asset_allocation</code></td><td>"配置比例"/"怎么分配"/"资产建议"</td><td>画像标签提取 → 配置模型匹配 → 比例建议</td><td>需要基于风险等级和资产规模生成比例，是"推理"而非"检索"</td></tr>
+<tr><td><strong>对比分析</strong></td><td><code>comparison</code></td><td>"共同持仓"/"有什么不同"/"对比"</td><td>图谱交集查询 → 差异提取 → 对比报告</td><td>多实体对比是图谱的天然优势，用 Cypher 比用文本检索更高效</td></tr>
+</tbody>
+</table>
+
+<h2 id="3.3-推理范式">3.3 推理范式</h2>
+
+<p>投顾 Agent 的推理遵循 <strong>"约束满足 + 图谱推理"（Constraint-Satisfy + Graph-Reason）</strong> 范式：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">python · 推理范式</span></div>
+<pre><code>async def _handle_recommend(self, request: ChatRequest,
+                             profile: CustomerProfile) -> Recommendation:
+    """产品推荐推理范式"""
+    # Step 1: 硬性约束过滤（适当性匹配）
+    candidates = await self.suitability_tool.filter(
+        customer_risk_level=profile.risk_level,
+        status="在售"
+    )
+    # 设计原因：先做硬性过滤，避免将不适配的产品送入 LLM 造成误导
+
+    # Step 2: 图谱增强（行业/市场/经理关联分析）
+    for product in candidates:
+        product.graph_context = await self.graph_tool.query(
+            entities=[product.name],
+            query_type="product_context",
+            max_hops=2
+        )
+    # 设计原因：图谱提供 RAG 无法覆盖的结构化关联（同行业风险传染）
+
+    # Step 3: 综合排序
+    ranked = self.rank_tool.score(
+        candidates=candidates,
+        weights={
+            "return": 0.3,       # 预期收益率
+            "risk_match": 0.25,  # 风险匹配度
+            "term_match": 0.15,  # 期限匹配度
+            "diversify": 0.15,   # 行业分散度
+            "graph_signal": 0.15 # 图谱信号强度
+        }
+    )
+    # 设计原因：多因子排序比单一收益率排序更符合投顾专业性
+
+    # Step 4: 推荐理由生成
+    top_n = ranked[:3]
+    reasons = await self.llm.generate_reasons(
+        profile=profile,
+        products=top_n,
+        template=REASON_TEMPLATE
+    )
+    # 设计原因：引用画像信息生成个性化理由，而非通用话术
+
+    return Recommendation(products=top_n, reasons=reasons)
+
+REASON_TEMPLATE = """
+根据以下客户画像信息，为推荐的产品生成个性化推荐理由：
+客户风险等级：{risk_level}
+客户资产规模：{total_assets}
+客户偏好：{product_preference}
+
+推荐产品：{product_name}（{product_type}，{expected_return}%）
+推荐理由需引用画像信息，说明"为什么这个产品适合这位客户"。
+"""</code></pre>
+</div>
+
+<h2 id="3.4-设计原因">3.4 设计原因</h2>
+
+<ul>
+  <li><strong>为什么先过滤再排序？</strong>——适当性匹配是监管红线，不适配的产品根本不应该出现在候选集中。先过滤再排序比先排序后过滤更安全，也避免 LLM 推荐了不适配的产品。</li>
+  <li><strong>为什么需要图谱增强？</strong>——如果客户持仓已集中在新能源行业，推荐时应避免再推荐新能源产品（防止行业集中风险）。这种"持仓穿透"分析只有图谱能在 O(1) 跳数内完成，RAG 做不到。</li>
+  <li><strong>为什么推荐 3 款而非 10 款？</strong>——理财顾问需要的是"精选推荐"而非"产品目录"。3 款足够覆盖不同期限/风险/收益的差异化选择，过多反而增加决策负担。</li>
+  <li><strong>为什么要生成个性化推荐理由？</strong>——通用话术（"该产品收益稳健"）缺乏说服力。引用客户画像（"鉴于您稳健型的风险偏好和债券类偏好..."）能提升理财顾问对 AI 推荐的信任度。</li>
+</ul>
+
+</div>
+
+<!-- ==================== 4 ==================== -->
+<h1 id="4. 风控监测 Agent">4. 风控监测 Agent</h1>
+
+<div class="agent-card risk">
+<span class="agent-badge risk">Agent: Risk Monitor</span>
+<h3>服务对象：风控专员</h3>
+<p>核心职责：实时监测交易流水，匹配反洗钱规则，分级生成预警并广播事件。</p>
+
+<h2 id="4.1-架构设计">4.1 架构设计</h2>
+
+<div class="mermaid">
+flowchart TD
+    A[交易事件流入<br/>Pub/Sub / API] --> B[规则引擎<br/>20条规则逐条匹配]
+
+    B --> C{命中规则数}
+    C -->|0条| D[正常交易<br/>记录日志]
+    C -->|1条| E1[轻度预警 · 蓝色<br/>写入预警表]
+    C -->|2-3条| E2[中度预警 · 黄色<br/>写入预警表 + 工单]
+    C -->|≥3条| E3[重度预警 · 红色<br/>写入预警表 + 工单 + 广播]
+
+    E1 --> F[置信度评估<br/>单规则=低置信]
+    E2 --> F2[置信度评估<br/>多规则=中置信]
+    E3 --> F3[置信度评估<br/>多源=高置信]
+
+    F --> G[生成预警详情]
+    F2 --> G
+    F3 --> G
+
+    G --> H[Redis Pub/Sub 广播<br/>event:risk_alert]
+    H --> I[投顾Agent接收 → 更新画像]
+    H --> J[客服Agent接收 → 标记注意]
+
+    style A fill:#ffebee,stroke:#c62828
+    style B fill:#fff3e0,stroke:#f57c00
+    style E1 fill:#e3f2fd,stroke:#1976d2
+    style E2 fill:#fff9c4,stroke:#f9a825
+    style E3 fill:#ffcdd2,stroke:#c62828
+    style H fill:#b3e5fc,stroke:#0288d1
+</div>
+
+<h2 id="4.2-意图分类体系">4.2 意图分类体系</h2>
+
+<p>风控 Agent 的"意图"实际上是<strong>交易事件的异常类型</strong>，而非用户提问的意图。这是 5 个 Agent 中唯一一个<strong>被动触发型</strong> Agent（其他4个是主动交互型）。</p>
+
+<table class="intent-table">
+<thead><tr><th>异常类型</th><th>Intent Key</th><th>触发规则示例</th><th>处理策略</th><th>设计原因</th></tr></thead>
+<tbody>
+<tr><td><strong>大额交易</strong></td><td><code>large_transaction</code></td><td>R001: 单笔≥5万；R002: 同日累计≥20万</td><td>轻度预警 + 记录</td><td>大额本身不一定违规，但需要留痕，单独一条不足以定罪</td></tr>
+<tr><td><strong>频繁交易</strong></td><td><code>frequent_trading</code></td><td>R003: 7天内≥10次</td><td>中度预警（常与大额的联合触发）</td><td>频繁交易+大额转账是洗钱的典型组合模式</td></tr>
+<tr><td><strong>资金快进快出</strong></td><td><code>quick_in_out</code></td><td>R004: 24h内申购并赎回同一产品</td><td>中度预警 + 人工复核</td><td>正常投资者不会24h内赎回，除非套利或洗钱</td></tr>
+<tr><td><strong>关联交易</strong></td><td><code>related_transaction</code></td><td>R005-008: 关联账户间大额转账</td><td>重度预警 + 工单</td><td>关联交易是反洗钱法规的强制上报类型</td></tr>
+<tr><td><strong>异常行为模式</strong></td><td><code>abnormal_pattern</code></td><td>R009-020: 拆分交易、夜间交易、新开户大额等</td><td>根据规则权重决定预警级别</td><td>这些规则权重较低，单独触发不足以预警，需联合触发</td></tr>
+</tbody>
+</table>
+
+<h2 id="4.3-推理范式">4.3 推理范式</h2>
+
+<p>风控 Agent 的推理遵循 <strong>"规则匹配 → 交叉验证 → 分级决策"（Rule-Match → Cross-Validate → Grade-Decide）</strong> 范式：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">python · 推理范式</span></div>
+<pre><code>async def _process_transaction(self, event: TransactionEvent) -> RiskAlert:
+    """风控推理范式"""
+    # Step 1: 规则匹配（确定性，非 LLM）
+    triggered_rules = []
+    for rule in self.all_rules:  # 20条规则
+        if rule.evaluate(event):
+            triggered_rules.append(rule)
+    # 设计原因：规则匹配必须是确定性的，不能用 LLM 判断"是否≥5万"
+
+    if not triggered_rules:
+        return None  # 正常交易
+
+    # Step 2: 交叉验证（查历史预警 + 行为模式）
+    historical_alerts = await self.history_tool.get_alerts(
+        customer_id=event.customer_id,
+        days=30
+    )
+    is_repeat = any(
+        a.customer_id == event.customer_id and a.alert_type == triggered_rules[0].alert_type
+        for a in historical_alerts
+    )
+
+    # Step 3: 分级决策
+    rule_count = len(triggered_rules)
+    if rule_count == 1 and not is_repeat:
+        level = "low"     # 轻度预警（蓝色）
+    elif rule_count <= 3 or is_repeat:
+        level = "medium"  # 中度预警（黄色）
+    else:
+        level = "high"    # 重度预警（红色）
+
+    # Step 4: 生成预警
+    alert = RiskAlert(
+        customer_id=event.customer_id,
+        alert_type=triggered_rules[0].alert_type,
+        alert_level=level,
+        trigger_rules=[r.rule_id for r in triggered_rules],
+        transaction_ids=[event.transaction_id],
+        confidence=self._calc_risk_confidence(triggered_rules, is_repeat),
+        trigger_detail=self._format_trigger_detail(triggered_rules, event)
+    )
+
+    # Step 5: 持久化 + 广播
+    await self.alert_store.save(alert)
+    if level == "high":
+        await self.event_bus.publish("event:risk_alert", alert.to_dict())
+    await self.work_order_tool.create_if_needed(alert)
+
+    return alert</code></pre>
+</div>
+
+<h2 id="4.4-设计原因">4.4 设计原因</h2>
+
+<ul>
+  <li><strong>为什么规则匹配不用 LLM？</strong>——"交易金额≥5万"是确定性的数值比较，用 LLM 既慢又不保证准确，还引入了不可预测性。规则引擎必须用确定性代码实现。</li>
+  <li><strong>为什么分级是三级而非两级？</strong>——两级（高/低）太粗糙：大量交易和关联交易的严重性完全不同。三级（蓝/黄/红）能更精细地反映风险梯度，且对应不同的处置流程（蓝色→记录、黄色→工单、红色→广播+工单）。</li>
+  <li><strong>为什么重复触发升级？</strong>——同一客户同类型预警反复出现，说明不是一次性异常，而是持续性行为模式。重复触发将置信度从"单次低置信"提升到"持续性高置信"。</li>
+  <li><strong>为什么重度预警要广播？</strong>——红色预警不是风控专员一个人的事，投顾 Agent 需要知道"这个客户有高风险"以调整推荐策略，客服 Agent 需要知道"这个客户来电时需特别注意"。</li>
+</ul>
+
+</div>
+
+<!-- ==================== 5 ==================== -->
+<h1 id="5. 数据分析 Agent">5. 数据分析 Agent</h1>
+
+<div class="agent-card analyst">
+<span class="agent-badge analyst">Agent: Data Analyst</span>
+<h3>服务对象：内部员工</h3>
+<p>核心职责：将自然语言查询转化为 SQL 执行，返回结构化数据和自然语言解读。</p>
+
+<h2 id="5.1-架构设计">5.1 架构设计</h2>
+
+<div class="mermaid">
+flowchart TD
+    A[员工自然语言查询] --> B[动态 Schema 筛选]
+    B --> C[Few-shot 示例注入]
+    C --> D[LLM 生成 SQL]
+    D --> E{安全校验}
+    E -->|通过| F[MySQL 执行]
+    E -->|拒绝| G["返回: 不允许执行该操作"]
+
+    F --> H{结果行数 ≤ 100?}
+    H -->|是| I[结果格式化]
+    H -->|否| J[截断至100行 + 提示]
+
+    I --> K[LLM 结果解读<br/>自然语言描述]
+    J --> K
+
+    K --> L[返回: SQL + 数据表 + 解读]
+    L --> M[NL2SQL 缓存<br/>10min TTL]
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style D fill:#fff3e0,stroke:#f57c00
+    style E fill:#ffcdd2,stroke:#c62828
+    style F fill:#c8e6c9,stroke:#2e7d32
+    style K fill:#b3e5fc,stroke:#0288d1
+    style M fill:#e1bee7,stroke:#6a1b9a
+</div>
+
+<h2 id="5.2-意图分类体系">5.2 意图分类体系</h2>
+
+<p>数据分析 Agent 的意图分类<strong>不是为了路由</strong>（因为所有意图都走 NL2SQL 同一条路），而是为了<strong>优化 Schema 注入和 Few-shot 示例选择</strong>。</p>
+
+<table class="intent-table">
+<thead><tr><th>意图</th><th>Intent Key</th><th>触发条件</th><th>注入表</th><th>Few-shot 示例</th><th>设计原因</th></tr></thead>
+<tbody>
+<tr><td><strong>持仓查询</strong></td><td><code>holdings_query</code></td><td>"持有"/"持仓"/"持有哪些"</td><td><code>fin_holdings</code><br/><code>fin_product</code></td><td>"客户持有哪些产品？"</td><td>持仓场景只需注入2张表，避免10张表DDL全部注入导致 Prompt 过长</td></tr>
+<tr><td><strong>收益统计</strong></td><td><code>return_stats</code></td><td>"收益率"/"收益"/"平均收益"</td><td><code>fin_holdings</code><br/><code>fin_product</code><br/><code>fin_transaction</code></td><td>"各产品平均收益率"</td><td>收益统计需要关联产品和持仓的聚合计算</td></tr>
+<tr><td><strong>交易记录</strong></td><td><code>transaction_query</code></td><td>"交易记录"/"最近交易"/"转账记录"</td><td><code>fin_transaction</code><br/><code>fin_product</code></td><td>"最近30天的交易"</td><td>交易记录只需交易表和产品表</td></tr>
+<tr><td><strong>客户统计</strong></td><td><code>customer_stats</code></td><td>"有多少客户"/"AUM超过"/"客户总数"</td><td><code>sys_user</code><br/><code>fin_customer_profile</code><br/><code>fin_holdings</code></td><td>"AUM超过100万的客户数"</td><td>客户统计需要用户表和画像表的关联</td></tr>
+<tr><td><strong>产品统计</strong></td><td><code>product_stats</code></td><td>"产品总数"/"各类型数量"/"在售产品"</td><td><code>fin_product</code></td><td>"各类型产品数量"</td><td>最简单的场景，单表查询即可</td></tr>
+<tr><td><strong>工单查询</strong></td><td><code>workorder_query</code></td><td>"工单"/"待处理"/"工单状态"</td><td><code>biz_work_order</code><br/><code>sys_user</code></td><td>"查看待处理工单"</td><td>工单查询是运营管理场景，与其他查询不同</td></tr>
+</tbody>
+</table>
+
+<h2 id="5.3-推理范式">5.3 推理范式</h2>
+
+<p>数据分析 Agent 的推理遵循 <strong>"生成-校验-执行-解读"（Generate-Validate-Execute-Interpret）</strong> 范式：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">python · 推理范式</span></div>
+<pre><code>async def _handle_query(self, request: ChatRequest) -> NL2SQLResult:
+    """NL2SQL 推理范式"""
+    # Step 1: 意图分类 → 选择 Schema + Few-shot
+    intent = await self.classify_intent(request.message)
+    schema = self._get_schema_for_intent(intent)
+    few_shots = self._get_few_shots_for_intent(intent)
+
+    # Step 2: 构建 SQL 生成 Prompt
+    system = f"""你是一个SQL专家。根据以下表结构，将自然语言转为SQL。
+
+表结构（DDL）：
+{schema}
+
+示例：
+{few_shots}
+
+要求：
+- 只允许 SELECT 语句
+- 使用表别名提高可读性
+- 日期用 CURRENT_DATE 而非硬编码"""
+
+    # Step 3: LLM 生成 SQL
+    sql = await self.llm.generate(system=system, user=request.message)
+
+    # Step 4: 安全校验（正则）
+    DANGEROUS = re.compile(r'\b(DROP|DELETE|UPDATE|INSERT|ALTER|TRUNCATE|GRANT|REVOKE)\b', re.I)
+    if DANGEROUS.search(sql):
+        return NL2SQLResult(error="不允许执行该操作", sql=None)
+
+    # Step 5: 执行 + 行数限制
+    try:
+        rows = await self.db.execute(sql + " LIMIT 100")
+    except Exception as e:
+        return NL2SQLResult(error=f"SQL执行失败: {e}", sql=sql)
+
+    # Step 6: 结果解读
+    interpretation = await self.llm.interpret(
+        query=request.message,
+        sql=sql,
+        result_preview=rows[:10],  # 只给前10行给LLM，省Token
+        total_rows=len(rows)
+    )
+
+    # Step 7: 缓存
+    cache_key = hashlib.md5(f"{request.message}:{schema}".encode()).hexdigest()
+    await self.cache.set(f"nl2sql:{cache_key}", json.dumps({
+        "sql": sql, "rows": rows, "interpretation": interpretation
+    }), ttl=600)  # 10分钟
+
+    return NL2SQLResult(sql=sql, rows=rows, interpretation=interpretation)</code></pre>
+</div>
+
+<h2 id="5.4-设计原因">4.4 设计原因</h2>
+
+<ul>
+  <li><strong>为什么用动态 Schema 筛选？</strong>——10 张表的 DDL 全部注入会超过 4000 token，既浪费又降低生成质量。按意图筛选到 1-3 张表，LLM 聚焦度更高。</li>
+  <li><strong>为什么只给前 10 行给 LLM 解读？</strong>——LLM 不擅长处理 100 行数据。给 10 行样例 + 总数统计，LLM 就能生成准确的文字描述，同时节省 90% 的 Token。</li>
+  <li><strong>为什么缓存 10 分钟？</strong>——金融数据查询有实时性要求，但同一问题在 10 分钟内重复问的概率很高（比如开会时多个人问同一问题）。10 分钟平衡了实时性和性能。</li>
+  <li><strong>为什么用正则而非 AST 校验？</strong>——正则简单直接，覆盖所有危险操作。AST 校验更精确但实现复杂。对于内部系统，正则的误判率可接受（宁可多拦截一条也不能放过一条）。</li>
+</ul>
+
+</div>
+
+<!-- ==================== 6 ==================== -->
+<h1 id="6. 业务操作 Agent">6. 业务操作 Agent</h1>
+
+<div class="agent-card operator">
+<span class="agent-badge operator">Agent: Business Operator</span>
+<h3>服务对象：客户经理</h3>
+<p>核心职责：将自然语言操作指令转化为 API 调用，完成申购、赎回、转账等业务操作。</p>
+
+<h2 id="6.1-架构设计">6.1 架构设计</h2>
+
+<div class="mermaid">
+flowchart TD
+    A[操作指令<br/>自然语言] --> B[意图识别<br/>8 种业务意图]
+
+    B --> C[Function Calling<br/>参数提取]
+
+    C --> D{参数完整性?}
+    D -->|缺失| E[追问缺失参数<br/>"请问申购金额是多少？"]
+    D -->|完整| F[RBAC 权限校验]
+
+    F -->|无权限| G["返回: 您无权执行该操作"]
+    F -->|有权限| H{是否需二次确认?}
+
+    H -->|否| I[直接执行 API]
+    H -->|申购>1万/转账>5万| J[二次确认<br/>"确认执行XXX？"]
+
+    J --> K{用户确认?}
+    K -->|是| I
+    K -->|否| L["操作已取消"]
+
+    I --> M{执行结果}
+    M -->|成功| N[返回成功 + 详情<br/>+ 生成工单]
+    M -->|失败| O[返回失败原因<br/>+ 建议操作]
+
+    N --> P[通知风控 Agent<br/>大额交易事件]
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style B fill:#fff3e0,stroke:#f57c00
+    style F fill:#ffcdd2,stroke:#c62828
+    style I fill:#c8e6c9,stroke:#2e7d32
+    style J fill:#fff9c4,stroke:#f9a825
+    style N fill:#b3e5fc,stroke:#0288d1
+    style P fill:#ffebee,stroke:#c62828
+</div>
+
+<h2 id="6.2-意图分类体系">6.2 意图分类体系</h2>
+
+<table class="intent-table">
+<thead><tr><th>意图</th><th>Intent Key</th><th>示例指令</th><th>权限要求</th><th>二次确认</th><th>设计原因</th></tr></thead>
+<tbody>
+<tr><td><strong>产品申购</strong></td><td><code>purchase</code></td><td>"帮客户A申购10万XX产品"</td><td>理财顾问</td><td>金额>1万</td><td>最高频业务操作，涉及资金变动，必须确认和权限控制</td></tr>
+<tr><td><strong>产品赎回</strong></td><td><code>redeem</code></td><td>"赎回客户B持有的XX全部份额"</td><td>理财顾问</td><td>份额>1万份</td><td>赎回是资金流出，影响客户资产，需要风控联动</td></tr>
+<tr><td><strong>转账</strong></td><td><code>transfer</code></td><td>"把客户A的50万转到客户B"</td><td>客户经理</td><td>金额>5万</td><td>最高风险操作之一，触发反洗钱规则，需严格权限+确认</td></tr>
+<tr><td><strong>风评重做</strong></td><td><code>risk_reassess</code></td><td>"给客户A重新做风评"</td><td>理财顾问</td><td>否</td><td>低风险操作，但影响客户画像，需记录操作日志</td></tr>
+<tr><td><strong>信息更新</strong></td><td><code>info_update</code></td><td>"把客户A的手机号改成..."</td><td>客户经理</td><td>否</td><td>信息变更涉及客户隐私，操作人需有对应权限</td></tr>
+<tr><td><strong>产品查询</strong></td><td><code>product_query</code></td><td>"查XX产品最新净值"</td><td>员工/顾问</td><td>否</td><td>只读操作，无需确认，但不同于客服的产品推荐</td></tr>
+<tr><td><strong>可疑上报</strong></td><td><code>suspicious_report</code></td><td>"上报客户A的可疑交易"</td><td>风控专员</td><td>否</td><td>合规强制要求，上报后自动生成工单并通知监管</td></tr>
+<tr><td><strong>工单创建</strong></td><td><code>workorder_create</code></td><td>"为客户A创建投诉工单"</td><td>客户经理</td><td>否</td><td>工单系统入口，需分类工单类型和优先级</td></tr>
+</tbody>
+</table>
+
+<h2 id="6.3-推理范式">6.3 推理范式</h2>
+
+<p>业务操作 Agent 的推理遵循 <strong>"解析 → 校验 → 确认 → 执行 → 验证"（Parse → Validate → Confirm → Execute → Verify）</strong> 范式，是安全等级最高的 Agent：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">python · 推理范式</span></div>
+<pre><code># 8 种意图的 Function Calling 定义
+OPERATION_TOOLS = {
+    "purchase": {
+        "name": "purchase_product",
+        "description": "执行基金申购操作",
+        "parameters": {
+            "customer_id": {"type": "integer", "required": True},
+            "product_code": {"type": "string", "required": True},
+            "amount": {"type": "number", "required": True},
+        }
+    },
+    "redeem": {
+        "name": "redeem_product",
+        "description": "执行基金赎回操作",
+        "parameters": {
+            "customer_id": {"type": "integer", "required": True},
+            "product_code": {"type": "string", "required": True},
+            "shares": {"type": "number", "required": True},
+        }
+    },
+    # ... 其余 6 种
+}
+
+class BusinessOperatorAgent(AgentBase):
+    async def _handle_operation(self, request: ChatRequest) -> OperationResult:
+        """业务操作推理范式"""
+        # Step 1: 意图识别 + 参数提取（Function Calling）
+        intent, params = await self._parse_operation(request.message)
+
+        # Step 2: 参数完整性校验
+        required = self._get_required_params(intent)
+        missing = [p for p in required if p not in params]
+        if missing:
+            return self._ask_missing_params(missing)
+
+        # Step 3: RBAC 权限校验
+        if not self._check_permission(request.user_role, intent):
+            return OperationResult(
+                status="denied",
+                reply=f"您（{request.user_role}）无权执行{intent}操作"
+            )
+
+        # Step 4: 二次确认（高风险操作）
+        if self._needs_confirmation(intent, params):
+            confirm_msg = self._build_confirm_message(intent, params)
+            if not await self._wait_for_confirm(confirm_msg):
+                return OperationResult(status="cancelled")
+
+        # Step 5: 执行 API
+        try:
+            result = await self._execute_api(intent, params)
+        except BusinessException as e:
+            return OperationResult(status="failed", reply=str(e))
+
+        # Step 6: 执行验证 + 工单
+        if result.success:
+            await self.work_order_tool.create_operation_order(
+                intent=intent, params=params, result=result
+            )
+            # 大额交易通知风控
+            if self._is_large_transaction(intent, params):
+                await self.event_bus.publish("event:large_transaction", {
+                    "customer_id": params["customer_id"],
+                    "amount": params.get("amount", 0),
+                    "operation": intent
+                })
+
+        return OperationResult(
+            status="success" if result.success else "failed",
+            reply=result.format_human_message()
+        )</code></pre>
+</div>
+
+<h2 id="6.4-设计原因">6.4 设计原因</h2>
+
+<ul>
+  <li><strong>为什么用 Function Calling 而非 Prompt 提取？</strong>——Function Calling 有结构化输出保证（JSON Schema），参数类型和必填项有 LLM 内置校验。正则提取无法处理"帮我给客户张三买10万XX稳健增利"这种需要同时提取客户名、金额、产品名的复杂指令。</li>
+  <li><strong>为什么二次确认阈值是 1 万/5 万？</strong>——申购 1 万是中等金额，对大多数客户而言需要确认；转账 5 万是反洗钱监管的关注线。阈值可配置，但默认值需要覆盖大多数正常交易场景。</li>
+  <li><strong>为什么执行后要生成工单？</strong>——工单是审计留痕的载体。没有工单的操作是"不可追溯"的，不符合金融合规要求。工单包含操作人、操作时间、操作内容、执行结果，是事后审计的关键数据。</li>
+  <li><strong>为什么大额交易要通知风控？</strong>——业务操作和风控监测不是孤立的。一笔申购操作本身是正常的，但如果该客户今天已经被风控标记为"高频交易"，则这次操作可能进一步触发预警。跨 Agent 的信息联动是风控体系的核心价值。</li>
+</ul>
+
+</div>
+
+<!-- ==================== 7 ==================== -->
+<h1 id="7. 跨 Agent 协作">7. 跨 Agent 协作</h1>
+
+<h2 id="7.1-事件通信架构">7.1 事件通信架构</h2>
+
+<p>Agent 之间不直接调用，而是通过 <strong>Redis Pub/Sub 事件总线</strong> 解耦。发布者不知道谁会接收，接收者也不需要知道谁发布的——这是松耦合的异步通信模式。</p>
+
+<div class="mermaid">
+flowchart TD
+    subgraph 发布事件
+        A1[风控 Agent] -->|"发布 risk_alert"| B[Redis Pub/Sub]
+        A2[业务操作 Agent] -->|"发布 large_transaction"| B
+        A3[客服 Agent] -->|"发布 suspicious_intent"| B
+    end
+
+    subgraph 消费事件
+        B -->|"event:risk_alert"| C1[投顾 Agent<br/>更新客户风险标记]
+        B -->|"event:risk_alert"| C2[客服 Agent<br/>标记高风险客户]
+        B -->|"event:large_transaction"| C3[风控 Agent<br/>累计交易频次]
+        B -->|"event:suspicious_intent"| C4[风控 Agent<br/>关注客户行为]
+    end
+
+    style A1 fill:#ffcdd2,stroke:#c62828
+    style A2 fill:#fbe9e7,stroke:#d84315
+    style A3 fill:#e3f2fd,stroke:#1976d2
+    style B fill:#fff3e0,stroke:#f57c00
+    style C1 fill:#e8f5e9,stroke:#2e7d32
+    style C2 fill:#e3f2fd,stroke:#1976d2
+    style C3 fill:#ffcdd2,stroke:#c62828
+    style C4 fill:#ffcdd2,stroke:#c62828
+</div>
+
+<p><strong>事件消息格式</strong>：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">json · 事件消息</span></div>
+<pre><code>{
+    "event_type": "risk_alert",
+    "source_agent": "risk",
+    "payload": {
+        "alert_id": "ALT20250626001",
+        "customer_id": 10001,
+        "alert_level": "high",
+        "trigger_rules": ["R001", "R003"],
+        "confidence": 0.78
+    },
+    "timestamp": "2025-06-26T10:30:00+08:00",
+    "trace_id": "uuid-for-tracing"
+}</code></pre>
+</div>
+
+<h2 id="7.2-意图路由与转发">7.2 意图路由与转发</h2>
+
+<p>除了事件通信，Agent 之间还存在<strong>意图转发</strong>——当用户的问题不属于当前 Agent 的处理范围时，将其路由到正确的 Agent：</p>
+
+<div class="mermaid">
+flowchart TD
+    A[用户统一入口<br/>POST /api/chat] --> B[统一意图分类<br/>20+ 种全局意图]
+
+    B --> C{意图归属}
+    C -->|产品咨询/FAQ| D[客服 Agent]
+    C -->|产品推荐/持仓分析| E[投顾 Agent]
+    C -->|交易异常| F[风控 Agent]
+    C -->|数据统计| G[数据分析 Agent]
+    C -->|申购/赎回/转账| H[业务操作 Agent]
+
+    D --> I[执行]
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+
+    I --> J[统一响应格式<br/>reply + confidence + suggestions]
+
+    style A fill:#e3f2fd,stroke:#1976d2
+    style B fill:#fff3e0,stroke:#f57c00
+    style J fill:#c8e6c9,stroke:#2e7d32
+</div>
+
+<h2 id="7.3-协作场景示例">7.3 协作场景示例</h2>
+
+<div class="phase-card">
+<h4>场景一：客户咨询 → 申购 → 风控联动</h4>
+<ol>
+  <li><strong>客户</strong>问客服 Agent："有什么年化5%以上的稳健型理财？"</li>
+  <li><strong>客服 Agent</strong>通过 RAG 检索产品知识库，推荐 3 款产品</li>
+  <li><strong>客户</strong>决定申购，客服 Agent 引导到业务操作 Agent（或提示客户联系理财顾问）</li>
+  <li><strong>理财顾问</strong>通过业务操作 Agent 执行申购："帮客户A申购10万XX稳健增利债券A"</li>
+  <li><strong>业务操作 Agent</strong>校验权限 → 二次确认 → 执行申购</li>
+  <li><strong>业务操作 Agent</strong>发布 <code>event:large_transaction</code>（金额10万 > 5万阈值）</li>
+  <li><strong>风控 Agent</strong>接收事件 → 匹配规则 R001（单笔≥5万）→ 轻度预警（蓝色）</li>
+  <li><strong>风控 Agent</strong>查历史：该客户30天内无预警 → 保持蓝色，仅记录</li>
+</ol>
+</div>
+
+<div class="phase-card">
+<h4>场景二：风控 → 投顾联动</h4>
+<ol>
+  <li><strong>风控 Agent</strong>监测到客户B连续3天大额申购 → 触发 R001+R002+R003 → 红色预警</li>
+  <li><strong>风控 Agent</strong>发布 <code>event:risk_alert</code>（alert_level=high）</li>
+  <li><strong>投顾 Agent</strong>接收事件 → 在客户B画像中标记 "高风险-待核实"</li>
+  <li><strong>投顾 Agent</strong>下次为客户B做推荐时，自动降低高风险产品的推荐权重</li>
+  <li><strong>客服 Agent</strong>接收事件 → 客户B来电时，客服界面显示"该客户存在风控预警"</li>
+</ol>
+</div>
+
+<hr>
+
+<!-- ==================== 8 ==================== -->
+<h1 id="8. 工具清单与接口">8. 工具清单与接口</h1>
+
+<h2 id="8.1-全量工具清单">8.1 全量工具清单</h2>
+
+<table>
+<thead><tr><th>工具</th><th>所属Agent</th><th>输入</th><th>输出</th><th>技术实现</th></tr></thead>
+<tbody>
+<tr><td><code>rag_search</code></td><td>客服</td><td>query, collection, top_k, min_score</td><td>TopK 文档片段 + Score</td><td>Milvus 向量检索</td></tr>
+<tr><td><code>suitability_filter</code></td><td>投顾</td><td>risk_level, status</td><td>匹配的产品列表</td><td>MySQL 查询 + 规则</td></tr>
+<tr><td><code>graph_query</code></td><td>投顾</td><td>entities, query_type, max_hops</td><td>关联实体 + 关系路径</td><td>Neo4j Cypher</td></tr>
+<tr><td><code>rank_products</code></td><td>投顾</td><td>candidates, weights</td><td>排序后的产品列表</td><td>多因子加权排序</td></tr>
+<tr><td><code>risk_rule_match</code></td><td>风控</td><td>transaction_event</td><td>触发的规则列表</td><td>20条规则引擎</td></tr>
+<tr><td><code>alert_store</code></td><td>风控</td><td>RiskAlert 对象</td><td>保存/查询结果</td><td>MySQL fin_risk_alert</td></tr>
+<tr><td><code>history_tool</code></td><td>风控</td><td>customer_id, days</td><td>历史预警列表</td><td>MySQL 查询</td></tr>
+<tr><td><code>nl2sql</code></td><td>数据分析</td><td>query, schema, few_shots</td><td>SQL 语句</td><td>LLM + Schema 注入</td></tr>
+<tr><td><code>sql_executor</code></td><td>数据分析</td><td>SQL 语句</td><td>查询结果集</td><td>MySQL 执行 + 行数限制</td></tr>
+<tr><td><code>sql_safety</code></td><td>数据分析</td><td>SQL 语句</td><td>通过/拒绝</td><td>正则校验</td></tr>
+<tr><td><code>nl2api</code></td><td>业务操作</td><td>command, schema</td><td>API 名称 + 参数</td><td>LLM Function Calling</td></tr>
+<tr><td><code>permission_checker</code></td><td>业务操作</td><td>user_role, intent</td><td>允许/拒绝</td><td>RBAC 权限矩阵</td></tr>
+<tr><td><code>confirm_dialog</code></td><td>业务操作</td><td>确认消息</td><td>确认/取消</td><td>交互式对话</td></tr>
+<tr><td><code>work_order_tool</code></td><td>业务操作/风控</td><td>操作详情</td><td>工单编号</td><td>MySQL biz_work_order</td></tr>
+<tr><td><code>event_bus</code></td><td>全部</td><td>channel, payload</td><td>发布/订阅结果</td><td>Redis Pub/Sub</td></tr>
+<tr><td><code>profile_tool</code></td><td>投顾/风控</td><td>customer_id</td><td>客户画像</td><td>Redis 缓存 + MySQL 回源</td></tr>
+</tbody>
+</table>
+
+<h2 id="8.2-工具调用协议">8.2 工具调用协议</h2>
+
+<p>所有工具遵循统一的调用协议，确保 Agent 可以跨工具协作：</p>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">json · 工具请求</span></div>
+<pre><code>{
+    "tool_name": "rag_search",
+    "parameters": {
+        "query": "有什么年化5%以上的稳健型理财？",
+        "collection": "fin_product_collection",
+        "top_k": 5,
+        "min_score": 0.7
+    },
+    "caller_agent": "customer",
+    "trace_id": "uuid-for-tracing"
+}</code></pre>
+</div>
+
+<div class="code-block">
+<div class="code-header"><span class="code-lang">json · 工具响应</span></div>
+<pre><code>{
+    "tool_name": "rag_search",
+    "result": [
+        {
+            "content": "XX稳健增利债券A，预期年化5.2%...",
+            "score": 0.89,
+            "source": "个人理财产品手册.md"
+        }
+    ],
+    "execution_time_ms": 150,
+    "status": "success"
+}</code></pre>
+</div>
+
+<blockquote class="callout-info"><p><strong>💡 执行时间追踪</strong>：每个工具响应都携带 <code>execution_time_ms</code>，用于性能监控和超时降级。当某个工具执行超过阈值时（如 Milvus > 2s），骨架自动触发降级策略，不会让整个 Agent 请求挂起。</p></blockquote>
+
+</div><!-- end doc-container -->
+</main>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#e3f2fd',
+    primaryTextColor: '#1e293b',
+    primaryBorderColor: '#1976d2',
+    lineColor: '#64748b',
+    secondaryColor: '#fff3e0',
+    tertiaryColor: '#f4f1eb',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '14px',
+  },
+  flowchart: {
+    curve: 'basis',
+    padding: 15,
+  },
+  securityLevel: 'loose',
+});
+
+// ── Progress bar ──
+const bar = document.getElementById('progress-bar');
+function updateProgress() {
+  const h = document.documentElement;
+  const pct = ((h.scrollTop) / (h.scrollHeight - h.clientHeight)) * 100;
+  bar.style.width = Math.min(100, pct) + '%';
+}
+window.addEventListener('scroll', updateProgress);
+
+// ── Topbar title ──
+const topbarTitle = document.getElementById('topbar-title');
+const headings = document.querySelectorAll('.doc-container h1[id], .doc-container h2[id], .doc-container h3[id]');
+function updateTopbar() {
+  let current = '';
+  headings.forEach(h => {
+    if (h.getBoundingClientRect().top <= 120) current = h.textContent;
+  });
+  if (current) topbarTitle.textContent = current;
+}
+window.addEventListener('scroll', updateTopbar);
+
+// ── TOC active state ──
+const tocLinks = document.querySelectorAll('.toc-item');
+function updateToc() {
+  let activeId = '';
+  headings.forEach(h => {
+    if (h.getBoundingClientRect().top <= 120) activeId = h.id;
+  });
+  tocLinks.forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === '#' + activeId);
+  });
+}
+window.addEventListener('scroll', updateToc);
+
+// ── Collapsible TOC groups ──
+document.querySelectorAll('.toc-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const kids = btn.nextElementSibling;
+    const arr = btn.querySelector('.arr');
+    btn.classList.toggle('active');
+    kids.classList.toggle('open');
+    arr.classList.toggle('open');
+  });
+});
+
+// ── TOC search ──
+const tocSearch = document.getElementById('toc-search');
+tocSearch.addEventListener('input', () => {
+  const q = tocSearch.value.toLowerCase();
+  document.querySelectorAll('.toc-item, .toc-toggle').forEach(item => {
+    item.style.display = (!q || item.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+});
+
+// ── Initial calls ──
+updateProgress();
+updateTopbar();
+updateToc();
+</script>
+</body>
+</html>
