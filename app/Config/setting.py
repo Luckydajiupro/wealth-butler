@@ -185,6 +185,20 @@ class DeepSeekSettings(BaseEnvSettings):
 
 
 # =========================
+# Ollama（本地向量模型）
+# =========================
+class OllamaSettings(BaseEnvSettings):
+    base_url: str = "http://127.0.0.1:11434/v1"
+    embedding_model: str = "bge-m3"
+    default_model: Optional[str] = None
+
+    model_config = SettingsConfigDict(
+        env_prefix="OLLAMA_",
+        extra="ignore",
+    )
+
+
+# =========================
 # Redis
 # =========================
 class RedisSettings(BaseEnvSettings):
@@ -339,6 +353,7 @@ class Settings(BaseEnvSettings):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     dashscope: DashScopeSettings = Field(default_factory=DashScopeSettings)
     deepseek: DeepSeekSettings = Field(default_factory=DeepSeekSettings)
+    ollama: OllamaSettings = Field(default_factory=OllamaSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     # Do not let a machine-level `FFMPEG` variable be parsed as JSON for this
     # nested settings object. The executable path remains `FFMPEG_PATH`.

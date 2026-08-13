@@ -49,7 +49,7 @@
    ▼
 ④ 逐chunk处理：
    a) 原始（清洗后）文件整体存一份到 MinIO（bucket=fin-knowledge-raw，Key见表设计文档§5）
-   b) chunk.content 调 Qwen Embedding 生成 embedding（1024维）
+   b) chunk.content 调本地 Ollama bge-m3 生成 embedding（1024维，调`ollama_embedding()`）
    c) 写入 MySQL fin_knowledge_meta，status='待入库'，拿到自增id
    d) 写入对应 Milvus 集合（BaseVDBModel.insert，content_sparse由Milvus BM25函数从content自动生成，不用脚本算）
    e) 用Milvus返回的主键回填 fin_knowledge_meta.milvus_pk，status更新为'已入库'
@@ -177,3 +177,4 @@ Markdown三级标题结构：`## 一、基金类产品` → `### 1.1 XX货币市
 |---|---|---|
 | 2026-08-13 | 首版：9个源文件的入库范围判断（5入4不入）+ 分FAQ/产品/政策三类切片规则 + 占位符清洗两层方案 + 幂等更新/下线流程 | （待填） |
 | 2026-08-13 | 补充`用户研判规则/`目录2个文件（反洗钱可疑交易识别规则.md、投资者风险画像研判规则.md）追加入`fin_policy_collection`，与结构化规则提取形成双轨（原文供解释性检索，阈值参数走《研判规则提取与落地方案.md》结构化提取），范围表更新为11个源文件7个入库 | （待填） |
+| 2026-08-14 | §2④b）嵌入调用由"Qwen Embedding"改为"本地 Ollama bge-m3（调`ollama_embedding()`）"，维度1024不变，与需求文档§2.5技术栈同步 | 李清华 |
