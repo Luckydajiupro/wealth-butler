@@ -19,30 +19,40 @@
 - Confidence: 置信度（规则触发的确定性评分，0-1 浮点数）
 - Trigger: 触发结果（规则是否命中、置信度、违反条件列表）
 
-15 条规则清单（需求文档§5.4 + 用户研判规则/）：
+15 条规则清单（需求文档§5.2）：
 
-A. 反洗钱可疑交易识别规则（8 条，来自 用户研判规则/反洗钱可疑交易识别规则.md）
-   1. 短期内大额现金存取
-   2. 频繁小额分拆转账
-   3. 资金快进快出
-   4. 交易时间异常（非工作时间集中交易）
-   5. 跨境资金异常流动
-   6. 同一账户多人操作特征
-   7. 交易金额整数倍
-   8. 与高风险名单关联
+**反洗钱可疑交易识别规则（完整20条，RW-001~RW-020）**
+来自《反洗钱可疑交易识别规则》（JR-AML-RULE-2024-001），是F4.1风控监测Agent规则引擎的直接编码依据：
 
-B. 投资者风险画像研判规则（7 条，来自 用户研判规则/投资者风险画像研判规则.md）
-   1. 风险承受能力与投资行为不匹配
-   2. 高风险产品持仓过度集中
-   3. 短期内频繁交易（追涨杀跌）
-   4. 杠杆使用超过承受能力
-   5. 投资期限与目标不匹配
-   6. 风险等级跳级（保守型直接买激进产品）
-   7. 年龄与风险偏好倒挂（老年人高风险）
+实时/准实时规则（8条）：
+   RW-001: 大额现金交易
+   RW-003: 资金快进快出
+   RW-008: 非正常时段大额交易
+   RW-011: 高风险国家/地区交易
+   RW-014: 非本人账户代付投资款
+   RW-015: 身份变更后立即大额交易
+   RW-016: 老年客户异常大额转出
+   RW-017: 新开户短期大额交易
+
+日批/周批规则（12条）：
+   RW-002: 频繁小额交易（蚂蚁搬家）
+   RW-004: 分散转入集中转出
+   RW-005: 集中转入分散转出
+   RW-006: 交易金额与客户身份不符
+   RW-007: 频繁开销户
+   RW-009: 整数金额规避特征
+   RW-010: 关联交易异常
+   RW-012: 频繁申购赎回
+   RW-013: PEP关联账户异常
+   RW-018: 多账户关联资金归集
+   RW-019: 疑似涉赌/涉诈资金流转
+   RW-020: 离岸公司异常交易
+
+注：FM-01~FM-05熔断规则（年龄限制/无收入且低资产/风评过期/身份信息异常/可疑行为记录）不属于本层，归属Service层的客户画像服务（riskAssessService.py），在F2.1客户画像系统中实现。
 
 典型模块：
 - ruleEngine.py              规则引擎核心（评估器 + 置信度计算）
-- ruleDefinitions.py         规则定义（15 条规则的 JSON Schema）
+- ruleDefinitions.py         规则定义（20 条 RW 规则的 JSON Schema）
 - ruleLoader.py              规则加载器（从配置文件/数据库加载规则）
 - confidenceCalculator.py    置信度计算器（多因子融合）
 - ruleAuditor.py             规则审计（触发记录 + 误报分析）
@@ -185,63 +195,36 @@ B. 投资者风险画像研判规则（7 条，来自 用户研判规则/投资�
             return results
 
 15 条规则的完整定义（ruleDefinitions.py，部分示例）：
-    # 反洗钱规则集
+    # 反洗钱规则集（完整20条）
     AML_RULES = [
         RuleDefinition(
-            rule_id='AML_001',
-            rule_name='短期内大额现金存取',
+            rule_id='RW_001',
+            rule_name='大额现金交易',
             category='aml',
             conditions=[
-                RuleCondition(field='cash_withdraw_7d', operator='>', value=100000, weight=0.5),
-                RuleCondition(field='cash_deposit_7d', operator='>', value=100000, weight=0.5)
+                RuleCondition(field='cash_withdraw_7d', operator='>', value=50000, weight=0.5),
+                RuleCondition(field='cash_deposit_7d', operator='>', value=50000, weight=0.5)
             ],
             threshold=0.6,
-            severity='high'
+            severity='medium'
         ),
         RuleDefinition(
-            rule_id='AML_002',
-            rule_name='频繁小额分拆转账',
+            rule_id='RW_002',
+            rule_name='频繁小额交易（蚂蚁搬家）',
             category='aml',
             conditions=[
-                RuleCondition(field='tx_count_1d', operator='>', value=10, weight=0.4),
-                RuleCondition(field='avg_tx_amount', operator='<', value=5000, weight=0.3),
-                RuleCondition(field='tx_variance', operator='<', value=1000, weight=0.3)  # 金额方差小
+                RuleCondition(field='tx_count_7d', operator='>=', value=20, weight=0.4),
+                RuleCondition(field='tx_total_7d', operator='>=', value=100000, weight=0.3),
+                RuleCondition(field='avg_tx_amount', operator='<', value=5000, weight=0.3)
             ],
             threshold=0.65,
-            severity='medium'
+            severity='medium_high'
         ),
-        # AML_003 ~ AML_008 省略...
+        # RW_003 ~ RW_020 省略...（共20条，完整定义见 用户研判规则/反洗钱可疑交易识别规则.md）
     ]
 
-    # 风险画像规则集
-    RISK_PROFILE_RULES = [
-        RuleDefinition(
-            rule_id='RISK_001',
-            rule_name='风险承受能力与投资行为不匹配',
-            category='risk_profile',
-            conditions=[
-                RuleCondition(field='risk_tolerance', operator='==', value='保守型', weight=0.4),
-                RuleCondition(field='high_risk_ratio', operator='>', value=0.3, weight=0.6)  # 高风险产品占比>30%
-            ],
-            threshold=0.7,
-            severity='high'
-        ),
-        RuleDefinition(
-            rule_id='RISK_002',
-            rule_name='高风险产品持仓过度集中',
-            category='risk_profile',
-            conditions=[
-                RuleCondition(field='single_product_ratio', operator='>', value=0.5, weight=0.5),
-                RuleCondition(field='product_risk_level', operator='>=', value=4, weight=0.5)  # 风险等级4-5
-            ],
-            threshold=0.65,
-            severity='medium'
-        ),
-        # RISK_003 ~ RISK_007 省略...
-    ]
-
-    # 全部规则集
-    ALL_RULES = AML_RULES + RISK_PROFILE_RULES
+    # 全部规则集（仅包含反洗钱20条，FM-01~05熔断规则不在此处）
+    ALL_RULES = AML_RULES
 
 上下文构造示例（在风控监测 Agent 中调用）：
     from WealthButler.Rules.ruleEngine import RuleEngine
