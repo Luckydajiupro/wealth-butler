@@ -21,14 +21,14 @@
 
 **关键规则：能复用绝不重写**
 
-- 新写代码前，先确认脚手架 `D:\lqh\reproject\ric-train\ric-train\Base` 里是否已有可抄的类似模式
+- 新写代码前，先确认脚手架 `app/Base/` 目录里是否已有可抄的类似模式
 - **禁止引入脚手架没有的新框架/新ORM/新第三方库**（除非架构设计文档明确要求）
 
 **参考模板：**
-- 新业务表Model → 参照 `Base/Models/userModel.py`
-- 新Agent → 参照 `Base/Ai/agents/nl2cypherAgent.py`、`Base/Ai/base/baseAgent.py`
-- 新向量集合Model → 参照 `Base/Repository/examples/exampleVDBModel.py`
-- 新Service → 参照 `Base/Service/authService.py`
+- 新业务表Model → 参照 `app/Base/Models/userModel.py`
+- 新Agent → 参照 `app/Base/Ai/agents/nl2cypherAgent.py`、`app/Base/Ai/base/baseAgent.py`
+- 新向量集合Model → 参照 `app/Base/Repository/examples/exampleVDBModel.py`
+- 新Service → 参照 `app/Base/Service/authService.py`
 
 ### 1.2 文件落点规则
 
@@ -36,18 +36,18 @@
 
 | 内容 | 落点 | 示例 |
 |---|---|---|
-| MySQL业务表Model | `WealthButler/Models/` | `advisorModel.py` |
-| Milvus集合入库 | `WealthButler/Knowledge/` | `ragIngestion.py` |
-| Neo4j图谱构建 | `WealthButler/Knowledge/` | `graphBuilder.py` |
-| 业务逻辑Service | `WealthButler/Service/` | `advisorService.py` |
-| 5个Agent子类 | `WealthButler/Agent/` | `customerServiceAgent.py` |
-| 10个Tool工具 | `WealthButler/Tools/` | `knowledgeRetrievalTool.py` |
-| System Prompt模板 | `WealthButler/Prompts/` | `customerServicePrompts.py` |
-| Agent中间件 | `WealthButler/Middleware/` | `memoryRecallMiddleware.py` |
-| 事件总线 | `WealthButler/EventBus/` | `eventBus.py` |
-| 风控规则引擎 | `WealthButler/Rules/` | `ruleEngine.py` |
-| 业务工具函数 | `WealthButler/Utils/` | `financeCalc.py` |
-| API接口 | `WealthButler/Api/` | `advisorApi.py` |
+| MySQL业务表Model | `app/WealthButler/Models/` | `advisorModel.py` |
+| Milvus集合入库 | `app/WealthButler/Knowledge/` | `ragIngestion.py` |
+| Neo4j图谱构建 | `app/WealthButler/Knowledge/` | `graphBuilder.py` |
+| 业务逻辑Service | `app/WealthButler/Service/` | `advisorService.py` |
+| 5个Agent子类 | `app/WealthButler/Agent/` | `customerServiceAgent.py` |
+| 10个Tool工具 | `app/WealthButler/Tools/` | `knowledgeRetrievalTool.py` |
+| System Prompt模板 | `app/WealthButler/Prompts/` | `customerServicePrompts.py` |
+| Agent中间件 | `app/WealthButler/Middleware/` | `memoryRecallMiddleware.py` |
+| 事件总线 | `app/WealthButler/EventBus/` | `eventBus.py` |
+| 风控规则引擎 | `app/WealthButler/Rules/` | `ruleEngine.py` |
+| 业务工具函数 | `app/WealthButler/Utils/` | `financeCalc.py` |
+| API接口 | `app/WealthButler/Api/` | `advisorApi.py` |
 
 ### 1.3 命名约定
 
@@ -64,7 +64,7 @@
 - 引入新的ORM（已有SQLAlchemy）
 - 引入新的向量库客户端（已有pymilvus）
 - 引入新的Agent框架（已有BaseAgent）
-- 修改`Base/`脚手架目录下的代码
+- 修改`app/Base/`脚手架目录下的代码
 - 硬编码敏感信息（数据库密码、API密钥等，必须放`.env`）
 
 ---
@@ -176,7 +176,7 @@ pytest --cov=WealthButler --cov-report=html
 - [ ] 是否硬编码了敏感信息？
 - [ ] 是否为关键逻辑编写了单元测试？
 - [ ] 注释是否清晰解释了"为什么"而非"是什么"？
-- [ ] API接口是否注册到`Base/main.py`？
+- [ ] API接口是否注册到`app/Base/main.py`？
 
 ### 4.2 常见问题
 
@@ -196,17 +196,17 @@ class MyCustomORM:  # ❌ 必须继承BaseDBModel
 **✅ 正确示例：**
 ```python
 # 正确1：复用脚手架BaseDBModel
-from Base.Repository.base.baseDBModel import BaseDBModel
+from app.Base.Repository.base.baseDBModel import BaseDBModel
 
 class AdvisorModel(BaseDBModel):
     __tablename__ = 'wealth_advisor'
     
 # 正确2：使用.env配置
-from Base.Config.setting import get_setting
+from app.Base.Config.setting import get_setting
 MYSQL_PASSWORD = get_setting().mysql_password
 
 # 正确3：复用BaseAgent
-from Base.Ai.base.baseAgent import BaseAgent
+from app.Base.Ai.base.baseAgent import BaseAgent
 
 class CustomerServiceAgent(BaseAgent):
     pass
@@ -218,7 +218,7 @@ class CustomerServiceAgent(BaseAgent):
 
 ### 5.1 脚手架提供的能力
 
-**Base层（`D:\lqh\reproject\ric-train\ric-train\Base`）已提供：**
+**Base层（`app/Base/`）已提供：**
 
 - **数据库连接**：`Client/mysqlClient.py`、`Client/redisClient.py`、`Client/milvusClient.py`、`Client/neo4jClient.py`
 - **LLM封装**：`Ai/llms/qwenLlm.py`、`Ai/llms/deepseekLlm.py`
@@ -231,14 +231,14 @@ class CustomerServiceAgent(BaseAgent):
 
 **步骤：**
 1. 查看脚手架对应模块的示例代码
-2. 复制代码结构到`WealthButler/`对应层级
+2. 复制代码结构到`app/WealthButler/`对应层级
 3. 修改业务逻辑，保持框架调用方式不变
 
 **示例：新建一个Service**
 ```python
-# 参照：Base/Service/authService.py
-from Base.Client.mysqlClient import get_mysql_client
-from WealthButler.Models.advisorModel import AdvisorModel
+# 参照：app/Base/Service/authService.py
+from app.Base.Client.mysqlClient import get_mysql_client
+from app.WealthButler.Models.advisorModel import AdvisorModel
 
 class AdvisorService:
     @staticmethod
@@ -332,8 +332,8 @@ git push origin main
 @AI编码助手使用指南.md
 
 然后帮我：
-1. 检查脚手架Base/Service/里是否有可参考的Service模式
-2. 在WealthButler/Service/目录下新建profileService.py
+1. 检查脚手架app/Base/Service/里是否有可参考的Service模式
+2. 在app/WealthButler/Service/目录下新建profileService.py
 3. 实现四维度加权打分算法（需求文档§5.3）
 4. 编写单元测试
 5. 确保没有引入新的第三方库
@@ -347,8 +347,8 @@ git push origin main
 [粘贴本文档第1-7章全部内容]
 
 现在帮我实现风控规则引擎，要求：
-1. 参考Base/层的代码模式
-2. 放在WealthButler/Rules/ruleEngine.py
+1. 参考app/Base/层的代码模式
+2. 放在app/WealthButler/Rules/ruleEngine.py
 3. 实现20条RW规则的评估逻辑
 4. 不使用eval()，用安全的操作符映射
 ```
