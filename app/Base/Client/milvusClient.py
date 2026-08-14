@@ -1,4 +1,9 @@
-# milvus_client.py
+"""Milvus 向量数据库客户端（pymilvus.MilvusClient 封装，单例）
+
+- 配置来源：项目根 .env 的 MILVUS_*（优先用 MILVUS_URI 整体指定连接，不填则按 HOST/PORT 拼接）
+- 用途：客服 RAG 的 4 个向量集合（faq / product / policy / customer_memory）的建集合、建索引与增删改查
+- 注：集合 Schema / 索引由 Repository 层 BaseVDBModel 按 Pydantic 字段自动生成，本类只提供底层连接与操作原语
+"""
 import logging
 from typing import List, Dict, Any, Optional, Union
 

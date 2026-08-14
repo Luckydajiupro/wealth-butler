@@ -1,3 +1,8 @@
+"""MinIO 对象存储客户端（官方 SDK 封装，单例）
+
+- 配置来源：项目根 .env 的 MINIO_ENDPOINT / MINIO_ACCESS_KEY / MINIO_SECRET_KEY（access_key / secret_key 即用户名 / 密码）
+- 用途：RAG 知识库原始文件归档（bucket=fin-knowledge-raw）等非结构化文件的存取
+"""
 import logging
 import os
 import tempfile
@@ -14,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class MinioClient(metaclass=SingletonMeta):
+    """MinIO 客户端单例：封装 bucket 管理与文件上传 / 下载 / 删除。
+
+    endpoint 不带协议前缀（如 192.168.184.128:9101）；secure 默认 False（走 http）。
+    """
 
     def __init__(self, endpoint: str = None, access_key: str = None, secret_key: str = None, secure=False):
         # 防止重复初始化（可选）

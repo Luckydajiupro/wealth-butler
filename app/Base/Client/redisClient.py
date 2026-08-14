@@ -1,3 +1,9 @@
+"""Redis 客户端（redis-py 封装，单例）
+
+- 配置来源：项目根 .env 的 REDIS_HOST / REDIS_PORT / REDIS_DB / REDIS_PASSWORD
+- 用途：缓存、会话，以及跨 Agent 事件总线（事件总线已由 Pub/Sub 改为 Redis Streams，
+  本类目前只封装基础 KV / 模糊查询，Streams 消费组需从零封装，见《脚手架复用能力盘点.md》第四节）
+"""
 import logging
 import os
 

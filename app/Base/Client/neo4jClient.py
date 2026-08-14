@@ -1,3 +1,8 @@
+"""Neo4j 图数据库客户端（neo4j 官方驱动封装）
+
+- 配置来源：项目根 .env 的 NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD / NEO4J_DATABASE
+- 用途：投顾图谱（客户-产品-风险关系）的读写；run(cypher, parameters) 是 GraphRAG 多跳查询 Agent 的执行原语
+"""
 import logging
 from typing import Optional, List, Dict, Any
 

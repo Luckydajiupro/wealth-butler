@@ -1,3 +1,12 @@
+"""MySQL 业务数据客户端（pymysql 封装）
+
+- 配置来源：项目根 .env 的 DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME（见 Base/Config/setting.py 的 MySQLSettings）
+- 用途：项目 5 个 Agent 的业务数据读写入口，被 Service / Repository 层复用
+- 要点：
+  - execute_sync() 内置连接活性检查 + 自动重连重试（max_retries 次），SELECT 返回字典列表、非 SELECT 返回受影响行数
+  - execute_async() 通过线程池把同步 pymysql 跑进协程，供 FastAPI 异步接口调用
+  - SQLBuilder 链式构造参数化 SQL（自动加反引号），是项目 NL2SQL 的安全拼装后端
+"""
 import time
 
 import pymysql
@@ -14,6 +23,12 @@ db_config = settings.mysql.dict()
 
 
 class MySQLClient:
+    """MySQL 客户端。
+
+    参数缺省时从 .env 的 DB_* 读取；每次执行前自动 ping 检查连接活性，
+    连接失效则关闭重建并重试。支持 with / async with 上下文管理。
+    """
+
     def __init__(
         self,
         host: str = None,
@@ -43,7 +58,7 @@ class MySQLClient:
                 password=self.password,
                 database=self.database,
                 charset=self.charset,
-                autocommit=True,  # 自动提交，避免忘记 commit  不应该加这个，但是演示 无所谓
+                autocommit=True,  # 演示工程：开启自动提交省去显式 commit；生产/事务场景应改为手动提交
                 connect_timeout = 10
             )
 
