@@ -1,6 +1,6 @@
-from typing import Optional, ClassVar
+from typing import Optional, ClassVar, List
 from pydantic import Field
-from app.Base.Repository.base.baseVDB import BaseVDBModel
+from Base.Repository.base.baseVDB import BaseVDBModel
 
 
 class CustomerMemoryCollectionModel(BaseVDBModel):
@@ -77,7 +77,7 @@ class CustomerMemoryCollectionModel(BaseVDBModel):
     )
 
     # 稠密向量字段（本地Ollama bge-m3，1024维）
-    embedding: Optional[list[float]] = Field(
+    embedding: Optional[List[float]] = Field(
         default=[],
         json_schema_extra={
             'dim': 1024
