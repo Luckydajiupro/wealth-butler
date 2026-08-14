@@ -45,12 +45,12 @@ class TaskSchedulerClient:
         """启动调度器"""
         if not self.scheduler.running:
             self.scheduler.start()
-            print("✅ 调度器已启动")
+            print("[OK] 调度器已启动")
 
     def shutdown(self, wait=True):
         """关闭调度器"""
         self.scheduler.shutdown(wait=wait)
-        print("🛑 调度器已关闭")
+        print("[STOP] 调度器已关闭")
 
     def add_job(
             self,

@@ -23,11 +23,11 @@ def scan_and_register_scheduler_tasks(force_reload: bool = False) -> Dict[str, A
     Returns:
         扫描和注册结果的字典
     """
-    logger.info("🚀 开始扫描 Base/Service/scheduler 目录下的定时任务...")
+    logger.info("[SCAN] 开始扫描 Base/Service/scheduler 目录下的定时任务...")
 
-    # 确定要扫描的目录
-    project_root = find_project_root()
-    scheduler_dir = project_root / "Base" / "Service" / "scheduler"
+    # 确定要扫描的目录 - 从当前文件所在目录直接定位
+    current_file = Path(__file__).resolve()
+    scheduler_dir = current_file.parent  # auto_register.py 就在 scheduler 目录下
 
     if not scheduler_dir.exists():
         logger.error(f"调度器目录不存在: {scheduler_dir}")
@@ -38,7 +38,7 @@ def scan_and_register_scheduler_tasks(force_reload: bool = False) -> Dict[str, A
             'tasks': []
         }
 
-    logger.info(f"🔍 扫描目录: {scheduler_dir}")
+    logger.info(f"[SCAN] 扫描目录: {scheduler_dir}")
 
     registered_tasks = []
     errors = []
@@ -51,7 +51,7 @@ def scan_and_register_scheduler_tasks(force_reload: bool = False) -> Dict[str, A
             continue
 
         total_files += 1
-        logger.info(f"📄 处理文件: {py_file.name}")
+        logger.info(f"[FILE] 处理文件: {py_file.name}")
 
         try:
             # 将文件名转换为模块名
@@ -68,9 +68,9 @@ def scan_and_register_scheduler_tasks(force_reload: bool = False) -> Dict[str, A
             registered_tasks.extend(file_tasks)
 
             if file_tasks:
-                logger.info(f"  ✅ 注册了 {len(file_tasks)} 个任务")
+                logger.info(f"  [OK] 注册了 {len(file_tasks)} 个任务")
             else:
-                logger.info(f"  ℹ️  未找到定时任务")
+                logger.info(f"  [INFO] 未找到定时任务")
 
         except Exception as e:
             error_msg = f"处理文件 {py_file.name} 失败: {str(e)}"
@@ -85,9 +85,9 @@ def scan_and_register_scheduler_tasks(force_reload: bool = False) -> Dict[str, A
         'errors': errors
     }
 
-    logger.info(f"✅ 扫描完成! 处理了 {total_files} 个文件，注册了 {len(registered_tasks)} 个任务")
+    logger.info(f"[OK] 扫描完成! 处理了 {total_files} 个文件，注册了 {len(registered_tasks)} 个任务")
     if errors:
-        logger.warning(f"⚠️  发现 {len(errors)} 个错误")
+        logger.warning(f"[WARN] 发现 {len(errors)} 个错误")
 
     return result
 

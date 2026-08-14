@@ -13,8 +13,15 @@ token = None               # 如果使用永久密钥不需要填入token，如�
 scheme = settings.tencent_cos.scheme          # 指定使用 http/https 协议来访问 COS，默认为 https，可不填
 
 
-endpoint = 'cos.accelerate.myqcloud.com' # 替换为用户的 endpoint 或者 cos 全局加速域名，如果使用桶的全球加速域名，需要先开启桶的全球加速功能，请参见 https://cloud.tencent.com/document/product/436/38864
+endpoint = 'cos.accelerate.myqcloud.com' # 替换为用户的 endpoint 或者 cos 全球加速域名，如果使用桶的全球加速域名，需要先开启桶的全球加速功能，请参见 https://cloud.tencent.com/document/product/436/38864
 
 
-config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key, Token=token, Scheme=scheme)
-tencent_code3_client = CosS3Client(config)
+# 延迟初始化：仅在实际使用时才创建客户端，避免导入时因缺少配置而报错
+_tencent_code3_client = None
+
+def get_tencent_cos_client():
+    global _tencent_code3_client
+    if _tencent_code3_client is None:
+        config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key, Token=token, Scheme=scheme)
+        _tencent_code3_client = CosS3Client(config)
+    return _tencent_code3_client

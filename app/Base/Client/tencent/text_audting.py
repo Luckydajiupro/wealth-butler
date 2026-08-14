@@ -1,11 +1,11 @@
 import os
 
-from Base.Client.tencent.base import tencent_code3_client
+from Base.Client.tencent.base import get_tencent_cos_client
 
 
 def ci_auditing_text_submit(text: str):
 
-    response = tencent_code3_client.ci_auditing_text_submit(
+    response = get_tencent_cos_client().ci_auditing_text_submit(
         Bucket=os.getenv("TC_BUCKET_NAME"),  # 桶名称
         Content=text.encode("utf-8"),  # 需要审核的文本内容
         BizType='',  # 表示审核策略的唯一标识
