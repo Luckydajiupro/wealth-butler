@@ -28,7 +28,7 @@ class MySQLClient:
         self.port = port or db_config['port']
         self.user = user or db_config['user']
         self.password = password or db_config['password']
-        self.database = database or db_config['database']
+        self.database = database or db_config['name']
         self.charset = charset or db_config['charset']
         self._connection: Optional[pymysql.Connection] = None
         self.max_retries = max_retries
