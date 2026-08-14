@@ -1,6 +1,6 @@
 from typing import Optional, ClassVar, List
 from pydantic import Field
-from Base.Repository.base.baseVDB import BaseVDBModel
+from app.Base.Repository.base.baseVDB import BaseVDBModel
 
 
 class CustomerMemoryCollectionModel(BaseVDBModel):
@@ -16,6 +16,8 @@ class CustomerMemoryCollectionModel(BaseVDBModel):
         json_schema_extra={
             'is_primary': True,
             'auto_id': True
+
+            
         }
     )
 

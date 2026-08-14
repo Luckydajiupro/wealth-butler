@@ -41,7 +41,7 @@
   - start_all_consumers()  # 在 Base.main.py 启动时调用
 
 EventBus 核心类实现：
-    from Base.Client.redisClient import get_redis_client
+    from app.Base.Client.redisClient import get_redis_client
     import json
     import time
     import uuid

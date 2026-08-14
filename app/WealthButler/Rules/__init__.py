@@ -256,7 +256,7 @@
         # insert into biz_risk_alert (...)
 
 与 Tools 层的集成（RuleEvaluator Tool）：
-    from Base.Ai.base.baseTool import BaseTool
+    from app.Base.Ai.base.baseTool import BaseTool
     from WealthButler.Rules.ruleEngine import RuleEngine
     from WealthButler.Rules.ruleDefinitions import ALL_RULES
 

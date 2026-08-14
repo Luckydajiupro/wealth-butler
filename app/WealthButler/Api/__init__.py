@@ -20,7 +20,7 @@
 
 示例：
     from fastapi import APIRouter, Depends
-    from Base.RicUtils.httpUtils import HttpResponse
+    from app.Base.RicUtils.httpUtils import HttpResponse
     from WealthButler.Service.advisorService import AdvisorService
 
     router = APIRouter(prefix="/api/wealth/advisor", tags=["投顾服务"])

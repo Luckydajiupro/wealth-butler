@@ -39,8 +39,8 @@
    - 生成洞察报告、可视化数据
 
 示例：
-    from Base.Ai.llms.qwenLlm import QwenLlm
-    from Base.Service.memoryV1Service import MemoryV1Service
+    from app.Base.Ai.llms.qwenLlm import QwenLlm
+    from app.Base.Service.memoryV1Service import MemoryV1Service
     from langchain.agents import AgentExecutor, create_tool_calling_agent
     from langchain.tools import Tool
 

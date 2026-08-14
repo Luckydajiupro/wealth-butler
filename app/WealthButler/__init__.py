@@ -15,7 +15,7 @@
 - Utils/    业务工具层（金融计算、数据转换等业务专用工具函数）
 
 开发规范：
-1. 复用 Base 能力：from Base.Client.mysqlClient import get_mysql_client
+1. 复用 Base 能力：from app.Base.Client.mysqlClient import get_mysql_client
 2. 业务路由注册：在 Base/main.py 中 include_router
 3. 配置管理：扩展 Base/Config/setting.py 或使用独立配置文件
 4. 数据库迁移：在 Base/Models/migrations/ 添加表结构

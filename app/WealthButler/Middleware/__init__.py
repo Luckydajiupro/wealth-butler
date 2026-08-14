@@ -45,8 +45,8 @@
 - rbacMiddleware.py            权限校验中间件（可选，与 Base.Service.authService 集成）
 
 MemoryRecallMiddleware 实现：
-    from Base.Ai.base.baseMiddleware import BaseMiddleware
-    from Base.Service.memoryV1Service import MemoryV1Service
+    from app.Base.Ai.base.baseMiddleware import BaseMiddleware
+    from app.Base.Service.memoryV1Service import MemoryV1Service
     from typing import Any
 
     class MemoryRecallMiddleware(BaseMiddleware):
@@ -141,11 +141,11 @@ MemoryRecallMiddleware 实现：
             # 错误日志已由 LoggingMiddleware 记录，这里可选择性补充
 
 中间件链构造示例：
-    from Base.Ai.middleware.loggingMiddleware import LoggingMiddleware
-    from Base.Ai.middleware.metricsMiddleware import MetricsMiddleware
-    from Base.Ai.middleware.safetyMiddleware import SafetyMiddleware
+    from app.Base.Ai.middleware.loggingMiddleware import LoggingMiddleware
+    from app.Base.Ai.middleware.metricsMiddleware import MetricsMiddleware
+    from app.Base.Ai.middleware.safetyMiddleware import SafetyMiddleware
     from WealthButler.Middleware.memoryRecallMiddleware import MemoryRecallMiddleware
-    from Base.Ai.middleware.evalMiddleware import EvalMiddleware
+    from app.Base.Ai.middleware.evalMiddleware import EvalMiddleware
 
     # Agent 构造时传入中间件链
     middlewares = [
@@ -203,7 +203,7 @@ RBAC 中间件（可选扩展）：
             return context
 
         def _has_role(self, user_id: int, roles: list[str]) -> bool:
-            from Base.Service.authService import AuthService
+            from app.Base.Service.authService import AuthService
             user_roles = AuthService.get_user_roles(user_id)
             return any(r in roles for r in user_roles)
 

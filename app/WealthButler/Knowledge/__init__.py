@@ -66,7 +66,7 @@ Neo4j 知识图谱（架构设计文档§8.2）：
   - delete_by_ids(collection, ids)
 
 RAG 向量入库管道实现：
-    from Base.Client.milvusClient import get_milvus_client
+    from app.Base.Client.milvusClient import get_milvus_client
     from WealthButler.Knowledge.chunkStrategy import chunk_by_product
     from WealthButler.Knowledge.embeddingService import batch_embed
     import os
@@ -229,7 +229,7 @@ RAG 向量入库管道实现：
         return _embedding_service.batch_embed(texts)
 
 Neo4j 图谱构建（graphBuilder.py）：
-    from Base.Client.neo4jClient import get_neo4j_client
+    from app.Base.Client.neo4jClient import get_neo4j_client
 
     class GraphBuilder:
         '''知识图谱构建管道'''
@@ -282,7 +282,7 @@ Neo4j 图谱构建（graphBuilder.py）：
     ingestion.ingest_faq_docs('D:\\\\lqh\\\\金融\\\\公司信息\\\\高频问答对.txt')
 
     # 方式2：定时更新（每天凌晨2点）
-    from Base.Service.scheduler.schedulerService import SchedulerService
+    from app.Base.Service.scheduler.schedulerService import SchedulerService
     SchedulerService.add_job(
         func=ingestion.ingest_product_docs,
         trigger='cron',

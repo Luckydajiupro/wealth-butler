@@ -1,4 +1,4 @@
-from Base.Repository.base.baseDBModel import BaseDBModel
+from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime, date
 from decimal import Decimal

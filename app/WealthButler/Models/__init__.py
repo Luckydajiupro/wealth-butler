@@ -22,7 +22,7 @@
 - transactionModel.py       交易记录表（买入卖出、手续费、收益统计）
 
 示例：
-    from Base.Models.baseModel import BaseModel
+    from app.Base.Models.baseModel import BaseModel
     from sqlalchemy import Column, String, Integer, Float, Enum
 
     class AdvisorModel(BaseModel):

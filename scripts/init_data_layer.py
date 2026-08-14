@@ -10,9 +10,9 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, 'app'))
 
-from Base.Client.mysqlClient import MySQLClient
-from Base.Client.milvusClient import MilvusClient
-from Base.Client.neo4jClient import Neo4jClient
+from app.Base.Client.mysqlClient import MySQLClient
+from app.Base.Client.milvusClient import MilvusClient
+from app.Base.Client.neo4jClient import Neo4jClient
 
 
 def init_mysql_tables():
@@ -22,16 +22,16 @@ def init_mysql_tables():
     print("=" * 60)
 
     # 导入所有Model（导入时会自动调用_ensure_table_exists建表）
-    from WealthButler.Models.baseUserExtModel import BaseUserExtModel
-    from WealthButler.Models.customerProfileModel import CustomerProfileModel
-    from WealthButler.Models.productModel import ProductModel
-    from WealthButler.Models.transactionModel import TransactionModel
-    from WealthButler.Models.holdingsModel import HoldingsModel
-    from WealthButler.Models.riskAssessmentModel import RiskAssessmentModel
-    from WealthButler.Models.riskAlertModel import RiskAlertModel
-    from WealthButler.Models.workOrderModel import WorkOrderModel
-    from WealthButler.Models.conversationArchiveModel import ConversationArchiveModel
-    from WealthButler.Models.knowledgeMetaModel import KnowledgeMetaModel
+    from app.WealthButler.Models.baseUserExtModel import BaseUserExtModel
+    from app.WealthButler.Models.customerProfileModel import CustomerProfileModel
+    from app.WealthButler.Models.productModel import ProductModel
+    from app.WealthButler.Models.transactionModel import TransactionModel
+    from app.WealthButler.Models.holdingsModel import HoldingsModel
+    from app.WealthButler.Models.riskAssessmentModel import RiskAssessmentModel
+    from app.WealthButler.Models.riskAlertModel import RiskAlertModel
+    from app.WealthButler.Models.workOrderModel import WorkOrderModel
+    from app.WealthButler.Models.conversationArchiveModel import ConversationArchiveModel
+    from app.WealthButler.Models.knowledgeMetaModel import KnowledgeMetaModel
 
     models = [
         ("fin_customer_profile", CustomerProfileModel),
@@ -96,10 +96,10 @@ def init_milvus_collections():
     print("Milvus集合初始化")
     print("=" * 60)
 
-    from WealthButler.Repository.faqCollectionModel import FaqCollectionModel
-    from WealthButler.Repository.productCollectionModel import ProductCollectionModel
-    from WealthButler.Repository.policyCollectionModel import PolicyCollectionModel
-    from WealthButler.Repository.customerMemoryCollectionModel import CustomerMemoryCollectionModel
+    from app.WealthButler.Repository.faqCollectionModel import FaqCollectionModel
+    from app.WealthButler.Repository.productCollectionModel import ProductCollectionModel
+    from app.WealthButler.Repository.policyCollectionModel import PolicyCollectionModel
+    from app.WealthButler.Repository.customerMemoryCollectionModel import CustomerMemoryCollectionModel
 
     collections = [
         ("fin_faq_collection", FaqCollectionModel),
@@ -129,7 +129,7 @@ def init_neo4j_schema():
     print("Neo4j图谱Schema初始化")
     print("=" * 60)
 
-    from WealthButler.Knowledge.graphSchema import Neo4jGraphSchema
+    from app.WealthButler.Knowledge.graphSchema import Neo4jGraphSchema
 
     neo4j_client = Neo4jClient()
     init_cyphers = Neo4jGraphSchema.get_init_cypher_list()

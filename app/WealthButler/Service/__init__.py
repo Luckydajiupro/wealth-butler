@@ -21,7 +21,7 @@
 - dataMiningService.py     数据挖掘（用户行为分析、市场趋势预测）
 
 示例：
-    from Base.Client.mysqlClient import get_mysql_client
+    from app.Base.Client.mysqlClient import get_mysql_client
     from WealthButler.Models.advisorModel import AdvisorModel
 
     class AdvisorService:

@@ -87,7 +87,7 @@
 - eventPublisherTool.py
 
 BaseTool 实现模板：
-    from Base.Ai.base.baseTool import BaseTool
+    from app.Base.Ai.base.baseTool import BaseTool
     from pydantic import Field
 
     class KnowledgeRetrievalTool(BaseTool):
@@ -101,7 +101,7 @@ BaseTool 实现模板：
 
         def _run(self, query: str, collection_name: str, top_k: int = 5) -> list[dict]:
             '''同步执行（本期不实现异步）'''
-            from Base.Client.milvusClient import get_milvus_client
+            from app.Base.Client.milvusClient import get_milvus_client
             from WealthButler.Service.knowledgeService import KnowledgeService
 
             # 调用 Service 层获取向量检索结果
