@@ -10,9 +10,9 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, 'app'))
 
-from Base.Client.mysqlClient import get_mysql_client
-from Base.Client.milvusClient import get_milvus_client
-from Base.Client.neo4jClient import get_neo4j_client
+from Base.Client.mysqlClient import MySQLClient
+from Base.Client.milvusClient import MilvusClient
+from Base.Client.neo4jClient import Neo4jClient
 
 
 def init_mysql_tables():
@@ -60,7 +60,8 @@ def init_mysql_tables():
     # base_user扩展字段（需要手动执行ALTER TABLE）
     print("\n--- 扩展 base_user 表字段 ---")
     try:
-        db = get_mysql_client()
+        db = MySQLClient()
+        db.connect()
 
         # 检查字段是否已存在，不存在才添加
         alter_sqls = [
@@ -73,13 +74,14 @@ def init_mysql_tables():
 
         for sql in alter_sqls:
             try:
-                db.execute(sql, commit=True)
+                db.execute_sync(sql)
             except Exception as e:
                 if "Duplicate column" in str(e) or "already exists" in str(e):
                     pass  # 字段已存在，跳过
                 else:
                     raise e
 
+        db.close()
         print("[OK] base_user 扩展字段添加成功")
         success_count += 1
     except Exception as e:
@@ -129,7 +131,7 @@ def init_neo4j_schema():
 
     from WealthButler.Knowledge.graphSchema import Neo4jGraphSchema
 
-    neo4j_client = get_neo4j_client()
+    neo4j_client = Neo4jClient()
     init_cyphers = Neo4jGraphSchema.get_init_cypher_list()
 
     print(f"\n开始执行 {len(init_cyphers)} 条初始化Cypher...")
