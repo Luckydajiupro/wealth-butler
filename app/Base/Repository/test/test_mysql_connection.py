@@ -4,9 +4,9 @@ MySQLConnection 测试
 """
 
 import pytest
-from Base.Repository.connections.mysqlConnection import MySQLConnection, get_module_mysql_connection
-from Base.Repository.base.baseConnection import BaseConnection
-from Base.Config.setting import settings
+from app.Base.Repository.connections.mysqlConnection import MySQLConnection, get_module_mysql_connection
+from app.Base.Repository.base.baseConnection import BaseConnection
+from app.Base.Config.setting import settings
 
 
 def test_mysql_connection_inheritance():

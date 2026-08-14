@@ -42,11 +42,11 @@ class ProductModel(BaseDBModel):
     product_code: str
     product_name: str
     product_type: str
-    risk_level: stronal[Decimal] = None
+    risk_level: Optional[str] = None
     redemption_period_days: Optional[int] = None
     nav: Optional[Decimal] = None
-    nav_date: Optional[
-    min_investment: Optidate] = None
+    nav_date: Optional[datetime] = None
+    min_investment: Optional[Decimal] = None
     industry: Optional[str] = None
     fund_manager: Optional[str] = None
     status: str = "在售"

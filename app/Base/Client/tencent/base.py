@@ -1,7 +1,7 @@
 from qcloud_cos import CosConfig
 from qcloud_cos import CosS3Client
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 # https://cloud.tencent.com/document/product/460/72998
 # 1. 设置用户属性, 包括 secret_id, secret_key, region 等。Appid 已在 CosConfig 中移除，请在参数 Bucket 中带上 Appid。Bucket 由 BucketName-Appid 组成

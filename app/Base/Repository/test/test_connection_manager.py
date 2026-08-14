@@ -4,8 +4,8 @@ ConnectionManager 测试
 """
 
 import pytest
-from Base.Repository.base.connectionManager import ConnectionManager
-from Base.Repository.connections.sqliteConnection import SQLiteConnection
+from app.Base.Repository.base.connectionManager import ConnectionManager
+from app.Base.Repository.connections.sqliteConnection import SQLiteConnection
 
 
 @pytest.fixture

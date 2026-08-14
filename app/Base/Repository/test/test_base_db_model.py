@@ -3,8 +3,8 @@ BaseDBModel 测试
 """
 
 import pytest
-from Base.Repository.base.baseDBModel import BaseDBModel
-from Base.Repository.connections.mysqlConnection import MySQLConnection
+from app.Base.Repository.base.baseDBModel import BaseDBModel
+from app.Base.Repository.connections.mysqlConnection import MySQLConnection
 from typing import Optional, ClassVar
 
 

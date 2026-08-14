@@ -7,8 +7,8 @@ from typing import List, Dict, Any, Callable, Optional
 import inspect
 
 # 项目相关导入
-from Base.Service.schedulerService import get_base_module_scheduler_client
-from Base.RicUtils.pathUtils import find_project_root
+from app.Base.Service.schedulerService import get_base_module_scheduler_client
+from app.Base.RicUtils.pathUtils import find_project_root
 
 logger = logging.getLogger(__name__)
 

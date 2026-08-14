@@ -1,7 +1,7 @@
 """中间件基类测试"""
 import pytest
 import asyncio
-from Base.Ai.middlewares.base import AgentContext, Middleware, MiddlewareChain
+from app.Base.Ai.middlewares.base import AgentContext, Middleware, MiddlewareChain
 
 
 class MockMiddleware(Middleware):

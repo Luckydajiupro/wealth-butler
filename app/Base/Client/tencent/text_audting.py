@@ -1,6 +1,6 @@
 import os
 
-from Base.Client.tencent.base import get_tencent_cos_client
+from app.Base.Client.tencent.base import get_tencent_cos_client
 
 
 def ci_auditing_text_submit(text: str):

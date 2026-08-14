@@ -13,7 +13,7 @@ from typing import List
 
 from openai import OpenAI
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 
 def ollama_embedding(text: str) -> List[float]:

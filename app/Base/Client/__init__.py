@@ -1,7 +1,7 @@
-from Base.Client.asrClient import asr_client
-from Base.Client.minioClient import async_minio_client, default_minio_client
-from Base.Client.redisClient import redis_client
-from Base.Client.ttsClient import TtsClient
+from app.Base.Client.asrClient import asr_client
+from app.Base.Client.minioClient import async_minio_client, default_minio_client
+from app.Base.Client.redisClient import redis_client
+from app.Base.Client.ttsClient import TtsClient
 
 
 def get_asr_client():

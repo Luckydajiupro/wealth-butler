@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from .base import BaseEvaluator, EvalResult
 from ..base import AgentContext
-from Base.Ai.base.baseLlm import BaseLlm
+from app.Base.Ai.base.baseLlm import BaseLlm
 
 logger = logging.getLogger(__name__)
 

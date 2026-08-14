@@ -5,7 +5,7 @@ BaseConnection 抽象基类测试
 
 import pytest
 from abc import ABC
-from Base.Repository.base.baseConnection import BaseConnection
+from app.Base.Repository.base.baseConnection import BaseConnection
 
 
 def test_base_connection_is_abstract():

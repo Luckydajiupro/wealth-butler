@@ -17,7 +17,7 @@ class CustomerMemoryCollectionModel(BaseVDBModel):
             'is_primary': True,
             'auto_id': True
 
-            
+
         }
     )
 

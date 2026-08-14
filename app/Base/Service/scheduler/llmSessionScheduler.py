@@ -1,5 +1,5 @@
-from Base.Service.llmSessionService import ai_summary_4_all_session
-from Base.Service.schedulerService import get_base_module_scheduler_client
+from app.Base.Service.llmSessionService import ai_summary_4_all_session
+from app.Base.Service.schedulerService import get_base_module_scheduler_client
 
 client = get_base_module_scheduler_client()
 

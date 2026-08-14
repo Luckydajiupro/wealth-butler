@@ -1,11 +1,11 @@
 from typing import Any, Optional
 
-from Base.Ai.base.baseLlm import BaseLlm
+from app.Base.Ai.base.baseLlm import BaseLlm
 from pydantic import BaseModel,Field
 
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Ai.prompt.commonPrompt import rewrite_question_prompt_v1
-from Base.Ai.utils.common import jinja2_prompt_render
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.prompt.commonPrompt import rewrite_question_prompt_v1
+from app.Base.Ai.utils.common import jinja2_prompt_render
 
 
 class RewriteQuestionParams(BaseModel):

@@ -1,8 +1,8 @@
 from typing import Any, Optional, List
 
-from Base.Ai.base.baseEnum import LLMTypeEnum
-from Base.Ai.base.baseLlm import BaseLlm
-from Base.Ai.base.baseSetting import DeepSeekConfig
+from app.Base.Ai.base.baseEnum import LLMTypeEnum
+from app.Base.Ai.base.baseLlm import BaseLlm
+from app.Base.Ai.base.baseSetting import DeepSeekConfig
 from Base import settings
 
 

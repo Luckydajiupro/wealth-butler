@@ -1,14 +1,14 @@
 import logging
 from typing import Any, Dict, Optional, Generator, List
 
-from Base.Ai.base import SystemMessages, UserMessages
-from Base.Ai.base.baseEnum import LLMTypeEnum
-from Base.Ai.base.baseLlm import BaseLlm
-from Base.Ai.base.baseSetting import DashScopeConfig
-from Base.Config.setting import settings
-from Base.RicUtils.audioFileUtils import AudioFileHandler
-from Base.RicUtils.decoratorUtils import timing_log
-from Base.RicUtils.redisUtils import cache_with_params
+from app.Base.Ai.base import SystemMessages, UserMessages
+from app.Base.Ai.base.baseEnum import LLMTypeEnum
+from app.Base.Ai.base.baseLlm import BaseLlm
+from app.Base.Ai.base.baseSetting import DashScopeConfig
+from app.Base.Config.setting import settings
+from app.Base.RicUtils.audioFileUtils import AudioFileHandler
+from app.Base.RicUtils.decoratorUtils import timing_log
+from app.Base.RicUtils.redisUtils import cache_with_params
 
 logger = logging.getLogger(__name__)
 

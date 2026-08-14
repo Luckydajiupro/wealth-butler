@@ -94,9 +94,9 @@ class ConnectionManager:
 
 # 使用示例
 """
-from Base.Repository.connections.mysqlConnection import MySQLConnection
-from Base.Repository.base.baseDBModel import BaseDBModel
-from Base.Repository.base.connectionManager import ConnectionManager
+from app.Base.Repository.connections.mysqlConnection import MySQLConnection
+from app.Base.Repository.base.baseDBModel import BaseDBModel
+from app.Base.Repository.base.connectionManager import ConnectionManager
 
 # 1. 创建多个数据库连接
 read_db = MySQLConnection(

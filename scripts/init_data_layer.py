@@ -20,6 +20,7 @@ def init_mysql_tables():
     print("=" * 60)
 
     # 导入所有Model（导入时会自动调用_ensure_table_exists建表）
+    from app.Base.Models.userModel import UserModel
     from app.WealthButler.Models.baseUserExtModel import BaseUserExtModel
     from app.WealthButler.Models.customerProfileModel import CustomerProfileModel
     from app.WealthButler.Models.productModel import ProductModel
@@ -32,6 +33,7 @@ def init_mysql_tables():
     from app.WealthButler.Models.knowledgeMetaModel import KnowledgeMetaModel
 
     models = [
+        ("base_user", UserModel),
         ("fin_customer_profile", CustomerProfileModel),
         ("fin_product", ProductModel),
         ("fin_transaction", TransactionModel),
@@ -61,31 +63,45 @@ def init_mysql_tables():
         db = MySQLClient()
         db.connect()
 
-        # 检查字段是否已存在，不存在才添加
-        alter_sqls = [
-            "ALTER TABLE `base_user` ADD COLUMN IF NOT EXISTS `user_type` ENUM('CUSTOMER','EMPLOYEE') NOT NULL DEFAULT 'CUSTOMER' COMMENT '用户大类'",
-            "ALTER TABLE `base_user` ADD COLUMN IF NOT EXISTS `employee_role` ENUM('理财顾问','风控专员','客户经理','业务管理员') COMMENT '员工主角色'",
-            "ALTER TABLE `base_user` ADD COLUMN IF NOT EXISTS `advisor_level` ENUM('初级','中级','高级') COMMENT '理财顾问执业等级'",
-            "ALTER TABLE `base_user` ADD COLUMN IF NOT EXISTS `customer_level` ENUM('普通','金卡','白金','钻石','私行') DEFAULT '普通' COMMENT '客户等级'",
-            "ALTER TABLE `base_user` ADD INDEX IF NOT EXISTS `idx_user_type` (`user_type`)"
+        # 定义需要添加的字段和索引
+        columns_to_add = [
+            ("user_type", "ALTER TABLE `base_user` ADD COLUMN `user_type` ENUM('CUSTOMER','EMPLOYEE') NOT NULL DEFAULT 'CUSTOMER' COMMENT '用户大类'"),
+            ("employee_role", "ALTER TABLE `base_user` ADD COLUMN `employee_role` ENUM('理财顾问','风控专员','客户经理','业务管理员') COMMENT '员工主角色'"),
+            ("advisor_level", "ALTER TABLE `base_user` ADD COLUMN `advisor_level` ENUM('初级','中级','高级') COMMENT '理财顾问执业等级'"),
+            ("customer_level", "ALTER TABLE `base_user` ADD COLUMN `customer_level` ENUM('普通','金卡','白金','钻石','私行') DEFAULT '普通' COMMENT '客户等级'"),
         ]
 
-        for sql in alter_sqls:
-            try:
-                db.execute_sync(sql)
-            except Exception as e:
-                if "Duplicate column" in str(e) or "already exists" in str(e):
-                    pass  # 字段已存在，跳过
-                else:
-                    raise e
+        indexes_to_add = [
+            ("idx_user_type", "ALTER TABLE `base_user` ADD INDEX `idx_user_type` (`user_type`)")
+        ]
+
+        # 检查并添加字段
+        for column_name, alter_sql in columns_to_add:
+            check_sql = f"SELECT COUNT(*) as cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='base_user' AND COLUMN_NAME='{column_name}'"
+            result = db.execute_sync(check_sql)
+            if result and result[0]['cnt'] == 0:
+                db.execute_sync(alter_sql)
+                print(f"[OK] 字段 {column_name} 添加成功")
+            else:
+                print(f"[SKIP] 字段 {column_name} 已存在")
+
+        # 检查并添加索引
+        for index_name, alter_sql in indexes_to_add:
+            check_sql = f"SELECT COUNT(*) as cnt FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='base_user' AND INDEX_NAME='{index_name}'"
+            result = db.execute_sync(check_sql)
+            if result and result[0]['cnt'] == 0:
+                db.execute_sync(alter_sql)
+                print(f"[OK] 索引 {index_name} 添加成功")
+            else:
+                print(f"[SKIP] 索引 {index_name} 已存在")
 
         db.close()
-        print("[OK] base_user 扩展字段添加成功")
+        print("[OK] base_user 扩展完成")
         success_count += 1
     except Exception as e:
         print(f"[FAIL] base_user 扩展字段失败: {str(e)}")
 
-    print(f"\n✓ MySQL表创建完成: {success_count}/10")
+    print(f"\n[完成] MySQL表创建完成: {success_count}/10")
 
 
 def init_milvus_collections():
@@ -118,7 +134,7 @@ def init_milvus_collections():
         except Exception as e:
             print(f"[FAIL] {collection_name} 创建失败: {str(e)}")
 
-    print(f"\n✓ Milvus集合创建完成: {success_count}/4")
+    print(f"\n[完成] Milvus集合创建完成: {success_count}/4")
 
 
 def init_neo4j_schema():
@@ -143,7 +159,7 @@ def init_neo4j_schema():
         except Exception as e:
             print(f"[FAIL] {cypher[:60]}... 失败: {str(e)}")
 
-    print(f"\n✓ Neo4j schema初始化完成: {success_count}/{len(init_cyphers)}")
+    print(f"\n[完成] Neo4j schema初始化完成: {success_count}/{len(init_cyphers)}")
 
 
 def main():
@@ -155,8 +171,7 @@ def main():
     print("  - MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE")
     print("  - MILVUS_HOST, MILVUS_PORT")
     print("  - NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD")
-
-    input("\n按回车键继续...")
+    print("\n开始初始化...")
 
     # 1. MySQL表初始化
     try:
