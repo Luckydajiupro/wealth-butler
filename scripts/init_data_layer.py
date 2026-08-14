@@ -8,10 +8,8 @@ import os
 # 添加项目根目录到path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
-sys.path.insert(0, os.path.join(project_root, 'app'))
 
 from app.Base.Client.mysqlClient import MySQLClient
-from app.Base.Client.milvusClient import MilvusClient
 from app.Base.Client.neo4jClient import Neo4jClient
 
 
