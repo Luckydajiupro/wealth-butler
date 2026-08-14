@@ -10,6 +10,8 @@ env/
 # 密钥（真实 .env 不入库，需共享的用 .env.example 模板）
 .env
 .env.local
+.env.test
+.env.*
 
 # 本机 Claude Code 权限配置（各成员本机不同，不入库）
 .claude/settings.local.json
@@ -21,3 +23,23 @@ env/
 开发引导.md
 答辩所需文本交付物清单.txt
 答辩须知.md
+
+# IDE 配置（成员本地配置各异，不入库）
+.vscode/
+.idea/
+*.code-workspace
+
+# 日志文件
+logs/
+*.log
+
+# 测试脚本（临时测试文件）
+test_*.py
+*_test.py
+
+# PowerShell 脚本（本地环境配置）
+*.ps1
+
+# 个人任务清单（成员本地管理，不入库）
+docs/*个人任务清单*.md
+*个人任务清单*
