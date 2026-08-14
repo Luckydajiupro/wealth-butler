@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List, Type, TypeVar, ClassVar, Literal
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from Base.Repository.base.baseConnection import BaseConnection
+from app.Base.Repository.base.baseConnection import BaseConnection
 
 logger = logging.getLogger(__name__)
 T = TypeVar('T', bound='BaseDBModel')

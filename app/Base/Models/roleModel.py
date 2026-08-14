@@ -17,7 +17,7 @@ Superpowers 权限体系:
   - data:export     数据导出
 """
 
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 from typing import Optional, List
 from datetime import datetime
 import json

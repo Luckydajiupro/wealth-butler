@@ -4,8 +4,8 @@ from functools import lru_cache
 
 from pydantic import Field
 
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
-from Base.RicUtils.decoratorUtils import timing_log
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.RicUtils.decoratorUtils import timing_log
 
 
 class BaseParamsModel(BaseModuleDBModel):

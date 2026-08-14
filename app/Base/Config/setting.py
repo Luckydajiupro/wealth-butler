@@ -4,7 +4,7 @@ from pathlib import Path
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from Base.RicUtils.pathUtils import find_project_root
+from app.Base.RicUtils.pathUtils import find_project_root
 
 
 # =========================

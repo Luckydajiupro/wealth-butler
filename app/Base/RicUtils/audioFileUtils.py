@@ -9,8 +9,8 @@ import base64
 import glob
 from functools import lru_cache
 
-from Base.Config.setting import settings
-from Base.RicUtils.decoratorUtils import  after_exec_4c, params_handle_4c
+from app.Base.Config.setting import settings
+from app.Base.RicUtils.decoratorUtils import  after_exec_4c, params_handle_4c
 
 logger = logging.getLogger(__name__)
 FFMPEG_PATH = settings.ffmpeg.path

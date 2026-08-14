@@ -3,7 +3,7 @@ from psycopg2.extras import RealDictCursor
 from typing import Optional, List, Dict, Any
 import logging
 
-from Base.Repository.base.baseConnection import BaseConnection
+from app.Base.Repository.base.baseConnection import BaseConnection
 
 logger = logging.getLogger(__name__)
 

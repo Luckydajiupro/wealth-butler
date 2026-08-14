@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any
 from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 logger = logging.getLogger(__name__)
 

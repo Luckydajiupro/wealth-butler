@@ -1,5 +1,5 @@
-from Base.Ai.base.baseMessages import BaseMessages
-from Base.Ai.base.baseEnum import LLMTypeEnum, AgentParadigmEnum
+from app.Base.Ai.base.baseMessages import BaseMessages
+from app.Base.Ai.base.baseEnum import LLMTypeEnum, AgentParadigmEnum
 
 UserMessages = BaseMessages.get_user_messages
 AssistantMessages = BaseMessages.get_assistant_messages

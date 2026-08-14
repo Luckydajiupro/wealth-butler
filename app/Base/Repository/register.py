@@ -1,7 +1,7 @@
-from Base.Config.setting import settings
-from Base.Repository.base.baseDBModel import BaseDBModel
-from Base.Repository.connections.mysqlConnection import MySQLConnection
-from Base.Repository.base.connectionManager import ConnectionManager
+from app.Base.Config.setting import settings
+from app.Base.Repository.base.baseDBModel import BaseDBModel
+from app.Base.Repository.connections.mysqlConnection import MySQLConnection
+from app.Base.Repository.base.connectionManager import ConnectionManager
 import logging
 
 logger = logging.getLogger(__name__)

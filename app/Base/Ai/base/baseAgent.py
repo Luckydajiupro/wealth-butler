@@ -10,11 +10,11 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from Base.Ai.base.baseEnum import AgentParadigmEnum
-from Base.Ai.base.baseLlm import BaseLlm
-from Base.Ai.base.baseTool import BaseTool
-from Base.Ai.base.baseMessages import BaseMessages
-from Base.Ai.middlewares.base import AgentContext, MiddlewareChain
+from app.Base.Ai.base.baseEnum import AgentParadigmEnum
+from app.Base.Ai.base.baseLlm import BaseLlm
+from app.Base.Ai.base.baseTool import BaseTool
+from app.Base.Ai.base.baseMessages import BaseMessages
+from app.Base.Ai.middlewares.base import AgentContext, MiddlewareChain
 import uuid
 
 logger = logging.getLogger(__name__)

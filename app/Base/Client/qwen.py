@@ -3,7 +3,7 @@ from langchain_community.chat_models.tongyi import ChatTongyi
 from langchain_core.messages import HumanMessage, SystemMessage
 from openai import OpenAI
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 logger = logging.getLogger(__name__)
 

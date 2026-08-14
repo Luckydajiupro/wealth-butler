@@ -2,9 +2,9 @@ from typing import Optional, List
 
 from pydantic import Field
 
-from Base.Ai.base import UserMessages, AssistantMessages
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Repository.base.baseVDB import BaseVDBModel
+from app.Base.Ai.base import UserMessages, AssistantMessages
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Repository.base.baseVDB import BaseVDBModel
 
 
 class VdbLLMConversation(BaseVDBModel):

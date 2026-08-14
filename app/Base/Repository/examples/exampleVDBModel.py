@@ -2,7 +2,7 @@ from typing import Optional, ClassVar
 
 from pydantic import Field
 
-from Base.Repository.base.baseVDB import BaseVDBModel
+from app.Base.Repository.base.baseVDB import BaseVDBModel
 
 if __name__ == "__main__":
     """

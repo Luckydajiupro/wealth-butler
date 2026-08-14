@@ -7,13 +7,13 @@ import json
 import logging
 from pydantic import BaseModel
 
-from Base.Ai.base.baseTool import BaseTool, tool
-from Base.Ai.base.baseAgent import (
+from app.Base.Ai.base.baseTool import BaseTool, tool
+from app.Base.Ai.base.baseAgent import (
     BaseAgent, ReActAgent, CoTAgent, PlanAndExecuteAgent,
     InMemoryMemory, AgentResult,
 )
-from Base.Ai.base.baseEnum import AgentParadigmEnum
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.base.baseEnum import AgentParadigmEnum
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

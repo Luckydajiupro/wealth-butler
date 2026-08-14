@@ -3,7 +3,7 @@ import os
 import warnings
 from typing import List, Optional, Tuple, Generator, Dict
 
-from Base.RicUtils.pathUtils import to_absolute_path
+from app.Base.RicUtils.pathUtils import to_absolute_path
 
 # 临时过滤 jieba 库的警告（在导入前设置）
 with warnings.catch_warnings():

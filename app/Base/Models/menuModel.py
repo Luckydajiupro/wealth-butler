@@ -5,7 +5,7 @@
 用于前端侧边栏菜单的动态渲染与权限控制。
 """
 
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 from typing import Optional, List
 from datetime import datetime
 

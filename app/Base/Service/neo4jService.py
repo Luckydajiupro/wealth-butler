@@ -10,9 +10,9 @@ import logging
 import time
 from typing import List, Optional, Tuple
 
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Client.neo4jClient import Neo4jClient
-from Base.Models.graphModel import Entity, Relation, ExtractionResult
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Client.neo4jClient import Neo4jClient
+from app.Base.Models.graphModel import Entity, Relation, ExtractionResult
 
 logger = logging.getLogger(__name__)
 

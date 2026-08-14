@@ -2,8 +2,8 @@ import pymysql
 from pymysql.cursors import DictCursor
 import logging
 
-from Base.Config.setting import settings
-from Base.Repository.base.baseConnection import BaseConnection
+from app.Base.Config.setting import settings
+from app.Base.Repository.base.baseConnection import BaseConnection
 
 logger = logging.getLogger(__name__)
 

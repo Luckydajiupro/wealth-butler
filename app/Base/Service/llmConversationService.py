@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
-from Base.Models.VdbLLMConversation import VdbLLMConversation
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
+from app.Base.Models.VdbLLMConversation import VdbLLMConversation
 
 
 def save_conversation_from_db_2_vdb(db_instance: BaseLLMConversationModel):

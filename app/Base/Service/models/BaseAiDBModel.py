@@ -3,9 +3,9 @@ import logging
 import re
 from typing import Any, Dict, List
 
-from Base.Ai.base.baseLlm import UserMessages
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Repository.base.baseDBModel import BaseDBModel
+from app.Base.Ai.base.baseLlm import UserMessages
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Repository.base.baseDBModel import BaseDBModel
 
 logger = logging.getLogger(__name__)
 

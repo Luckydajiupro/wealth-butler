@@ -3,11 +3,11 @@ from typing import Any, Dict, List, Generator, AsyncGenerator, Optional, Union, 
 from openai import OpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletionUserMessageParam
 
-from Base.Ai.base.baseEnum import LLMTypeEnum
-from Base.Ai.base.baseSetting import LLMConfig
-from Base.Config.setting import settings
+from app.Base.Ai.base.baseEnum import LLMTypeEnum
+from app.Base.Ai.base.baseSetting import LLMConfig
+from app.Base.Config.setting import settings
 import logging
-from Base.Ai.base import UserMessages
+from app.Base.Ai.base import UserMessages
 
 logger = logging.getLogger(__name__)
 

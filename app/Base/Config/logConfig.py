@@ -3,8 +3,8 @@ import sys
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 
-from Base.Config.setting import settings
-from Base.RicUtils.pathUtils import find_project_root
+from app.Base.Config.setting import settings
+from app.Base.RicUtils.pathUtils import find_project_root
 
 
 

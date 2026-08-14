@@ -7,7 +7,7 @@ from functools import partial
 from gradio_client import Client, handle_file
 import httpx
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 logger = logging.getLogger(__name__)
 

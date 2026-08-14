@@ -1,13 +1,13 @@
 import json
 from typing import Literal
 
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm, QwenLlm
-from Base.Ai.prompt.commonPrompt import text_auditing_prompt_v1
-from Base.Ai.service.commonService import RewriteQuestionParams, rewrite_question
-from Base.Ai.utils.common import jinja2_prompt_render
-from Base.Client.tencent.text_audting import ci_auditing_text_submit, is_normal
-from Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
-from Base.Models.VdbLLMConversation import VdbLLMConversation
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm, QwenLlm
+from app.Base.Ai.prompt.commonPrompt import text_auditing_prompt_v1
+from app.Base.Ai.service.commonService import RewriteQuestionParams, rewrite_question
+from app.Base.Ai.utils.common import jinja2_prompt_render
+from app.Base.Client.tencent.text_audting import ci_auditing_text_submit, is_normal
+from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
+from app.Base.Models.VdbLLMConversation import VdbLLMConversation
 
 
 class AuditingTextError(Exception):

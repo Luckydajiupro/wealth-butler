@@ -5,8 +5,8 @@ from typing import Optional, ClassVar, List
 
 from pydantic import Field
 
-from Base.Ai.base import UserMessages, AssistantMessages
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.Ai.base import UserMessages, AssistantMessages
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 
 logger = logging.getLogger(__name__)
 

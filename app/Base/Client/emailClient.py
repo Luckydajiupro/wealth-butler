@@ -8,8 +8,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 import os
 
-from Base.Config.setting import settings
-from Base.RicUtils.pathUtils import find_project_root
+from app.Base.Config.setting import settings
+from app.Base.RicUtils.pathUtils import find_project_root
 
 # 获取项目根目录的绝对路径
 PROJECT_ROOT = find_project_root()

@@ -12,8 +12,8 @@ from datetime import timedelta
 from minio import Minio
 from minio.error import S3Error
 from typing import List, Tuple, Dict
-from Base.Config.setting import settings
-from Base.Meta.singletonMeta import SingletonMeta
+from app.Base.Config.setting import settings
+from app.Base.Meta.singletonMeta import SingletonMeta
 
 logger = logging.getLogger(__name__)
 

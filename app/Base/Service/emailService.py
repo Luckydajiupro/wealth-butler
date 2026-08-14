@@ -1,6 +1,6 @@
-from Base.Config.setting import settings
-from Base.Client.emailClient import send_email as _send_email
-from Base.Models.BaseEmailModel import BaseEmailModels
+from app.Base.Config.setting import settings
+from app.Base.Client.emailClient import send_email as _send_email
+from app.Base.Models.BaseEmailModel import BaseEmailModels
 from datetime import datetime
 
 

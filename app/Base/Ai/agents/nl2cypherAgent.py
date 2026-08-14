@@ -11,11 +11,11 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
-from Base.Ai.base.baseAgent import ReActAgent, AssistantMessages
-from Base.Ai.base.baseTool import BaseTool
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Client.neo4jClient import Neo4jClient
-from Base.Service.neo4jService import parse_nl_2_graph
+from app.Base.Ai.base.baseAgent import ReActAgent, AssistantMessages
+from app.Base.Ai.base.baseTool import BaseTool
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Client.neo4jClient import Neo4jClient
+from app.Base.Service.neo4jService import parse_nl_2_graph
 
 logger = logging.getLogger(__name__)
 

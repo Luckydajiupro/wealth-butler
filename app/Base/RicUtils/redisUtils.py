@@ -5,7 +5,7 @@ import hashlib
 from typing import Any, Optional, Callable
 from functools import wraps
 
-from Base.Client import get_redis_client
+from app.Base.Client import get_redis_client
 
 logger = logging.getLogger(__name__)
 

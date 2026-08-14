@@ -3,9 +3,9 @@ import logging
 import os
 from typing import Optional
 
-from Base.Client.ttsClient import TtsClient
-from Base.Client.minioClient import MinioClient
-from Base.Config.setting import settings
+from app.Base.Client.ttsClient import TtsClient
+from app.Base.Client.minioClient import MinioClient
+from app.Base.Config.setting import settings
 
 logger = logging.getLogger(__name__)
 

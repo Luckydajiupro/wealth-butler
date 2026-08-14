@@ -1,8 +1,8 @@
 import logging
 
-from Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
-from Base.Models.BaseLLMSession import BaseLLMSession
-from Base.Models.VdbLLMConversation import VdbLLMConversation
+from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
+from app.Base.Models.BaseLLMSession import BaseLLMSession
+from app.Base.Models.VdbLLMConversation import VdbLLMConversation
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@
 用户的最终权限 = 所有角色权限的并集。
 """
 
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 from typing import Optional, List
 from datetime import datetime
 

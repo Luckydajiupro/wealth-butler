@@ -1,5 +1,5 @@
-from Base.Client.schedulerClient import TaskSchedulerClient
-from Base.Repository.base.connectionManager import ConnectionManager
+from app.Base.Client.schedulerClient import TaskSchedulerClient
+from app.Base.Repository.base.connectionManager import ConnectionManager
 
 base_module_scheduler_client = TaskSchedulerClient(
         mysql_url=ConnectionManager.get("base_module").get_connection_url()

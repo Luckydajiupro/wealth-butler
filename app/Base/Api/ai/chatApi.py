@@ -7,16 +7,16 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from Base.Ai.base import UserMessages
-from Base.Ai.base.baseEnum import LLMTypeEnum
-from Base.Ai.llms.qwenLlm import QwenLlm
-from Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
-from Base.Models.BaseLLMSession import BaseLLMSession
-from Base.RicUtils.httpUtils import HttpResponse
-from Base.Service.memoryV1Service import MemoryV1Service
-from Base.Service.aiService import AiService, AuditingTextError
-from Base.Service.keywordService import keyword_replace_question
-from Base.Service.llmConversationService import save_conversation_from_db_2_vdb, save_conversation_from_db_2_vdb_only_data
+from app.Base.Ai.base import UserMessages
+from app.Base.Ai.base.baseEnum import LLMTypeEnum
+from app.Base.Ai.llms.qwenLlm import QwenLlm
+from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
+from app.Base.Models.BaseLLMSession import BaseLLMSession
+from app.Base.RicUtils.httpUtils import HttpResponse
+from app.Base.Service.memoryV1Service import MemoryV1Service
+from app.Base.Service.aiService import AiService, AuditingTextError
+from app.Base.Service.keywordService import keyword_replace_question
+from app.Base.Service.llmConversationService import save_conversation_from_db_2_vdb, save_conversation_from_db_2_vdb_only_data
 
 
 def persist_conversation(auto_save_vdb: bool = True, is_rewriting: bool = True, is_auditing: bool = True):

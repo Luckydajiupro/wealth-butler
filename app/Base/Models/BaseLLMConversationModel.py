@@ -4,8 +4,8 @@ import json
 
 from pydantic import Field
 
-from Base.Ai.base import AssistantMessages, UserMessages
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.Ai.base import AssistantMessages, UserMessages
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 
 
 class BaseLLMConversationModel(BaseModuleDBModel):

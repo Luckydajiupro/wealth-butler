@@ -4,7 +4,7 @@
 """
 
 from typing import Dict, Optional
-from Base.Repository.base.baseConnection import BaseConnection as DatabaseConnection
+from app.Base.Repository.base.baseConnection import BaseConnection as DatabaseConnection
 import logging
 
 logger = logging.getLogger(__name__)

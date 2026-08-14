@@ -1,5 +1,5 @@
-from Base.Ai.llms.qwenLlm import create_qwen_llm
-from Base.Config.setting import settings
+from app.Base.Ai.llms.qwenLlm import create_qwen_llm
+from app.Base.Config.setting import settings
 
 default_qwen_llm = create_qwen_llm()
 

@@ -4,7 +4,7 @@ import dashscope
 from typing import Tuple, Any
 import concurrent.futures
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 logger = logging.getLogger(__name__)
 

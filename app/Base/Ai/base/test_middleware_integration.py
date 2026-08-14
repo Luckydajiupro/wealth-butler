@@ -2,9 +2,9 @@
 import pytest
 import asyncio
 from unittest.mock import MagicMock, AsyncMock
-from Base.Ai.base.baseAgent import BaseAgent, AgentResult
-from Base.Ai.base.baseLlm import BaseLlm
-from Base.Ai.middlewares.base import Middleware, AgentContext
+from app.Base.Ai.base.baseAgent import BaseAgent, AgentResult
+from app.Base.Ai.base.baseLlm import BaseLlm
+from app.Base.Ai.middlewares.base import Middleware, AgentContext
 
 
 class MockLLM(BaseLlm):

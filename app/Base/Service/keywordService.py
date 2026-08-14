@@ -1,10 +1,10 @@
 import logging
 
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Client.jiebaClient import jieba_client
-from Base.Models.BaseKeywordModel import BaseKeywordModel
-from Base.Models.VdbKeyword import VDBLLMKeyword
-from Base.Models.VdbLLMConversation import VdbLLMConversation
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Client.jiebaClient import jieba_client
+from app.Base.Models.BaseKeywordModel import BaseKeywordModel
+from app.Base.Models.VdbKeyword import VDBLLMKeyword
+from app.Base.Models.VdbLLMConversation import VdbLLMConversation
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ import sqlite3
 from typing import Optional, List, Dict, Any, Union
 import logging
 
-from Base.Repository.base.baseConnection import BaseConnection
+from app.Base.Repository.base.baseConnection import BaseConnection
 
 logger = logging.getLogger(__name__)
 

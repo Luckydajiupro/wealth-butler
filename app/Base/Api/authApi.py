@@ -7,10 +7,10 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
-from Base.RicUtils.httpUtils import HttpResponse
-from Base.Service.authService import AuthService
-from Base.Models.roleModel import Permission
-from Base.Models.menuModel import MenuModel
+from app.Base.RicUtils.httpUtils import HttpResponse
+from app.Base.Service.authService import AuthService
+from app.Base.Models.roleModel import Permission
+from app.Base.Models.menuModel import MenuModel
 
 router = APIRouter(prefix="/api/auth", tags=["认证与用户管理"])
 

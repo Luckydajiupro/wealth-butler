@@ -15,7 +15,7 @@ from typing import Any, List, Optional, Dict
 from dotenv import load_dotenv
 import os
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 load_dotenv()  # 自动加载 .env 文件
 

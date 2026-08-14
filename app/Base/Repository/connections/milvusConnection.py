@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional
 
 from pymilvus import RRFRanker, AnnSearchRequest
 
-from Base.Repository.base.baseVDBConnection import BaseVDBConnection
-from Base.Client.milvusClient import MilvusClientSingleton
+from app.Base.Repository.base.baseVDBConnection import BaseVDBConnection
+from app.Base.Client.milvusClient import MilvusClientSingleton
 
 logger = logging.getLogger(__name__)
 

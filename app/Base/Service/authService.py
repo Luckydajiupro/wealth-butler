@@ -4,10 +4,10 @@ from typing import Optional, Tuple, List
 
 import jwt
 
-from Base.Config.setting import settings
-from Base.Models.userModel import UserModel
-from Base.Models.roleModel import RoleModel, Permission, BUILTIN_ROLES
-from Base.Models.userRoleModel import UserRoleModel
+from app.Base.Config.setting import settings
+from app.Base.Models.userModel import UserModel
+from app.Base.Models.roleModel import RoleModel, Permission, BUILTIN_ROLES
+from app.Base.Models.userRoleModel import UserRoleModel
 
 logger = logging.getLogger(__name__)
 

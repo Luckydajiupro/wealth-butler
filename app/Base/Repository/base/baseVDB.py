@@ -5,8 +5,8 @@ from typing import Optional, Dict, Any, List, Type, TypeVar, ClassVar, get_type_
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pymilvus import CollectionSchema, FieldSchema, DataType, Function, FunctionType, AnnSearchRequest
 
-from Base.Repository.base.baseVDBConnection import BaseVDBConnection
-from Base.Repository.connections.milvusConnection import get_default_milvus_vdb_connection
+from app.Base.Repository.base.baseVDBConnection import BaseVDBConnection
+from app.Base.Repository.connections.milvusConnection import get_default_milvus_vdb_connection
 
 logger = logging.getLogger(__name__)
 T = TypeVar('T', bound='BaseVDBModel')

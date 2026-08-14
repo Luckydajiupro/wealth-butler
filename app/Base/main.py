@@ -1,7 +1,7 @@
-from Base.Api.ai.chatApi import register_ai_chat_router
-from Base.Api.authApi import register_auth_router
-from Base.Config.logConfig import setup_logging
-from Base.Service.scheduler.auto_register import auto_register_all_scheduler
+from app.Base.Api.ai.chatApi import register_ai_chat_router
+from app.Base.Api.authApi import register_auth_router
+from app.Base.Config.logConfig import setup_logging
+from app.Base.Service.scheduler.auto_register import auto_register_all_scheduler
 
 setup_logging()
 

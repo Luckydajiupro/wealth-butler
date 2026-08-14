@@ -1,9 +1,9 @@
 import logging
 import os
 
-from Base.Client import get_asr_client
-from Base.RicUtils.audioFileUtils import AudioFileHandler
-from Base.RicUtils.redisUtils import cache_with_params
+from app.Base.Client import get_asr_client
+from app.Base.RicUtils.audioFileUtils import AudioFileHandler
+from app.Base.RicUtils.redisUtils import cache_with_params
 
 logger = logging.getLogger(__name__)
 

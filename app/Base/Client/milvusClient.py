@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional, Union
 
 from pymilvus import CollectionSchema, FieldSchema, DataType, MilvusClient, Function, FunctionType
 
-from Base.Config.setting import settings
+from app.Base.Config.setting import settings
 
 logger = logging.getLogger(__name__)
 

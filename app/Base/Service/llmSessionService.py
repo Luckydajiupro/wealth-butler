@@ -1,10 +1,10 @@
 import logging
 
-from Base.Ai.llms.qwenLlm import get_default_qwen_llm
-from Base.Ai.prompt.commonPrompt import session_summary_prompt_v1
-from Base.Ai.utils.common import jinja2_prompt_render
-from Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
-from Base.Models.BaseLLMSession import BaseLLMSession
+from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.prompt.commonPrompt import session_summary_prompt_v1
+from app.Base.Ai.utils.common import jinja2_prompt_render
+from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
+from app.Base.Models.BaseLLMSession import BaseLLMSession
 
 logger = logging.getLogger(__name__)
 

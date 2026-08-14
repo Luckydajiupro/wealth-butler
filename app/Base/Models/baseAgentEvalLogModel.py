@@ -4,7 +4,7 @@ from typing import Optional, ClassVar
 
 from pydantic import Field
 
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 
 
 class BaseAgentEvalLog(BaseModuleDBModel):

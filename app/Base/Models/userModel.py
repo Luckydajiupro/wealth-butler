@@ -1,4 +1,4 @@
-from Base.Repository.models.moduleDbModel import BaseModuleDBModel
+from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 from typing import Optional
 from datetime import datetime
 
