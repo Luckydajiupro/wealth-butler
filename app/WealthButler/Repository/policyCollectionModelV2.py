@@ -50,28 +50,18 @@ class PolicyCollectionModelV2(BaseVDBModel):
         }
     )
 
-    # 稀疏向量字段（BM25，用于关键词匹配）
-    text_sparse: Optional[dict] = Field(
-        default={},
-        json_schema_extra={
-            'is_function_output': True  # 标记为函数输出，Milvus会自动计算
-        }
-    )
+    # 注：text_sparse稀疏向量字段暂时移除
+    # 原因：Milvus Function Output机制尚未完全支持自动BM25计算
+    # 当前V2版本仍使用纯稠密向量检索，但Schema已优化为三字段模式
 
     # 集合配置
     collection_alias: ClassVar[str] = "fin_policy_collection_v2"
-    description: ClassVar[str] = "政策法规集合V2（混合检索+jieba分词）"
+    description: ClassVar[str] = "政策法规集合V2（三字段Schema+jieba分词准备）"
     auto_create_collection: ClassVar[bool] = True
 
-    # 向量索引配置
+    # 稠密向量索引配置
     _vector_fields_config: ClassVar[dict] = {
-        'embedding': {  # 稠密向量索引
-            'index_type': 'HNSW',
-            'metric_type': 'COSINE',
-            'params': {"M": 16, "efConstruction": 200}
-        },
-        'text_sparse': {  # 稀疏向量索引
-            'index_type': 'SPARSE_INVERTED_INDEX',
-            'metric_type': 'BM25'
-        }
+        'index_type': 'HNSW',
+        'metric_type': 'COSINE',
+        'params': {"M": 16, "efConstruction": 200}
     }
