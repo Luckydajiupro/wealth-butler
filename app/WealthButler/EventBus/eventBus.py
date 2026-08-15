@@ -213,7 +213,7 @@ class EventBus:
         handler: Callable
     ) -> None:
         """处理单条消息（无条件ACK + 幂等检查）"""
-        redis_client = get_redis_client()
+        from app.Base.Client.redisClient import redis_client
 
         try:
             # ═══════════════════════════════════════════════════════

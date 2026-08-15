@@ -17,7 +17,7 @@ class FaqCollectionModelV2(BaseVDBModel):
 
     # 主键（自增）
     id: Optional[int] = Field(
-        default=0,
+        default=None,
         json_schema_extra={
             'is_primary': True,
             'auto_id': True

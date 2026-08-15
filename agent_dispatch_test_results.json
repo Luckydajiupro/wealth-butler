@@ -1,0 +1,98 @@
+{
+  "total": 6,
+  "passed": 0,
+  "failed": 6,
+  "pass_rate": 0.0,
+  "details": [
+    {
+      "test_name": "客服Agent分发",
+      "endpoint": "http://localhost:8000/api/chat",
+      "payload": {
+        "agent_type": "customer",
+        "message": "我想了解理财产品",
+        "session_id": "test_session_001",
+        "user_id": 1,
+        "is_stream": true
+      },
+      "success": false,
+      "response": null,
+      "error": "HTTP 502: ",
+      "chunks_received": 0
+    },
+    {
+      "test_name": "投顾Agent分发",
+      "endpoint": "http://localhost:8000/api/chat",
+      "payload": {
+        "agent_type": "advisor",
+        "message": "给客户推荐适合的理财产品",
+        "session_id": "test_session_002",
+        "user_id": 2,
+        "customer_id": 100,
+        "is_stream": true
+      },
+      "success": false,
+      "response": null,
+      "error": "HTTP 502: ",
+      "chunks_received": 0
+    },
+    {
+      "test_name": "投顾Agent参数校验",
+      "endpoint": "http://localhost:8000/api/chat",
+      "payload": {
+        "agent_type": "advisor",
+        "message": "给客户推荐产品",
+        "session_id": "test_session_003",
+        "user_id": 2,
+        "is_stream": true
+      },
+      "success": false,
+      "response": null,
+      "error": "预期400错误，但得到 502",
+      "expected_error": true
+    },
+    {
+      "test_name": "无效agent_type处理",
+      "endpoint": "http://localhost:8000/api/chat",
+      "payload": {
+        "agent_type": "invalid_agent",
+        "message": "测试无效类型",
+        "session_id": "test_session_004",
+        "user_id": 1,
+        "is_stream": true
+      },
+      "success": false,
+      "response": null,
+      "error": "未检测到预期的错误消息",
+      "expected_error": true
+    },
+    {
+      "test_name": "客服Agent直连路由",
+      "endpoint": "http://localhost:8000/api/chat/customer",
+      "payload": {
+        "message": "直连路由测试",
+        "session_id": "test_session_005",
+        "user_id": 1,
+        "is_stream": true
+      },
+      "success": false,
+      "response": null,
+      "error": "HTTP 502: ",
+      "chunks_received": 0
+    },
+    {
+      "test_name": "投顾Agent直连路由",
+      "endpoint": "http://localhost:8000/api/chat/advisor",
+      "payload": {
+        "message": "直连路由测试",
+        "session_id": "test_session_006",
+        "user_id": 2,
+        "customer_id": 100,
+        "is_stream": true
+      },
+      "success": false,
+      "response": null,
+      "error": "HTTP 502: ",
+      "chunks_received": 0
+    }
+  ]
+}

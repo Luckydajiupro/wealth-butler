@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from typing import Optional, Dict, Any, List, Type, TypeVar, ClassVar, Set, get_type_hints
+from typing import Optional, Dict, Any, List, Type, TypeVar, ClassVar, Set, get_type_hints, get_origin, get_args, Union
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pymilvus import CollectionSchema, FieldSchema, DataType, Function, FunctionType, AnnSearchRequest
@@ -472,7 +472,17 @@ class BaseVDBModel(BaseModel, ABC):
     def _get_dtype_from_type(cls, field_type: Type) -> DataType:
         """
         将 Python 类型映射到 Milvus 数据类型
+        支持Optional[T]类型的解析
         """
+        # 处理Optional[T]或Union[T, None]类型
+        origin = get_origin(field_type)
+        if origin is Union:
+            args = get_args(field_type)
+            # 过滤掉NoneType，获取实际类型
+            non_none_types = [arg for arg in args if arg is not type(None)]
+            if non_none_types:
+                field_type = non_none_types[0]
+
         if field_type == int:
             return DataType.INT64
         elif field_type == float:
@@ -950,4 +960,46 @@ class BaseVDBModel(BaseModel, ABC):
             for instance in instances
         ]
 
+        # 序列化metadata字段：如果是dict，转换为JSON字符串（Milvus的VARCHAR字段只接受字符串）
+        import json
+        for data in data_list:
+            if 'metadata' in data and isinstance(data['metadata'], dict):
+                data['metadata'] = json.dumps(data['metadata'], ensure_ascii=False)
+
         return connection.upsert(collection_name, data_list)
+
+    @classmethod
+    def insert(cls, instances: List[T]) -> Dict[str, Any]:
+        """
+        插入数据
+
+        Args:
+            instances: 模型实例列表
+
+        Returns:
+            Dict: Insert 结果
+        """
+        if not instances:
+            return {'insert_count': 0, 'ids': []}
+
+        connection = cls.get_connection()
+        if connection is None:
+            raise RuntimeError("No database connection set")
+
+        collection_name = cls.get_collection_name()
+
+        # 获取需要排除的字段
+        exclude_fields = cls._get_exclude_fields()
+
+        data_list = [
+            instance.model_dump(exclude=exclude_fields if exclude_fields else None, exclude_none=True)
+            for instance in instances
+        ]
+
+        # 序列化metadata字段：如果是dict，转换为JSON字符串（Milvus的VARCHAR字段只接受字符串）
+        import json
+        for data in data_list:
+            if 'metadata' in data and isinstance(data['metadata'], dict):
+                data['metadata'] = json.dumps(data['metadata'], ensure_ascii=False)
+
+        return connection.insert(collection_name, data_list)
