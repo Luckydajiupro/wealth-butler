@@ -324,6 +324,10 @@ def init_work_orders(users):
         print("✗ 客户账号不存在，跳过工单初始化")
         return
 
+    created_count = 0
+    skipped_count = 0
+    failed_count = 0
+
     workorders_data = [
         # 客户转介（申购/赎回类）- 5条待处理
         {
@@ -405,7 +409,7 @@ def init_work_orders(users):
         },
         # 风险预警工单 - 4条
         {
-            "type": "系统工单",
+            "type": "系统故障",
             "customer_id": customer_zhang.id,
             "customer_name": "张先生",
             "summary": "触发RW-003高风险产品集中度预警",
@@ -414,7 +418,7 @@ def init_work_orders(users):
             "days_ago": 0,
         },
         {
-            "type": "系统工单",
+            "type": "系统故障",
             "customer_id": customer_li.id,
             "customer_name": "李女士",
             "summary": "触发RW-001单笔大额交易预警",
@@ -423,7 +427,7 @@ def init_work_orders(users):
             "days_ago": 1,
         },
         {
-            "type": "系统工单",
+            "type": "系统故障",
             "customer_id": customer_zhang.id,
             "customer_name": "张先生",
             "summary": "触发RW-015反洗钱可疑交易预警",
@@ -434,7 +438,7 @@ def init_work_orders(users):
             "days_ago": 2,
         },
         {
-            "type": "系统工单",
+            "type": "系统故障",
             "customer_id": customer_li.id,
             "customer_name": "李女士",
             "summary": "触发RW-005风险承受能力不匹配预警",
@@ -444,9 +448,9 @@ def init_work_orders(users):
             "handler_name": "王顾问" if advisor_wang else None,
             "days_ago": 3,
         },
-        # 账户操作 - 2条已完成
+        # 账户变更 - 2条已完成
         {
-            "type": "账户操作",
+            "type": "账户变更",
             "customer_id": customer_zhang.id,
             "customer_name": "张先生",
             "summary": "客户更新联系电话和邮箱地址",
@@ -457,7 +461,7 @@ def init_work_orders(users):
             "days_ago": 5,
         },
         {
-            "type": "账户操作",
+            "type": "账户变更",
             "customer_id": customer_li.id,
             "customer_name": "李女士",
             "summary": "客户更新银行卡信息",
@@ -490,17 +494,29 @@ def init_work_orders(users):
         # 生成工单编号：WO + 日期 + 序号
         order_no = f"WO{created_at.strftime('%Y%m%d')}{idx:03d}"
 
+        # 检查工单是否已存在
+        db = WorkOrderModel.get_db_connection()
+        if db:
+            try:
+                existing = db.execute(f"SELECT id FROM {WorkOrderModel.table_alias} WHERE order_no = %s", (order_no,))
+                if existing:
+                    print(f"  工单 {order_no} 已存在，跳过")
+                    skipped_count += 1
+                    continue
+            except Exception as e:
+                print(f"  检查工单是否存在时出错: {str(e)}")
+
         workorder = WorkOrderModel(
             order_no=order_no,
             order_type=wo["type"],
             customer_id=wo["customer_id"],
             customer_name=wo["customer_name"],
-            title=wo["summary"][:50],  # 添加title字段
-            description=wo["summary"],  # 添加description字段
+            title=wo["summary"][:50],
+            description=wo["summary"],
             intent_summary=wo["summary"],
             status=wo["status"],
             priority=wo["priority"],
-            source="客户提交",  # 添加source字段
+            source="客户提交" if wo["type"] != "系统故障" else "系统生成",
             handled_by=wo.get("handled_by"),
             handler_name=wo.get("handler_name"),
             handled_at=handled_at,
@@ -511,11 +527,19 @@ def init_work_orders(users):
         try:
             wo_id = workorder.save()
             if wo_id > 0:
-                print(f"✓ 创建工单: [{wo['type']}] {wo['summary'][:30]}... (状态={wo['status']})")
+                print(f"✓ 创建工单 {idx}/15: [{wo['type']}] {wo['summary'][:30]}... (状态={wo['status']})")
+                created_count += 1
             else:
-                print(f"✗ 创建工单失败")
+                print(f"✗ 创建工单 {idx}/15 失败: save()返回0或负数")
+                failed_count += 1
         except Exception as e:
-            print(f"✗ 创建工单失败: {str(e)}")
+            print(f"✗ 创建工单 {idx}/15 失败: {str(e)}")
+            print(f"  工单数据: 类型={wo['type']}, 状态={wo['status']}, 优先级={wo['priority']}")
+            failed_count += 1
+            import traceback
+            traceback.print_exc()
+
+    print(f"\n工单创建汇总: 成功={created_count}, 跳过={skipped_count}, 失败={failed_count}")
 
 
 def init_risk_alerts(users):
@@ -530,6 +554,10 @@ def init_risk_alerts(users):
     if not all([customer_zhang, customer_li]):
         print("✗ 客户账号不存在，跳过风险预警初始化")
         return
+
+    created_count = 0
+    skipped_count = 0
+    failed_count = 0
 
     risk_alerts_data = [
         # 高风险（需管理员裁决）- 4条待处理
@@ -635,7 +663,7 @@ def init_risk_alerts(users):
             "status": "待处理",
             "days_ago": 0,
         },
-        # 低风险 - 3条已确认/误报
+        # 低风险 - 3条已处理/误报
         {
             "customer_id": customer_li.id,
             "rule_id": "RW-010",
@@ -644,7 +672,7 @@ def init_risk_alerts(users):
             "confidence": 0.65,
             "details": {"reason": "7天内交易5笔"},
             "need_override": False,
-            "status": "已确认",
+            "status": "已处理",
             "handler_id": risk_zhao.id if risk_zhao else None,
             "handle_result": "经核实，客户交易行为正常",
             "days_ago": 5,
@@ -677,9 +705,26 @@ def init_risk_alerts(users):
         },
     ]
 
-    for alert in risk_alerts_data:
+    for idx, alert in enumerate(risk_alerts_data, start=1):
         created_at = datetime.now() - timedelta(days=alert["days_ago"])
         handled_at = created_at + timedelta(hours=1) if alert.get("handler_id") else None
+
+        # 检查是否已存在相同的预警（根据客户ID、规则ID、创建时间判断）
+        db = RiskAlertModel.get_db_connection()
+        if db:
+            try:
+                check_sql = f"""
+                    SELECT id FROM {RiskAlertModel.table_alias}
+                    WHERE customer_id = %s AND rule_id = %s
+                    AND DATE(created_at) = DATE(%s)
+                """
+                existing = db.execute(check_sql, (alert["customer_id"], alert["rule_id"], created_at))
+                if existing:
+                    print(f"  风险预警 [{alert['rule_id']}] {alert['rule_name']} 已存在，跳过")
+                    skipped_count += 1
+                    continue
+            except Exception as e:
+                print(f"  检查风险预警是否存在时出错: {str(e)}")
 
         risk_alert = RiskAlertModel(
             customer_id=alert["customer_id"],
@@ -688,7 +733,7 @@ def init_risk_alerts(users):
             severity=alert["severity"],
             confidence=Decimal(str(alert["confidence"])),
             trigger_details=alert["details"],
-            related_transaction_id=None,  # 简化处理，实际应关联具体交易
+            related_transaction_id=None,
             status=alert["status"],
             need_override=alert["need_override"],
             handler_id=alert.get("handler_id"),
@@ -699,11 +744,19 @@ def init_risk_alerts(users):
         try:
             alert_id = risk_alert.save()
             if alert_id > 0:
-                print(f"✓ 创建风险预警: [{alert['rule_id']}] {alert['rule_name']} (严重度={alert['severity']}, 状态={alert['status']})")
+                print(f"✓ 创建风险预警 {idx}/12: [{alert['rule_id']}] {alert['rule_name']} (严重度={alert['severity']}, 状态={alert['status']})")
+                created_count += 1
             else:
-                print(f"✗ 创建风险预警失败")
+                print(f"✗ 创建风险预警 {idx}/12 失败: save()返回0或负数")
+                failed_count += 1
         except Exception as e:
-            print(f"✗ 创建风险预警失败: {str(e)}")
+            print(f"✗ 创建风险预警 {idx}/12 失败: {str(e)}")
+            print(f"  预警数据: 规则ID={alert['rule_id']}, 严重度={alert['severity']}, 状态={alert['status']}")
+            failed_count += 1
+            import traceback
+            traceback.print_exc()
+
+    print(f"\n风险预警创建汇总: 成功={created_count}, 跳过={skipped_count}, 失败={failed_count}")
 
 
 def main():

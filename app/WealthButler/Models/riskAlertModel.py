@@ -2,6 +2,7 @@ from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime
 from decimal import Decimal
+import json
 
 
 class RiskAlertModel(BaseDBModel):
@@ -18,11 +19,11 @@ class RiskAlertModel(BaseDBModel):
       `customer_id` INT NOT NULL COMMENT '客户ID',
       `rule_id` VARCHAR(20) NOT NULL COMMENT '触发的规则ID（RW-001~RW-020）',
       `rule_name` VARCHAR(100) NOT NULL COMMENT '规则名称',
-      `severity` ENUM('低','中','高','严重') NOT NULL COMMENT '严重程度',
+      `severity` ENUM('low','medium','high','critical') NOT NULL COMMENT '严重程度',
       `confidence` DECIMAL(4,3) NOT NULL COMMENT '置信度0-1',
       `trigger_details` JSON COMMENT '触发详情（违反条件列表）',
       `related_transaction_id` BIGINT COMMENT '关联交易ID',
-      `status` ENUM('待处理','处理中','已确认','误报') DEFAULT '待处理' COMMENT '处理状态',
+      `status` ENUM('待处理','处理中','已处理','误报') DEFAULT '待处理' COMMENT '处理状态',
       `need_override` TINYINT(1) DEFAULT 0 COMMENT '是否需要管理员裁决',
       `handler_id` INT COMMENT '处理人ID（员工ID）',
       `handle_result` TEXT COMMENT '处理结果记录',
@@ -54,6 +55,13 @@ class RiskAlertModel(BaseDBModel):
     handled_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    def model_dump(self, **kwargs):
+        """重写model_dump，序列化JSON字段"""
+        data = super().model_dump(**kwargs)
+        if 'trigger_details' in data and isinstance(data['trigger_details'], dict):
+            data['trigger_details'] = json.dumps(data['trigger_details'], ensure_ascii=False)
+        return data
 
     @classmethod
     def find_pending(cls, limit: int = 100):

@@ -210,11 +210,19 @@ class BaseConnection(ABC):
         except OperationalError as oe:
             if oe.args[0] == 1050:
                 logger.debug(f"表已存在，跳过创建表：{oe}")
-                # 表已存在  忽略
+                # 表已存在，忽略
                 return 0
-            # 非 1050 的 OperationalError 需要正确处理，不能吞掉异常后隐式返回 None
-            logger.warning(f"SQL 执行 OperationalError，标记连接为不可用：{oe}")
-            self._is_available = False
+            # 检查是否是真正的连接错误（2000-2999系列）
+            elif 2000 <= oe.args[0] < 3000:
+                logger.warning(f"SQL 执行 OperationalError（连接问题），标记连接为不可用：{oe}")
+                self._is_available = False
+            else:
+                # 其他OperationalError（如表结构问题）不标记连接为不可用，直接抛出
+                logger.error(f"SQL 执行 OperationalError（非连接问题）：{oe}")
+                logger.debug(f"失败 SQL: {sql}")
+                logger.debug(f"参数: {params}")
+                raise  # 抛出异常，让调用方处理
+
             logger.debug(f"失败 SQL: {sql}")
             logger.debug(f"参数: {params}")
             if operation_type == OperationType.QUERY:
@@ -224,10 +232,25 @@ class BaseConnection(ABC):
             else:  # UPDATE, DELETE, EXECUTE
                 return -1
         except Exception as e:
-            logger.warning(f"SQL 执行失败，标记连接为不可用：{e}")
-            self._is_available = False
-            logger.debug(f"失败 SQL: {sql}")
-            logger.debug(f"参数: {params}")
+            # 检查是否是数据完整性错误（不应标记连接为不可用）
+            error_code = getattr(e, 'args', [None])[0] if hasattr(e, 'args') else None
+
+            # MySQL错误码分类：
+            # 1000-1999: 数据错误（如1265数据截断、1062重复键、1406数据过长等）
+            # 2000-2999: 连接错误
+            if isinstance(error_code, int) and 1000 <= error_code < 2000:
+                # 数据错误，不标记连接为不可用
+                logger.error(f"SQL 执行失败（数据错误）：{e}")
+                logger.debug(f"失败 SQL: {sql}")
+                logger.debug(f"参数: {params}")
+                raise  # 抛出异常，让调用方处理
+            else:
+                # 其他错误或未知错误，标记连接为不可用（保守策略）
+                logger.warning(f"SQL 执行失败，标记连接为不可用：{e}")
+                self._is_available = False
+                logger.debug(f"失败 SQL: {sql}")
+                logger.debug(f"参数: {params}")
+
             # 返回适当的默认值
             if operation_type == OperationType.QUERY:
                 return []

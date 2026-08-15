@@ -16,7 +16,7 @@ class WorkOrderModel(BaseDBModel):
     CREATE TABLE `biz_work_order` (
       `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
       `order_no` VARCHAR(32) NOT NULL COMMENT '工单编号',
-      `order_type` ENUM('风险预警','投顾','咨询','账户操作','业务办理','系统工单','客户转介') NOT NULL COMMENT '工单类型',
+      `order_type` ENUM('风控预警','投诉','咨询','账户变更','业务申请','系统故障','客户转介') NOT NULL COMMENT '工单类型',
       `source` ENUM('客户提交','系统生成','转介工单','其他来源') NOT NULL COMMENT '工单来源',
       `customer_id` INT COMMENT '客户ID，关联base_user表',
       `customer_name` VARCHAR(100) COMMENT '客户姓名（冗余字段，避免JOIN）',
