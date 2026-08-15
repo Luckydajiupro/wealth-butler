@@ -79,7 +79,7 @@ def handle_large_transaction(event_type: str, payload: Dict[str, Any], trace_id:
 
         logger.info(
             f"[Consumer] Processing large_transaction: customer_id={event.customer_id}, "
-            f"amount={event.amount}, tx_type={event.tx_type}, trace_id={trace_id}"
+            f"amount={event.amount}, transaction_type={event.transaction_type}, trace_id={trace_id}"
         )
 
         # TODO: 调用风控规则引擎

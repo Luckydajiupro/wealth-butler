@@ -9,6 +9,7 @@ import json
 import time
 import uuid
 import logging
+from datetime import datetime
 from typing import Callable, Optional, Dict, Any
 from app.Base.Client.redisClient import redis_client
 
@@ -212,18 +213,12 @@ class EventBus:
         fields: Dict,
         handler: Callable
     ) -> None:
-        """处理单条消息（无条件ACK + 幂等检查）"""
+        """处理单条消息（成功后ACK，保证at-least-once语义）"""
         from app.Base.Client.redisClient import redis_client
 
         try:
             # ═══════════════════════════════════════════════════════
-            # 步骤1: 立即ACK（无条件）
-            # ═══════════════════════════════════════════════════════
-            redis_client.client.xack(stream_key, consumer_group, msg_id)
-            logger.info(f"[EventBus] ACK消息: {msg_id}")
-
-            # ═══════════════════════════════════════════════════════
-            # 步骤2: 解析消息字段（修复bytes键bug）
+            # 步骤1: 解析消息字段
             # ═══════════════════════════════════════════════════════
             event_type = fields.get('event_type', '')
             payload_str = fields.get('payload', '{}')
@@ -233,7 +228,7 @@ class EventBus:
             payload = json.loads(payload_str)
 
             # ═══════════════════════════════════════════════════════
-            # 步骤3: 幂等检查（trace_id去重）
+            # 步骤2: 幂等检查（trace_id去重）
             # ═══════════════════════════════════════════════════════
             idempotent_key = f"eventbus:processed:{trace_id}"
 
@@ -241,7 +236,9 @@ class EventBus:
             is_first_time = redis_client.client.set(idempotent_key, '1', nx=True, ex=86400)
 
             if not is_first_time:
-                logger.warning(f"[EventBus] 重复消息，跳过: trace_id={trace_id}")
+                logger.warning(f"[EventBus] 重复消息，跳过并ACK: trace_id={trace_id}")
+                # 重复消息直接ACK，避免PEL堆积
+                redis_client.client.xack(stream_key, consumer_group, msg_id)
                 return
 
             logger.info(
@@ -250,13 +247,19 @@ class EventBus:
             )
 
             # ═══════════════════════════════════════════════════════
-            # 步骤4: 调用业务handler
+            # 步骤3: 调用业务handler
             # ═══════════════════════════════════════════════════════
             success = handler(event_type, payload, trace_id)
 
-            if not success:
+            if success:
                 # ═══════════════════════════════════════════════════
-                # 步骤5: 失败写入死信队列
+                # 步骤4: 成功后ACK（at-least-once语义保证）
+                # ═══════════════════════════════════════════════════
+                redis_client.client.xack(stream_key, consumer_group, msg_id)
+                logger.info(f"[EventBus] 处理成功并ACK: {msg_id}")
+            else:
+                # ═══════════════════════════════════════════════════
+                # 步骤5: 失败写入死信队列并ACK
                 # ═══════════════════════════════════════════════════
                 dead_letter_key = f"{stream_key}:dead_letter"
                 redis_client.client.xadd(dead_letter_key, {
@@ -268,11 +271,13 @@ class EventBus:
                     'error_time': datetime.now().isoformat(),
                     'handler_name': handler.__name__
                 })
-                logger.error(f"[EventBus] 处理失败，已写入死信队列: {dead_letter_key}")
+                # 已写入死信队列，ACK掉避免PEL堆积
+                redis_client.client.xack(stream_key, consumer_group, msg_id)
+                logger.error(f"[EventBus] 处理失败，已写入死信队列并ACK: {dead_letter_key}")
 
         except json.JSONDecodeError as e:
             logger.error(f"[EventBus] Invalid JSON in {msg_id}: {e}")
-            # JSON 格式错误，写入死信队列
+            # JSON 格式错误，写入死信队列并ACK
             dead_letter_key = f"{stream_key}:dead_letter"
             redis_client.client.xadd(dead_letter_key, {
                 'original_stream': stream_key,
@@ -281,13 +286,14 @@ class EventBus:
                 'error': f"JSONDecodeError: {str(e)}",
                 'error_time': datetime.now().isoformat()
             })
+            redis_client.client.xack(stream_key, consumer_group, msg_id)
 
         except Exception as e:
             logger.error(
                 f"[EventBus] Error processing {msg_id}: {e}",
                 exc_info=True
             )
-            # 不 ACK，保留在 Pending List
+            # 未预期异常：不ACK，保留在PEL中等待重放
 
     @staticmethod
     def create_consumer_group(

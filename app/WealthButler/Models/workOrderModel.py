@@ -15,13 +15,13 @@ class WorkOrderModel(BaseDBModel):
     CREATE TABLE `biz_work_order` (
       `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
       `order_no` VARCHAR(32) NOT NULL COMMENT '工单编号',
-      `order_type` ENUM('风控预警','投诉','咨询','账户变更','业务申请','系统故障') NOT NULL COMMENT '工单类型',
+      `order_type` ENUM('风控预警','投诉','咨询','账户变更','业务申请','系统故障','客户转介') NOT NULL COMMENT '工单类型',
       `source` ENUM('客户提交','系统生成','转人工','主动外呼') NOT NULL COMMENT '工单来源',
       `customer_id` INT COMMENT '客户ID',
       `title` VARCHAR(200) NOT NULL COMMENT '工单标题',
       `description` TEXT COMMENT '工单描述',
       `priority` ENUM('低','中','高','紧急') DEFAULT '中' COMMENT '优先级',
-      `status` ENUM('待分配','处理中','待审核','已完成','已关闭') DEFAULT '待分配' COMMENT '工单状态',
+      `status` ENUM('待处理','处理中','待审核','已完成','已驳回') DEFAULT '待处理' COMMENT '工单状态',
       `handler_id` INT COMMENT '当前处理人ID',
       `related_entity_type` VARCHAR(50) COMMENT '关联实体类型（transaction/alert/conversation）',
       `related_entity_id` BIGINT COMMENT '关联实体ID',
@@ -47,7 +47,7 @@ class WorkOrderModel(BaseDBModel):
     title: str
     description: Optional[str] = None
     priority: str = "中"
-    status: str = "待分配"
+    status: str = "待处理"
     handler_id: Optional[int] = None
     related_entity_type: Optional[str] = None
     related_entity_id: Optional[int] = None
@@ -76,14 +76,14 @@ class WorkOrderModel(BaseDBModel):
             return []
         if order_type:
             sql = f"""SELECT * FROM {cls.table_alias}
-                      WHERE status IN ('待分配', '处理中')
+                      WHERE status IN ('待处理', '处理中')
                       AND order_type = %s
                       ORDER BY priority DESC, created_at ASC
                       LIMIT %s"""
             results = db.execute(sql, (order_type, limit))
         else:
             sql = f"""SELECT * FROM {cls.table_alias}
-                      WHERE status IN ('待分配', '处理中')
+                      WHERE status IN ('待处理', '处理中')
                       ORDER BY priority DESC, created_at ASC
                       LIMIT %s"""
             results = db.execute(sql, (limit,))
