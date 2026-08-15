@@ -1,0 +1,285 @@
+{
+  "rules": {
+    "RW-001": {
+      "rule_name": "大额现金交易",
+      "rule_type": "实时",
+      "risk_level": "中",
+      "weight_tier": 0.10,
+      "priority": 3,
+      "thresholds": {
+        "daily_cash_amount_cny": 50000,
+        "daily_cash_amount_usd": 10000
+      },
+      "description": "同一客户单日累计现金交易金额≥5万元或等值1万美元"
+    },
+    "RW-002": {
+      "rule_name": "频繁小额交易",
+      "rule_type": "日批",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 4,
+      "thresholds": {
+        "window_days": 7,
+        "min_transaction_count": 20,
+        "min_total_amount": 100000
+      },
+      "description": "7日内交易笔数≥20笔且累计金额≥10万元"
+    },
+    "RW-003": {
+      "rule_name": "资金快进快出",
+      "rule_type": "准实时",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 3,
+      "thresholds": {
+        "window_hours": 24,
+        "outflow_ratio": 0.90,
+        "min_amount": 50000
+      },
+      "description": "资金入账后24小时内以≥90%的入账金额转出"
+    },
+    "RW-004": {
+      "rule_name": "分散转入集中转出",
+      "rule_type": "日批",
+      "risk_level": "高",
+      "weight_tier": 0.35,
+      "priority": 2,
+      "thresholds": {
+        "window_days": 5,
+        "min_inflow_accounts": 5,
+        "min_outflow_amount": 200000,
+        "outflow_concentration_ratio": 0.80
+      },
+      "description": "5日内收到≥5个不同来源账户转入且转出金额≥20万元且转出对手方集中度≥80%"
+    },
+    "RW-005": {
+      "rule_name": "集中转入分散转出",
+      "rule_type": "日批",
+      "risk_level": "高",
+      "weight_tier": 0.35,
+      "priority": 2,
+      "thresholds": {
+        "window_days_inflow": 5,
+        "single_inflow_threshold": 100000,
+        "window_days_outflow": 3,
+        "min_outflow_accounts": 5
+      },
+      "description": "5日内收到≥1笔大额转入(单笔≥10万元)且随后3日内向≥5个不同账户分散转出"
+    },
+    "RW-006": {
+      "rule_name": "交易金额与身份不符",
+      "rule_type": "日批",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 4,
+      "thresholds": {
+        "income_multiplier": 3,
+        "min_transaction_amount": 100000
+      },
+      "description": "客户单日交易金额≥其申报年收入×3且单日交易金额≥10万元"
+    },
+    "RW-007": {
+      "rule_name": "频繁开销户",
+      "rule_type": "周期",
+      "risk_level": "中",
+      "weight_tier": 0.10,
+      "priority": 5,
+      "thresholds": {
+        "window_days": 30,
+        "max_open_count": 3,
+        "max_close_count": 2
+      },
+      "description": "同一身份证件30日内开户≥3次或开户后30天内销户≥2次"
+    },
+    "RW-008": {
+      "rule_name": "非正常时段大额交易",
+      "rule_type": "准实时",
+      "risk_level": "低",
+      "weight_tier": 0.10,
+      "priority": 5,
+      "thresholds": {
+        "time_start": "00:00",
+        "time_end": "06:00",
+        "single_amount": 100000,
+        "daily_amount": 200000,
+        "baseline_window_days": 90
+      },
+      "description": "凌晨0:00-6:00期间单笔交易金额≥10万元或单日累计≥20万元"
+    },
+    "RW-009": {
+      "rule_name": "整数金额规避特征",
+      "rule_type": "日批",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 4,
+      "thresholds": {
+        "window_days": 30,
+        "min_suspicious_count": 5,
+        "suspicious_amounts": [49999, 199999, 9999]
+      },
+      "description": "30日内≥5笔交易金额为报告标准线附近的整数减1"
+    },
+    "RW-010": {
+      "rule_name": "关联交易异常",
+      "rule_type": "日批",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 4,
+      "thresholds": {
+        "window_days": 7,
+        "min_bidirectional_count": 3,
+        "net_transaction_ratio": 0.20
+      },
+      "description": "7日内与同一对手方双向交易≥3次且净交易额<总交易额的20%"
+    },
+    "RW-011": {
+      "rule_name": "高风险国家/地区交易",
+      "rule_type": "实时",
+      "risk_level": "高",
+      "weight_tier": 0.35,
+      "priority": 1,
+      "thresholds": {
+        "min_amount": 10000,
+        "high_risk_regions": ["FATF黑名单", "FATF灰名单", "OFAC制裁国家"]
+      },
+      "description": "交易对手方所在国家/地区在FATF黑名单/灰名单或OFAC制裁国家且交易金额≥1万元"
+    },
+    "RW-012": {
+      "rule_name": "频繁申购赎回",
+      "rule_type": "日批",
+      "risk_level": "中",
+      "weight_tier": 0.10,
+      "priority": 5,
+      "thresholds": {
+        "window_days": 30,
+        "min_purchase_count": 3,
+        "min_redemption_count": 3,
+        "max_holding_days": 7
+      },
+      "description": "30日内同一基金产品申购≥3次且赎回≥3次且单次持有期<7天"
+    },
+    "RW-013": {
+      "rule_name": "PEP关联账户",
+      "rule_type": "日批",
+      "risk_level": "高",
+      "weight_tier": 0.35,
+      "priority": 1,
+      "thresholds": {
+        "single_transaction_amount": 200000,
+        "pattern_change_ratio": 0.50,
+        "pattern_baseline_months": 3
+      },
+      "description": "客户被标记为PEP或PEP关联人且出现单笔交易≥20万元或新增境外交易对手方或交易模式变化超过50%"
+    },
+    "RW-014": {
+      "rule_name": "第三方代付",
+      "rule_type": "实时",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 3,
+      "thresholds": {
+        "min_amount": 50000
+      },
+      "description": "投资申购资金来源账户名≠投资账户名且代付金额≥5万元"
+    },
+    "RW-015": {
+      "rule_name": "身份信息变更后大额交易",
+      "rule_type": "准实时",
+      "risk_level": "中",
+      "weight_tier": 0.10,
+      "priority": 5,
+      "thresholds": {
+        "window_hours": 72,
+        "single_amount": 100000
+      },
+      "description": "客户变更关键身份信息后72小时内出现单笔≥10万元的交易"
+    },
+    "RW-016": {
+      "rule_name": "老年客户异常大额转出",
+      "rule_type": "实时",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 5,
+      "thresholds": {
+        "min_age": 65,
+        "single_amount": 100000,
+        "window_days": 7,
+        "cumulative_amount": 200000,
+        "monthly_avg_multiplier": 3,
+        "baseline_months": 12
+      },
+      "description": "客户年龄≥65岁且单笔转出金额≥10万元或7日内累计转出≥20万元且该笔交易金额超过过去12个月月均交易的3倍"
+    },
+    "RW-017": {
+      "rule_name": "新开户短期大额交易",
+      "rule_type": "准实时",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 4,
+      "thresholds": {
+        "window_days": 30,
+        "single_amount": 200000,
+        "cumulative_amount": 500000
+      },
+      "description": "开户后30日内单笔交易≥20万元或累计交易≥50万元"
+    },
+    "RW-018": {
+      "rule_name": "多账户关联资金归集",
+      "rule_type": "周期",
+      "risk_level": "高",
+      "weight_tier": 0.35,
+      "priority": 1,
+      "thresholds": {
+        "window_days": 7,
+        "min_related_accounts": 3,
+        "min_aggregation_amount": 300000
+      },
+      "description": "同一身份证件/手机号/设备指纹关联的≥3个账户在7日内将资金集中转入同一目标账户且归集金额≥30万元"
+    },
+    "RW-019": {
+      "rule_name": "涉赌涉诈资金特征",
+      "rule_type": "日批",
+      "risk_level": "高",
+      "weight_tier": 0.35,
+      "priority": 1,
+      "thresholds": {
+        "inflow_single_max": 5000,
+        "inflow_daily_max": 20000,
+        "outflow_single_min": 50000,
+        "time_range_start": "20:00",
+        "time_range_end": "02:00"
+      },
+      "description": "入金以小额为主(单笔<5000元,日累计<20000元)且出金为大额整数(单笔≥50000元)且入金时间集中在20:00-02:00"
+    },
+    "RW-020": {
+      "rule_name": "离岸公司交易",
+      "rule_type": "日批",
+      "risk_level": "中高",
+      "weight_tier": 0.20,
+      "priority": 4,
+      "thresholds": {
+        "min_amount": 100000,
+        "offshore_regions": ["BVI", "开曼", "百慕大", "巴拿马", "塞舌尔"]
+      },
+      "description": "交易对手方注册地在离岸金融中心且交易金额≥10万元且客户非专业投资机构"
+    }
+  },
+  "priority_levels": {
+    "1": "最高优先级(涉及制裁/PEP/资金归集/涉赌涉诈)",
+    "2": "高优先级(分散/集中资金转移)",
+    "3": "中优先级(大额现金/快进快出/第三方代付)",
+    "4": "低优先级(拆分交易/身份不符/规避整数/关联交易/新开户大额/离岸交易)",
+    "5": "最低优先级(开销户/非正常时段/频繁申赎/信息变更/老年客户)"
+  },
+  "weight_tier_mapping": {
+    "强": 0.35,
+    "中": 0.20,
+    "弱": 0.10
+  },
+  "confidence_formula": "confidence = min(1.0, Σ规则权重 + 0.15×is_repeat)",
+  "alert_level_rules": {
+    "蓝色": "1条规则触发",
+    "黄色": "2-3条规则触发或重复触发",
+    "红色": ">3条规则触发"
+  }
+}

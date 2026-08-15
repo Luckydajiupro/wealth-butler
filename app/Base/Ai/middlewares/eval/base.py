@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from pydantic import BaseModel, Field
 
-from ..base import AgentContext
+from app.Base.Ai.middlewares.base import AgentContext
 
 
 class EvalResult(BaseModel):

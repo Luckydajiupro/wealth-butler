@@ -7,8 +7,8 @@ import hashlib
 import logging
 from typing import Any, Dict, List, Optional
 
-from .base import BaseEvaluator, EvalResult
-from ..base import AgentContext
+from app.Base.Ai.middlewares.eval.base import BaseEvaluator, EvalResult
+from app.Base.Ai.middlewares.base import AgentContext
 
 logger = logging.getLogger(__name__)
 

@@ -8,11 +8,11 @@ import asyncio
 import logging
 from typing import Callable, List
 
-from .base import AgentContext, Middleware
-from .safety.base import GuardResult, SafetyException, SafetyGuard
-from .safety.input_guards import PromptInjectionDetector, SensitiveWordFilter
-from .safety.output_guards import PIIMasker
-from .safety.tool_guards import ToolGuard
+from app.Base.Ai.middlewares.base import AgentContext, Middleware
+from app.Base.Ai.middlewares.safety.base import GuardResult, SafetyException, SafetyGuard
+from app.Base.Ai.middlewares.safety.input_guards import PromptInjectionDetector, SensitiveWordFilter
+from app.Base.Ai.middlewares.safety.output_guards import PIIMasker
+from app.Base.Ai.middlewares.safety.tool_guards import ToolGuard
 
 logger = logging.getLogger(__name__)
 

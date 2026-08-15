@@ -1,0 +1,39 @@
+{
+  "agent_types": {
+    "customer": {
+      "name": "客服Agent",
+      "description": "处理客户咨询、产品介绍、FAQ问答",
+      "capabilities": ["RAG知识库检索", "短期记忆", "FAQ问答"],
+      "enabled": true
+    },
+    "advisor": {
+      "name": "投顾Agent",
+      "description": "个性化产品推荐、投资建议",
+      "capabilities": ["GraphRAG增强", "中期记忆", "产品推荐"],
+      "enabled": true
+    },
+    "analyst": {
+      "name": "数据分析Agent",
+      "description": "NL2SQL自然语言查询数据",
+      "capabilities": ["NL2SQL", "数据分析", "报表生成"],
+      "enabled": true
+    },
+    "operator": {
+      "name": "业务操作Agent",
+      "description": "执行申购赎回转账等业务操作",
+      "capabilities": ["NL2API", "Function Calling", "RBAC权限校验"],
+      "enabled": true
+    },
+    "risk": {
+      "name": "风控监测Agent",
+      "description": "风控规则引擎、可疑交易识别",
+      "capabilities": ["规则引擎", "事件消费", "预警生成"],
+      "enabled": true
+    }
+  },
+  "routing_rules": {
+    "default_agent": "customer",
+    "fallback_enabled": true,
+    "timeout_seconds": 30
+  }
+}

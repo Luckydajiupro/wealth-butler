@@ -3,14 +3,14 @@ Agent 中间件模块
 
 提供可观测性、安全性、评估等中间件。
 """
-from .base import AgentContext, Middleware, MiddlewareChain
-from .logging import LoggingMiddleware
-from .metrics import MetricsMiddleware
-from .safety_middleware import SafetyMiddleware
-from .eval_middleware import EvalMiddleware
+from app.Base.Ai.middlewares.base import AgentContext, Middleware, MiddlewareChain
+from app.Base.Ai.middlewares.logging import LoggingMiddleware
+from app.Base.Ai.middlewares.metrics import MetricsMiddleware
+from app.Base.Ai.middlewares.safety_middleware import SafetyMiddleware
+from app.Base.Ai.middlewares.eval_middleware import EvalMiddleware
 
 # 安全防护器
-from .safety import (
+from app.Base.Ai.middlewares.safety import (
     SafetyGuard,
     GuardResult,
     SafetyException,
@@ -21,12 +21,12 @@ from .safety import (
 )
 
 # 评估器
-from .eval import (
+from app.Base.Ai.middlewares.eval import (
     BaseEvaluator,
     EvalResult,
 )
-from .eval.llm_judge import LLMJudgeEvaluator
-from .eval.ab_test import ABTestEvaluator
+from app.Base.Ai.middlewares.eval.llm_judge import LLMJudgeEvaluator
+from app.Base.Ai.middlewares.eval.ab_test import ABTestEvaluator
 
 __all__ = [
     # 基类

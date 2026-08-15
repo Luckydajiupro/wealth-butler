@@ -70,7 +70,8 @@ def persist_conversation(auto_save_vdb: bool = True, is_rewriting: bool = True, 
                     user_id=params.user_id,
                     session_id=session.session_uuid or params.session_id
                 )
-                kwargs.get('params').messages = context + [UserMessages(prompt=question)]
+                # 修复：使用已提取的 params 变量，而不是重复 kwargs.get('params')
+                params.messages = context + [UserMessages(prompt=question)]
                 conversation.context = str(context)
 
                 try:

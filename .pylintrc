@@ -1,0 +1,8 @@
+[MESSAGES CONTROL]
+disable=import-error,no-name-in-module,too-many-arguments,too-many-locals,too-many-instance-attributes
+
+[BASIC]
+good-names=i,j,k,ex,_,id,db,pk
+
+[FORMAT]
+max-line-length=120

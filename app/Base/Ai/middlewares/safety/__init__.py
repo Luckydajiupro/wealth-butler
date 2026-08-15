@@ -1,8 +1,8 @@
 """安全防护模块"""
-from .base import GuardResult, SafetyException, SafetyGuard
-from .input_guards import PromptInjectionDetector, SensitiveWordFilter
-from .output_guards import PIIMasker
-from .tool_guards import ToolGuard
+from app.Base.Ai.middlewares.safety.base import GuardResult, SafetyException, SafetyGuard
+from app.Base.Ai.middlewares.safety.input_guards import PromptInjectionDetector, SensitiveWordFilter
+from app.Base.Ai.middlewares.safety.output_guards import PIIMasker
+from app.Base.Ai.middlewares.safety.tool_guards import ToolGuard
 
 __all__ = [
     "SafetyGuard",

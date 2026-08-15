@@ -100,7 +100,7 @@ class DBMemory(BaseMemory):
     def get_messages(self) -> List[Dict[str, Any]]:
         """从数据库加载最近 N 轮对话历史"""
         try:
-            from Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
+            from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
             history = BaseLLMConversationModel.get_last_n_turns_context(
                 self.user_id, self.session_id, n=self.max_turns
             )
@@ -126,7 +126,7 @@ class DBMemory(BaseMemory):
     ):
         """持久化一轮对话到数据库"""
         try:
-            from Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
+            from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
             conv = BaseLLMConversationModel(
                 question=question,
                 answer=answer,

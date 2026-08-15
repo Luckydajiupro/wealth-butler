@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Optional
 
-from .base import AgentContext, Middleware
+from app.Base.Ai.middlewares.base import AgentContext, Middleware
 
 logger = logging.getLogger(__name__)
 

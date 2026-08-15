@@ -1,0 +1,206 @@
+{
+  "questions": [
+    {
+      "question_id": "Q1",
+      "question_text": "您的年龄段是？",
+      "weight": 0.1,
+      "options": [
+        {"option_id": "A", "option_text": "18-25周岁", "score": 8},
+        {"option_id": "B", "option_text": "26-35周岁", "score": 10},
+        {"option_id": "C", "option_text": "36-45周岁", "score": 8},
+        {"option_id": "D", "option_text": "46-55周岁", "score": 6},
+        {"option_id": "E", "option_text": "56-65周岁", "score": 4},
+        {"option_id": "F", "option_text": "65周岁以上", "score": 2}
+      ]
+    },
+    {
+      "question_id": "Q2",
+      "question_text": "您的最高学历是？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "高中及以下", "score": 2},
+        {"option_id": "B", "option_text": "大专", "score": 3},
+        {"option_id": "C", "option_text": "本科", "score": 4},
+        {"option_id": "D", "option_text": "硕士及以上", "score": 5}
+      ]
+    },
+    {
+      "question_id": "Q3",
+      "question_text": "您的家庭年收入（税前）大约是？",
+      "weight": 0.1,
+      "options": [
+        {"option_id": "A", "option_text": "10万元以下", "score": 3},
+        {"option_id": "B", "option_text": "10-30万元", "score": 5},
+        {"option_id": "C", "option_text": "30-50万元", "score": 7},
+        {"option_id": "D", "option_text": "50-100万元", "score": 8},
+        {"option_id": "E", "option_text": "100-300万元", "score": 9},
+        {"option_id": "F", "option_text": "300万元以上", "score": 10}
+      ]
+    },
+    {
+      "question_id": "Q4",
+      "question_text": "您家庭的金融资产（不含房产）总规模约为？",
+      "weight": 0.1,
+      "options": [
+        {"option_id": "A", "option_text": "10万元以下", "score": 2},
+        {"option_id": "B", "option_text": "10-50万元", "score": 4},
+        {"option_id": "C", "option_text": "50-100万元", "score": 6},
+        {"option_id": "D", "option_text": "100-300万元", "score": 7},
+        {"option_id": "E", "option_text": "300-500万元", "score": 8},
+        {"option_id": "F", "option_text": "500-1000万元", "score": 9},
+        {"option_id": "G", "option_text": "1000万元以上", "score": 10}
+      ]
+    },
+    {
+      "question_id": "Q5",
+      "question_text": "您的收入来源稳定性如何？",
+      "weight": 0.1,
+      "options": [
+        {"option_id": "A", "option_text": "无固定收入来源", "score": 2},
+        {"option_id": "B", "option_text": "收入不稳定（如自由职业、经营收入）", "score": 5},
+        {"option_id": "C", "option_text": "有固定工作，收入较稳定", "score": 8},
+        {"option_id": "D", "option_text": "有固定工作，收入非常稳定（如公务员、事业单位）", "score": 10}
+      ]
+    },
+    {
+      "question_id": "Q6",
+      "question_text": "您的投资经验有多长时间？",
+      "weight": 0.1,
+      "options": [
+        {"option_id": "A", "option_text": "没有投资经验", "score": 2},
+        {"option_id": "B", "option_text": "1年以下", "score": 4},
+        {"option_id": "C", "option_text": "1-3年", "score": 6},
+        {"option_id": "D", "option_text": "3-5年", "score": 8},
+        {"option_id": "E", "option_text": "5-10年", "score": 9},
+        {"option_id": "F", "option_text": "10年以上", "score": 10}
+      ]
+    },
+    {
+      "question_id": "Q7",
+      "question_text": "您目前或曾经投资过以下哪些金融产品？",
+      "weight": 0.1,
+      "multiple_choice": true,
+      "options": [
+        {"option_id": "A", "option_text": "银行存款/货币基金/国债", "score": 2},
+        {"option_id": "B", "option_text": "债券基金/银行理财产品", "score": 2},
+        {"option_id": "C", "option_text": "混合基金/平衡型基金", "score": 2},
+        {"option_id": "D", "option_text": "股票/股票型基金/ETF", "score": 2},
+        {"option_id": "E", "option_text": "期货/期权/结构化产品/私募基金", "score": 2}
+      ],
+      "max_score": 10
+    },
+    {
+      "question_id": "Q8",
+      "question_text": "您近三年的投资收益情况如何？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "从未有过投资经历", "score": 1},
+        {"option_id": "B", "option_text": "年均收益为负（亏损超过10%）", "score": 2},
+        {"option_id": "C", "option_text": "年均收益在-10%至5%之间", "score": 3},
+        {"option_id": "D", "option_text": "年均收益在5%-15%之间", "score": 4},
+        {"option_id": "E", "option_text": "年均收益超过15%", "score": 5}
+      ]
+    },
+    {
+      "question_id": "Q9",
+      "question_text": "您投资的主要目的是什么？",
+      "weight": 0.1,
+      "options": [
+        {"option_id": "A", "option_text": "保本保息，资金安全最重要", "score": 2},
+        {"option_id": "B", "option_text": "抵御通胀，小幅增值即可", "score": 4},
+        {"option_id": "C", "option_text": "资产稳健增值，接受适度波动", "score": 6},
+        {"option_id": "D", "option_text": "追求较高收益，可承受较大波动", "score": 8},
+        {"option_id": "E", "option_text": "追求高额回报，愿意承担本金大幅损失风险", "score": 10}
+      ]
+    },
+    {
+      "question_id": "Q10",
+      "question_text": "如果您投资的金融产品出现亏损，您最多能承受多大比例的损失？",
+      "weight": 0.1,
+      "options": [
+        {"option_id": "A", "option_text": "不能承受任何本金损失", "score": 2},
+        {"option_id": "B", "option_text": "最多承受5%以内的损失", "score": 4},
+        {"option_id": "C", "option_text": "最多承受10%-20%的损失", "score": 6},
+        {"option_id": "D", "option_text": "最多承受20%-40%的损失", "score": 8},
+        {"option_id": "E", "option_text": "可以承受40%以上的损失甚至本金全部损失", "score": 10}
+      ]
+    },
+    {
+      "question_id": "Q11",
+      "question_text": "您计划的投资期限是多长？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "1个月以内", "score": 2},
+        {"option_id": "B", "option_text": "1-6个月", "score": 3},
+        {"option_id": "C", "option_text": "6个月-1年", "score": 3},
+        {"option_id": "D", "option_text": "1-3年", "score": 4},
+        {"option_id": "E", "option_text": "3年以上", "score": 5}
+      ]
+    },
+    {
+      "question_id": "Q12",
+      "question_text": "您是否有稳定的负债（如房贷、车贷等），且每月还款额占收入比例超过40%？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "负债还款比例超过60%", "score": 2},
+        {"option_id": "B", "option_text": "负债还款比例40%-60%", "score": 3},
+        {"option_id": "C", "option_text": "负债还款比例20%-40%", "score": 4},
+        {"option_id": "D", "option_text": "负债还款比例低于20%或无负债", "score": 5}
+      ]
+    },
+    {
+      "question_id": "Q13",
+      "question_text": "如果您持有的投资产品短期内下跌20%，您会怎么做？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "非常焦虑，立即全部卖出", "score": 2},
+        {"option_id": "B", "option_text": "有些担忧，会卖出一部分", "score": 3},
+        {"option_id": "C", "option_text": "可以接受，继续持有观望", "score": 4},
+        {"option_id": "D", "option_text": "认为是机会，考虑加仓", "score": 5}
+      ]
+    },
+    {
+      "question_id": "Q14",
+      "question_text": "您用于投资的资金占家庭可支配资金的比例是多少？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "80%以上", "score": 2},
+        {"option_id": "B", "option_text": "60%-80%", "score": 3},
+        {"option_id": "C", "option_text": "40%-60%", "score": 4},
+        {"option_id": "D", "option_text": "40%以下", "score": 5}
+      ]
+    },
+    {
+      "question_id": "Q15",
+      "question_text": "您是否需要短期内（1年内）使用这笔投资资金？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "是，1年内必须使用（如购房、子女教育等）", "score": 2},
+        {"option_id": "B", "option_text": "可能需要使用", "score": 3},
+        {"option_id": "C", "option_text": "短期内不需要使用，但不确定长期", "score": 4},
+        {"option_id": "D", "option_text": "完全不需要，属于闲散资金", "score": 5}
+      ]
+    },
+    {
+      "question_id": "Q16",
+      "question_text": "以下哪种描述最符合您的投资态度？",
+      "weight": 0.05,
+      "options": [
+        {"option_id": "A", "option_text": "我希望本金绝对安全，即使收益很低", "score": 2},
+        {"option_id": "B", "option_text": "我愿意接受较低收益，但本金不能有大损失", "score": 3},
+        {"option_id": "C", "option_text": "我愿意承担适度风险，追求中等偏上的收益", "score": 4},
+        {"option_id": "D", "option_text": "我愿意承担高风险，追求尽可能高的回报", "score": 5}
+      ]
+    }
+  ],
+  "scoring_rules": {
+    "total_score": 100,
+    "risk_type_mapping": [
+      {"score_range": [20, 35], "risk_type": "C1", "risk_type_name": "保守型"},
+      {"score_range": [36, 50], "risk_type": "C2", "risk_type_name": "稳健型"},
+      {"score_range": [51, 65], "risk_type": "C3", "risk_type_name": "平衡型"},
+      {"score_range": [66, 80], "risk_type": "C4", "risk_type_name": "进取型"},
+      {"score_range": [81, 100], "risk_type": "C5", "risk_type_name": "激进型"}
+    ]
+  }
+}

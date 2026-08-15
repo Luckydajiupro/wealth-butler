@@ -10,7 +10,7 @@ from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from typing import Callable, Optional
 
-from .base import AgentContext, Middleware
+from app.Base.Ai.middlewares.base import AgentContext, Middleware
 
 
 class LoggingMiddleware(Middleware):

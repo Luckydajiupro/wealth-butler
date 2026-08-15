@@ -8,8 +8,8 @@ import json
 import logging
 from typing import List, Optional, Set
 
-from .base import GuardResult, SafetyGuard
-from ..base import AgentContext
+from app.Base.Ai.middlewares.safety.base import GuardResult, SafetyGuard
+from app.Base.Ai.middlewares.base import AgentContext
 
 logger = logging.getLogger(__name__)
 

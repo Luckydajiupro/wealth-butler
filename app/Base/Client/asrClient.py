@@ -1,7 +1,7 @@
 import logging
 import os
 import dashscope
-from typing import Tuple, Any
+from typing import Tuple, Any, List
 import concurrent.futures
 
 from app.Base.Config.setting import settings

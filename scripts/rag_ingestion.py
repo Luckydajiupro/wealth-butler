@@ -11,6 +11,7 @@
     python scripts/rag_ingestion.py
 """
 import os
+import sys
 import re
 import json
 import hashlib
@@ -19,12 +20,16 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 from datetime import datetime
 
+# 添加项目根目录到 Python 路径
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from app.Base.Client.ollamaClient import ollama_client
 from app.Base.Client.minioClient import default_minio_client as minio_client
-from app.Base.Client.milvusClient import milvus_client
+from app.Base.Client.milvusClient import MilvusClientSingleton
 from app.WealthButler.Models.knowledgeMetaModel import KnowledgeMetaModel
 from app.Base.Repository.base.baseDBModel import BaseDBModel
-from app.Base.Repository.base.mysqlConnection import MySQLConnection
+from app.Base.Repository.connections.mysqlConnection import MySQLConnection
 from app.Base.Config.setting import settings
 
 logging.basicConfig(
@@ -32,6 +37,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# 创建 Milvus 客户端实例
+milvus_client = MilvusClientSingleton()
 
 # ============================================================
 # 配置常量
@@ -44,20 +52,21 @@ EMBEDDING_DIM = 1024
 # MinIO 桶名
 MINIO_BUCKET = "fin-documents"
 
-# 源文档路径映射（相对于项目根目录）
+# 源文档路径映射（绝对路径，指向 D:/lqh/金融/ 目录）
+# 根据 docs/RAG切片入库策略.md §1 的范围界定：11个源文件中7个入库
 SOURCE_DOCS = {
     'FAQ': [
-        'docs/公司信息/高频问答对.txt'
+        'D:/lqh/金融/公司信息/高频问答对.txt'
     ],
     '产品说明书': [
-        'docs/公司业务/个人理财产品手册.md'
+        'D:/lqh/金融/公司业务/个人理财产品手册.md'
     ],
     '政策法规': [
-        'docs/金融政策/商业银行理财业务管理办法.pdf',
-        'docs/金融政策/资管新规.pdf',
-        'docs/金融政策/银行业消费者权益保护工作指引.pdf',
-        'docs/金融政策/商业银行代理销售业务管理办法.pdf',
-        'docs/金融政策/银行保险机构消费者权益保护管理办法.pdf'
+        'D:/lqh/金融/金融政策/反洗钱合规操作手册.md',
+        'D:/lqh/金融/金融政策/个人投资者适当性管理指南.md',
+        'D:/lqh/金融/金融政策/理财产品销售管理办法.md',
+        'D:/lqh/金融/用户研判规则/反洗钱可疑交易识别规则.md',
+        'D:/lqh/金融/用户研判规则/投资者风险画像研判规则.md'
     ]
 }
 
@@ -89,17 +98,47 @@ def calculate_file_hash(file_path: str) -> str:
     return sha256.hexdigest()
 
 
-def read_file_content(file_path: str) -> str:
-    """读取文件内容（支持 txt/md，pdf 暂不处理）"""
+def clean_placeholders(text: str, placeholder_dict: Dict[str, str]) -> str:
+    """使用占位符字典清洗文本
+
+    Args:
+        text: 原始文本
+        placeholder_dict: 占位符替换字典
+
+    Returns:
+        清洗后的文本
+    """
+    cleaned_text = text
+
+    # 按照字典顺序替换（长占位符优先，避免短占位符先替换导致长占位符匹配失败）
+    sorted_items = sorted(placeholder_dict.items(), key=lambda x: len(x[0]), reverse=True)
+
+    for placeholder, replacement in sorted_items:
+        cleaned_text = cleaned_text.replace(placeholder, replacement)
+
+    return cleaned_text
+
+
+def read_file_content(file_path: str, placeholder_dict: Dict[str, str]) -> str:
+    """读取文件内容并清洗占位符（支持 txt/md）
+
+    Args:
+        file_path: 文件路径
+        placeholder_dict: 占位符替换字典
+
+    Returns:
+        清洗后的文件内容
+    """
     ext = Path(file_path).suffix.lower()
 
     if ext in ['.txt', '.md']:
         with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
-    elif ext == '.pdf':
-        # TODO: 使用 PyPDF2 或 pdfplumber 提取文本
-        logger.warning(f"PDF 文件暂不支持：{file_path}")
-        return ""
+            content = f.read()
+
+        # 清洗占位符
+        cleaned_content = clean_placeholders(content, placeholder_dict)
+        logger.info(f"文件已读取并清洗占位符: {file_path}")
+        return cleaned_content
     else:
         logger.warning(f"不支持的文件格式：{file_path}")
         return ""
@@ -137,34 +176,35 @@ def chunk_text(text: str, chunk_size: int, overlap: int) -> List[str]:
 
 
 def chunk_faq(text: str) -> List[Dict[str, str]]:
-    """FAQ 专用切片（按 Q&A 条目切分）
+    """FAQ 专用切片（按制表符分隔的行切分）
 
-    假设格式：
-        Q: 问题1
-        A: 答案1
-
-        Q: 问题2
-        A: 答案2
+    文件格式：问题\t答案（共39行，无表头）
 
     Returns:
         [{'question': '...', 'answer': '...', 'text': 'Q: ...\nA: ...'}]
     """
     chunks = []
-    pattern = r'Q[:：]\s*(.*?)\s*A[:：]\s*(.*?)(?=\nQ[:：]|\Z)'
+    lines = text.strip().split('\n')
 
-    matches = re.findall(pattern, text, re.DOTALL)
+    for line_num, line in enumerate(lines, 1):
+        parts = line.split('\t')
 
-    for i, (question, answer) in enumerate(matches, 1):
-        question = question.strip()
-        answer = answer.strip()
+        # 必须是 2 列：问题\t答案
+        if len(parts) != 2:
+            logger.warning(f"跳过格式不正确的行 {line_num}: 期望2列，实际{len(parts)}列")
+            continue
+
+        question = parts[0].strip()
+        answer = parts[1].strip()
 
         if question and answer:
             chunks.append({
                 'question': question,
                 'answer': answer,
-                'text': f"Q: {question}\nA: {answer}",
-                'index': i
+                'text': f"Q: {question}\nA: {answer}"
             })
+        else:
+            logger.warning(f"跳过空内容行 {line_num}")
 
     logger.info(f"FAQ 切片完成：共 {len(chunks)} 条")
     return chunks
@@ -173,8 +213,8 @@ def chunk_faq(text: str) -> List[Dict[str, str]]:
 def get_embedding(text: str) -> List[float]:
     """调用 Ollama bge-m3 生成向量"""
     try:
-        response = ollama_client.embed(EMBEDDING_MODEL, text)
-        embedding = response['embeddings'][0]
+        # 使用 get_embedding 方法（不是 embed）
+        embedding = ollama_client.get_embedding(text, model=EMBEDDING_MODEL)
 
         if len(embedding) != EMBEDDING_DIM:
             raise ValueError(f"向量维度不匹配：期望 {EMBEDDING_DIM}，实际 {len(embedding)}")
@@ -187,39 +227,44 @@ def get_embedding(text: str) -> List[float]:
 
 
 def upload_to_minio(file_path: str, object_name: str) -> str:
-    """上传文件到 MinIO
+    """上传文件到 MinIO（暂时跳过，返回本地路径）
 
     Returns:
-        MinIO 对象路径（用于 file_path 字段）
+        文件路径（暂时返回本地路径，MinIO 配置问题待解决）
     """
-    try:
-        with open(file_path, 'rb') as f:
-            file_data = f.read()
-            file_size = len(file_data)
+    logger.warning(f"⚠ MinIO 上传跳过（端口配置问题待解决）: {file_path}")
+    return file_path  # 暂时返回本地路径
 
-        # 使用底层 client.put_object
-        minio_client.client.put_object(
-            bucket_name=MINIO_BUCKET,
-            object_name=object_name,
-            data=f,
-            length=file_size
-        )
+    # try:
+    #     with open(file_path, 'rb') as f:
+    #         file_data = f.read()
+    #         file_size = len(file_data)
+    #
+    #     # 使用底层 client.put_object
+    #     minio_client.client.put_object(
+    #         bucket_name=MINIO_BUCKET,
+    #         object_name=object_name,
+    #         data=f,
+    #         length=file_size
+    #     )
+    #
+    #     minio_path = f"{MINIO_BUCKET}/{object_name}"
+    #     logger.info(f"文件已上传到 MinIO: {minio_path}")
+    #     return minio_path
+    #
+    # except Exception as e:
+    #     logger.error(f"MinIO 上传失败: {e}")
+    #     raise
 
-        minio_path = f"{MINIO_BUCKET}/{object_name}"
-        logger.info(f"文件已上传到 MinIO: {minio_path}")
-        return minio_path
 
-    except Exception as e:
-        logger.error(f"MinIO 上传失败: {e}")
-        raise
-
-
-def insert_to_milvus(collection_name: str, chunks: List[Dict]) -> List[int]:
+def insert_to_milvus(collection_name: str, chunks: List[Dict], knowledge_type: str, title: str = '') -> List[int]:
     """批量插入 Milvus
 
     Args:
         collection_name: 集合名称
         chunks: 切片列表，每个元素包含 text, embedding, metadata
+        knowledge_type: 知识类型（FAQ/产品说明书/政策法规）
+        title: 文档标题
 
     Returns:
         插入的主键列表
@@ -228,22 +273,74 @@ def insert_to_milvus(collection_name: str, chunks: List[Dict]) -> List[int]:
         return []
 
     try:
-        # 准备数据
-        embeddings = [chunk['embedding'] for chunk in chunks]
-        texts = [chunk['text'] for chunk in chunks]
-        metadatas = [json.dumps(chunk.get('metadata', {}), ensure_ascii=False) for chunk in chunks]
+        # 根据知识类型准备不同格式的数据
+        data_list = []
 
-        # 插入
+        if knowledge_type == 'FAQ':
+            # fin_faq_collection schema: id, question, answer, source, category, updated_at, embedding
+            for i, chunk in enumerate(chunks, 1):
+                metadata = chunk.get('metadata', {})
+                # 从 text 中提取 question 和 answer
+                text = chunk['text']
+                if '\nA:' in text:
+                    question = text.split('\nA:')[0].replace('Q: ', '').strip()
+                    answer = text.split('\nA:')[1].strip()
+                else:
+                    # 直接从 chunk 字典获取
+                    question = chunk.get('question', text[:200])
+                    answer = chunk.get('answer', '')
+
+                data_list.append({
+                    'id': f"faq_{i}_{hash(text) % 1000000}",
+                    'question': question[:500],  # max_length: 500
+                    'answer': answer[:2000],      # max_length: 2000
+                    'source': str(metadata.get('source', ''))[:200],
+                    'category': '公司信息',
+                    'updated_at': datetime.now().strftime('%Y-%m-%d'),
+                    'embedding': chunk['embedding']
+                })
+
+        elif knowledge_type == '产品说明书':
+            # fin_product_collection schema: id, product_name, product_code, content, product_type, risk_level, source, updated_at, content_sparse, embedding
+            for i, chunk in enumerate(chunks, 1):
+                metadata = chunk.get('metadata', {})
+                data_list.append({
+                    'id': f"prod_{i}_{hash(chunk['text']) % 1000000}",
+                    'product_name': title[:200],
+                    'product_code': '',
+                    'content': chunk['text'][:65535],
+                    'product_type': '理财产品',
+                    'risk_level': 'R2',
+                    'source': str(metadata.get('source', ''))[:200],
+                    'updated_at': datetime.now().strftime('%Y-%m-%d'),
+                    'embedding': chunk['embedding']
+                })
+
+        elif knowledge_type == '政策法规':
+            # fin_policy_collection schema: id, title, policy_no, content, category, issuer, effective_date, source, updated_at, content_sparse, embedding
+            for i, chunk in enumerate(chunks, 1):
+                metadata = chunk.get('metadata', {})
+                data_list.append({
+                    'id': f"policy_{i}_{hash(chunk['text']) % 1000000}",
+                    'title': title[:500],
+                    'policy_no': '',
+                    'content': chunk['text'][:65535],
+                    'category': '监管政策',
+                    'issuer': '银保监会',
+                    'effective_date': '2024-01-01',
+                    'source': str(metadata.get('source', ''))[:200],
+                    'updated_at': datetime.now().strftime('%Y-%m-%d'),
+                    'embedding': chunk['embedding']
+                })
+
+        # 插入数据
         result = milvus_client.insert(
             collection_name=collection_name,
-            data=[embeddings, texts, metadatas]
+            data=data_list
         )
 
-        # result 是字典，需要提取主键列表
-        if isinstance(result, dict):
-            pk_list = result.get('ids', [])
-        else:
-            pk_list = []
+        # 提取主键列表
+        pk_list = result.get('ids', []) if isinstance(result, dict) else []
 
         logger.info(f"Milvus 插入成功：{collection_name}，{len(pk_list)} 条")
         return pk_list
@@ -260,7 +357,8 @@ def insert_to_milvus(collection_name: str, chunks: List[Dict]) -> List[int]:
 def process_document(
     file_path: str,
     knowledge_type: str,
-    collection_name: str
+    collection_name: str,
+    placeholder_dict: Dict[str, str]
 ) -> Tuple[int, int]:
     """处理单个文档
 
@@ -272,8 +370,8 @@ def process_document(
     logger.info(f"知识类型: {knowledge_type}")
     logger.info("=" * 80)
 
-    # 1. 读取文件内容
-    content = read_file_content(file_path)
+    # 1. 读取文件内容并清洗占位符
+    content = read_file_content(file_path, placeholder_dict)
     if not content:
         logger.warning(f"文件内容为空，跳过: {file_path}")
         return (0, 0)
@@ -321,7 +419,7 @@ def process_document(
     minio_path = upload_to_minio(file_path, object_name)
 
     # 5. 插入 Milvus
-    insert_to_milvus(collection_name, chunks_with_embedding)
+    insert_to_milvus(collection_name, chunks_with_embedding, knowledge_type, title=Path(file_path).stem)
 
     # 6. 写入 MySQL 元数据
     meta = KnowledgeMetaModel(
@@ -352,6 +450,12 @@ def main():
     logger.info("RAG 知识库切片入库脚本")
     logger.info("=" * 80 + "\n")
 
+    # 加载占位符字典
+    placeholder_dict_path = Path(__file__).parent / 'placeholder_dict.json'
+    with open(placeholder_dict_path, 'r', encoding='utf-8') as f:
+        placeholder_dict = json.load(f)
+    logger.info(f"✓ 占位符字典已加载: {len(placeholder_dict)} 条规则")
+
     # 初始化数据库连接
     mysql_config = settings.mysql.model_dump()
     db_connection = MySQLConnection(
@@ -365,12 +469,14 @@ def main():
     BaseDBModel.set_default_db_connection(db_connection)
     logger.info("✓ 数据库连接已初始化")
 
-    # 检查 MinIO 桶
-    if not minio_client.client.bucket_exists(MINIO_BUCKET):
-        minio_client.client.make_bucket(MINIO_BUCKET)
-        logger.info(f"✓ MinIO 桶已创建: {MINIO_BUCKET}")
-    else:
-        logger.info(f"✓ MinIO 桶已存在: {MINIO_BUCKET}")
+    # 检查 MinIO 桶（暂时注释掉，先不处理 MinIO 存储）
+    # MinIO 的 API 端口配置问题需要后续解决
+    logger.info(f"⚠ 跳过 MinIO 桶检查（端口配置问题待解决）")
+    # if not minio_client.client.bucket_exists(MINIO_BUCKET):
+    #     minio_client.client.make_bucket(MINIO_BUCKET)
+    #     logger.info(f"✓ MinIO 桶已创建: {MINIO_BUCKET}")
+    # else:
+    #     logger.info(f"✓ MinIO 桶已存在: {MINIO_BUCKET}")
 
     # 处理所有文档
     total_files = 0
@@ -388,7 +494,8 @@ def main():
                 meta_id, chunk_count = process_document(
                     file_path=file_path,
                     knowledge_type=knowledge_type,
-                    collection_name=collection_name
+                    collection_name=collection_name,
+                    placeholder_dict=placeholder_dict
                 )
 
                 if meta_id > 0:

@@ -7,8 +7,8 @@ import json
 import logging
 from typing import Callable, List
 
-from .base import AgentContext, Middleware
-from .eval.base import BaseEvaluator, EvalResult
+from app.Base.Ai.middlewares.base import AgentContext, Middleware
+from app.Base.Ai.middlewares.eval.base import BaseEvaluator, EvalResult
 
 logger = logging.getLogger(__name__)
 

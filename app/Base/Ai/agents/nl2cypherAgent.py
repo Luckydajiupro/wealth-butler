@@ -312,7 +312,7 @@ class NL2CypherAgent(ReActAgent):
 
 if __name__ == "__main__":
     """集成测试：Agent 模式"""
-    from Base.Config.logConfig import setup_logging
+    from app.Base.Config.logConfig import setup_logging
     setup_logging()
 
     client = Neo4jClient()

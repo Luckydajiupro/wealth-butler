@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from typing import Optional, Dict, Any, List, Type, TypeVar, ClassVar, get_type_hints
+from typing import Optional, Dict, Any, List, Type, TypeVar, ClassVar, Set, get_type_hints
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 from pymilvus import CollectionSchema, FieldSchema, DataType, Function, FunctionType, AnnSearchRequest

@@ -1,0 +1,216 @@
+{
+  "dimension1": {
+    "name": "基础属性特征",
+    "weight": 0.25,
+    "max_score": 25,
+    "sub_dimensions": {
+      "age": {
+        "name": "年龄评分",
+        "ranges": [
+          {"min": 18, "max": 25, "score": 8},
+          {"min": 26, "max": 35, "score": 10},
+          {"min": 36, "max": 45, "score": 9},
+          {"min": 46, "max": 55, "score": 7},
+          {"min": 56, "max": 65, "score": 5},
+          {"min": 66, "max": 120, "score": 3}
+        ]
+      },
+      "education": {
+        "name": "学历评分",
+        "mapping": {
+          "高中及以下": 4,
+          "大专": 6,
+          "本科": 8,
+          "硕士及以上": 10
+        }
+      },
+      "occupation": {
+        "name": "职业评分",
+        "mapping": {
+          "公务员/事业单位": 10,
+          "大型国企/上市公司正式员工": 9,
+          "专业技术人员": 8,
+          "中小企业员工": 6,
+          "自由职业者": 5,
+          "个体工商户": 5,
+          "无固定职业": 2,
+          "退休": 4
+        }
+      },
+      "annual_income": {
+        "name": "年收入评分",
+        "ranges": [
+          {"min": 0, "max": 100000, "score": 3},
+          {"min": 100000, "max": 300000, "score": 5},
+          {"min": 300000, "max": 500000, "score": 7},
+          {"min": 500000, "max": 1000000, "score": 8},
+          {"min": 1000000, "max": 3000000, "score": 9},
+          {"min": 3000000, "max": 999999999, "score": 10}
+        ]
+      },
+      "asset_scale": {
+        "name": "资产规模评分",
+        "ranges": [
+          {"min": 0, "max": 50000, "score": 2},
+          {"min": 50000, "max": 200000, "score": 4},
+          {"min": 200000, "max": 500000, "score": 6},
+          {"min": 500000, "max": 1000000, "score": 7},
+          {"min": 1000000, "max": 5000000, "score": 8},
+          {"min": 5000000, "max": 10000000, "score": 9},
+          {"min": 10000000, "max": 999999999, "score": 10}
+        ]
+      }
+    },
+    "calculation": "维度一得分 = (年龄分 + 学历分 + 职业分 + 收入分 + 资产分) ÷ 5 ÷ 10 × 25"
+  },
+  "dimension2": {
+    "name": "投资经验特征",
+    "weight": 0.25,
+    "max_score": 25,
+    "sub_dimensions": {
+      "investment_years": {
+        "name": "投资年限评分",
+        "ranges": [
+          {"min": 0, "max": 0, "score": 2},
+          {"min": 0, "max": 1, "score": 4},
+          {"min": 1, "max": 3, "score": 6},
+          {"min": 3, "max": 5, "score": 8},
+          {"min": 5, "max": 10, "score": 9},
+          {"min": 10, "max": 100, "score": 10}
+        ]
+      },
+      "product_complexity": {
+        "name": "持有产品类型复杂度评分",
+        "mapping": {
+          "仅银行存款": 2,
+          "货币基金/国债": 4,
+          "纯债基金/银行理财(R1-R2)": 5,
+          "混合基金/指数基金(R3)": 7,
+          "股票/股票基金/ETF(R4)": 8,
+          "期货/期权/私募/结构化产品(R5)": 10
+        }
+      },
+      "transaction_frequency": {
+        "name": "交易频率评分",
+        "mapping": {
+          "极低频(年均<10次)": 5,
+          "低频(月均1-3次)": 7,
+          "中频(月均4-10次)": 8,
+          "高频(周均3次以上)": 6
+        }
+      },
+      "historical_return": {
+        "name": "历史收益评分",
+        "ranges": [
+          {"min": -999, "max": -999, "score": 3, "description": "无历史记录"},
+          {"min": -100, "max": -15, "score": 3},
+          {"min": -15, "max": -5, "score": 4},
+          {"min": -5, "max": 5, "score": 6},
+          {"min": 5, "max": 15, "score": 8},
+          {"min": 15, "max": 999, "score": 9}
+        ]
+      }
+    },
+    "calculation": "维度二得分 = (投资年限分 + 产品类型分 + 交易频率分 + 历史收益分) ÷ 4 ÷ 10 × 25"
+  },
+  "dimension3": {
+    "name": "风险偏好特征",
+    "weight": 0.3,
+    "max_score": 30,
+    "sub_dimensions": {
+      "risk_assessment_score": {
+        "name": "风险测评得分",
+        "mapping": [
+          {"score_range": [20, 35], "risk_type": "C1", "dimension_score": 5},
+          {"score_range": [36, 50], "risk_type": "C2", "dimension_score": 10},
+          {"score_range": [51, 65], "risk_type": "C3", "dimension_score": 15},
+          {"score_range": [66, 80], "risk_type": "C4", "dimension_score": 20},
+          {"score_range": [81, 100], "risk_type": "C5", "dimension_score": 25}
+        ]
+      },
+      "emotional_trading_penalty": {
+        "name": "情绪化交易倾向(扣分项)",
+        "behaviors": [
+          {"behavior": "追涨杀跌", "penalty": -3},
+          {"behavior": "恐慌赎回", "penalty": -5},
+          {"behavior": "FOMO式加仓", "penalty": -2},
+          {"behavior": "频繁改策略", "penalty": -3}
+        ]
+      },
+      "loss_tolerance": {
+        "name": "亏损承受能力(加分/减分项)",
+        "mapping": {
+          "不能承受任何亏损": -5,
+          "可承受5%以内": -2,
+          "可承受10%-20%": 0,
+          "可承受20%-40%": 3,
+          "可承受40%以上": 5
+        }
+      }
+    },
+    "calculation": "维度三得分 = 风险测评得分 + 情绪化交易扣分 + 亏损承受调整 (上限30分，下限0分)"
+  },
+  "dimension4": {
+    "name": "行为异常特征",
+    "weight": 0.2,
+    "max_score": 20,
+    "abnormal_behaviors": {
+      "frequent_redemption": {
+        "name": "频繁赎回",
+        "threshold": "30天内赎回次数≥5次",
+        "risk_level": "中"
+      },
+      "large_concentrated_transaction": {
+        "name": "大额集中交易",
+        "threshold": "单日交易金额超过账户总资产50%",
+        "risk_level": "中"
+      },
+      "abnormal_time_transaction": {
+        "name": "非正常时段交易",
+        "threshold": "凌晨0:00-6:00频繁登录/交易",
+        "risk_level": "低"
+      },
+      "sudden_large_deposit": {
+        "name": "突然大额入金",
+        "threshold": "单笔入金超过历史平均5倍以上",
+        "risk_level": "中"
+      },
+      "dispersed_withdrawal": {
+        "name": "分散转出",
+        "threshold": "单日出金至5个以上不同银行账户",
+        "risk_level": "高"
+      },
+      "product_risk_exceed": {
+        "name": "产品风险越级",
+        "threshold": "要求购买超过风险等级2级以上的产品",
+        "risk_level": "高"
+      },
+      "frequent_info_change": {
+        "name": "信息频繁变更",
+        "threshold": "30天内变更手机/地址≥3次",
+        "risk_level": "中"
+      },
+      "proxy_operation": {
+        "name": "代理操作",
+        "threshold": "频繁由同一非本人设备/IP操作",
+        "risk_level": "高"
+      }
+    },
+    "scoring_rules": [
+      {"abnormal_count_description": "无异常", "score": 20},
+      {"abnormal_count_description": "1-2项低风险异常", "score": 15},
+      {"abnormal_count_description": "1-2项中风险异常", "score": 10},
+      {"abnormal_count_description": "3项以上中风险异常", "score": 5},
+      {"abnormal_count_description": "任何高风险异常", "score": 0}
+    ],
+    "calculation": "维度四得分 = 异常行为计分 (满分20分)"
+  },
+  "综合评分公式": "综合得分 = 维度一得分 × 25% + 维度二得分 × 25% + 维度三得分 × 30% + 维度四得分 × 20%",
+  "risk_type_mapping": [
+    {"score_range": [0, 25], "risk_type": "C1", "risk_type_name": "保守型", "allowed_products": "R1-R2"},
+    {"score_range": [26, 40], "risk_type": "C2", "risk_type_name": "稳健型", "allowed_products": "R1-R3"},
+    {"score_range": [41, 60], "risk_type": "C3", "risk_type_name": "平衡型", "allowed_products": "R1-R4(R4需风险揭示书)"},
+    {"score_range": [61, 80], "risk_type": "C4", "risk_type_name": "进取型", "allowed_products": "R1-R5(R5需风险揭示书)"},
+    {"score_range": [81, 100], "risk_type": "C5", "risk_type_name": "激进型", "allowed_products": "R1-R5"}
+  ]
+}

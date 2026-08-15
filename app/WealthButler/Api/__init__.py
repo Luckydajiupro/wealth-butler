@@ -12,6 +12,7 @@
 - 统一使用 Base.RicUtils.httpUtils.HttpResponse 返回格式
 
 典型模块：
+- chatApi.py         对话接口（统一入口 + 5个Agent直连 + 二次确认 + 会话历史）
 - advisorApi.py      投顾相关接口（投顾列表、详情、预约咨询）
 - productApi.py      理财产品接口（产品推荐、详情、购买）
 - portfolioApi.py    资产配置接口（用户资产、配置方案、调仓建议）
@@ -31,4 +32,7 @@
         return HttpResponse.ok(data={"advisors": advisors, "total": total})
 """
 
-__all__ = []
+from app.WealthButler.Api.chatApi import register_wealth_chat_router
+from app.WealthButler.Api.riskApi import register_risk_api
+
+__all__ = ["register_wealth_chat_router", "register_risk_api"]
