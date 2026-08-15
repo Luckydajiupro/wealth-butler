@@ -277,59 +277,70 @@ def insert_to_milvus(collection_name: str, chunks: List[Dict], knowledge_type: s
         data_list = []
 
         if knowledge_type == 'FAQ':
-            # fin_faq_collection schema: id, question, answer, source, category, updated_at, embedding
+            # V2 Schema: id, text, metadata, embedding
             for i, chunk in enumerate(chunks, 1):
-                metadata = chunk.get('metadata', {})
+                chunk_metadata = chunk.get('metadata', {})
                 # 从 text 中提取 question 和 answer
                 text = chunk['text']
                 if '\nA:' in text:
                     question = text.split('\nA:')[0].replace('Q: ', '').strip()
                     answer = text.split('\nA:')[1].strip()
                 else:
-                    # 直接从 chunk 字典获取
                     question = chunk.get('question', text[:200])
                     answer = chunk.get('answer', '')
 
-                data_list.append({
-                    'id': f"faq_{i}_{hash(text) % 1000000}",
-                    'question': question[:500],  # max_length: 500
-                    'answer': answer[:2000],      # max_length: 2000
-                    'source': str(metadata.get('source', ''))[:200],
+                # 构造metadata JSON
+                metadata_dict = {
+                    'question': question[:500],
+                    'answer': answer[:2000],
+                    'source': str(chunk_metadata.get('source', ''))[:200],
                     'category': '公司信息',
-                    'updated_at': datetime.now().strftime('%Y-%m-%d'),
+                    'updated_at': datetime.now().strftime('%Y-%m-%d')
+                }
+
+                data_list.append({
+                    'text': text,  # Q+A完整文本用于检索
+                    'metadata': json.dumps(metadata_dict, ensure_ascii=False),
                     'embedding': chunk['embedding']
                 })
 
         elif knowledge_type == '产品说明书':
-            # fin_product_collection schema: id, product_name, product_code, content, product_type, risk_level, source, updated_at, content_sparse, embedding
+            # V2 Schema: id, text, metadata, embedding
             for i, chunk in enumerate(chunks, 1):
-                metadata = chunk.get('metadata', {})
-                data_list.append({
-                    'id': f"prod_{i}_{hash(chunk['text']) % 1000000}",
+                chunk_metadata = chunk.get('metadata', {})
+                # 构造metadata JSON
+                metadata_dict = {
                     'product_name': title[:200],
                     'product_code': '',
-                    'content': chunk['text'][:65535],
                     'product_type': '理财产品',
                     'risk_level': 'R2',
-                    'source': str(metadata.get('source', ''))[:200],
+                    'source': str(chunk_metadata.get('source', ''))[:200],
                     'updated_at': datetime.now().strftime('%Y-%m-%d'),
+                    'chunk_type': 'product_detail'
+                }
+                data_list.append({
+                    'text': chunk['text'][:65535],
+                    'metadata': json.dumps(metadata_dict, ensure_ascii=False),
                     'embedding': chunk['embedding']
                 })
 
         elif knowledge_type == '政策法规':
-            # fin_policy_collection schema: id, title, policy_no, content, category, issuer, effective_date, source, updated_at, content_sparse, embedding
+            # V2 Schema: id, text, metadata, embedding
             for i, chunk in enumerate(chunks, 1):
-                metadata = chunk.get('metadata', {})
-                data_list.append({
-                    'id': f"policy_{i}_{hash(chunk['text']) % 1000000}",
-                    'title': title[:500],
-                    'policy_no': '',
-                    'content': chunk['text'][:65535],
+                chunk_metadata = chunk.get('metadata', {})
+                # 构造metadata JSON
+                metadata_dict = {
+                    'policy_title': title[:500],
+                    'policy_code': '',
                     'category': '监管政策',
                     'issuer': '银保监会',
                     'effective_date': '2024-01-01',
-                    'source': str(metadata.get('source', ''))[:200],
-                    'updated_at': datetime.now().strftime('%Y-%m-%d'),
+                    'source': str(chunk_metadata.get('source', ''))[:200],
+                    'updated_at': datetime.now().strftime('%Y-%m-%d')
+                }
+                data_list.append({
+                    'text': chunk['text'][:65535],
+                    'metadata': json.dumps(metadata_dict, ensure_ascii=False),
                     'embedding': chunk['embedding']
                 })
 

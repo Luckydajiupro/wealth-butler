@@ -1,15 +1,18 @@
+"""FAQ集合V2模型（三字段Schema）
+
+将FAQ的question/answer/source等字段整合到metadata JSON中
+统一使用 id + text + metadata + embedding 的标准Schema
+"""
 from typing import Optional, ClassVar, List
 from pydantic import Field
 from app.Base.Repository.base.baseVDB import BaseVDBModel
 
 
-class ProductCollectionModelV2(BaseVDBModel):
+class FaqCollectionModelV2(BaseVDBModel):
     """
-    产品资料集合 V2（稠密向量 + BM25稀疏向量混合检索）
-
-    使用场景：产品咨询Agent的产品信息检索
-    检索策略：混合检索（稠密向量0.7 + BM25稀疏向量0.3），TopK=5
-    新增功能：支持jieba中文分词的BM25稀疏向量
+    FAQ问答集合V2（三字段Schema优化版）
+    使用场景：客服Agent高频问题匹配
+    检索策略：TopK=3, 阈值=0.75
     """
 
     # 主键（自增）
@@ -21,7 +24,7 @@ class ProductCollectionModelV2(BaseVDBModel):
         }
     )
 
-    # 文本内容（用于BM25检索）
+    # 全文文本（用于BM25全文检索，当前用于存储Q+A组合文本）
     text: Optional[str] = Field(
         default="",
         json_schema_extra={
@@ -29,14 +32,15 @@ class ProductCollectionModelV2(BaseVDBModel):
             'enable_analyzer': True,
             'enable_match': True,
             'analyzer_params': {
-                'type': 'jieba'  # 使用jieba中文分词
+                'type': 'standard'  # 标准分词器
             }
         }
     )
 
-    # 元数据（JSON格式存储业务字段）
-    metadata: Optional[dict] = Field(
-        default={},
+    # 元数据JSON（存储业务字段）
+    # 包含: question, answer, source, category, updated_at
+    metadata: Optional[str] = Field(
+        default="{}",
         json_schema_extra={
             'max_length': 65535
         }
@@ -50,13 +54,9 @@ class ProductCollectionModelV2(BaseVDBModel):
         }
     )
 
-    # 注：text_sparse稀疏向量字段暂时移除
-    # 原因：Milvus Function Output机制尚未完全支持自动BM25计算
-    # 当前V2版本仍使用纯稠密向量检索，但Schema已优化为三字段模式
-
     # 集合配置
-    collection_alias: ClassVar[str] = "fin_product_collection"
-    description: ClassVar[str] = "产品资料集合（三字段Schema优化版）"
+    collection_alias: ClassVar[str] = "fin_faq_collection"
+    description: ClassVar[str] = "FAQ问答集合（三字段Schema优化版）"
     auto_create_collection: ClassVar[bool] = True
 
     # 稠密向量索引配置

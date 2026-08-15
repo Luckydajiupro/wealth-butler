@@ -55,8 +55,8 @@ class PolicyCollectionModelV2(BaseVDBModel):
     # 当前V2版本仍使用纯稠密向量检索，但Schema已优化为三字段模式
 
     # 集合配置
-    collection_alias: ClassVar[str] = "fin_policy_collection_v2"
-    description: ClassVar[str] = "政策法规集合V2（三字段Schema+jieba分词准备）"
+    collection_alias: ClassVar[str] = "fin_policy_collection"
+    description: ClassVar[str] = "政策法规集合（三字段Schema优化版）"
     auto_create_collection: ClassVar[bool] = True
 
     # 稠密向量索引配置
