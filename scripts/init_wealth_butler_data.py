@@ -15,6 +15,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import random
 
+# 设置UTF-8输出编码
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 # 添加项目路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -29,6 +35,26 @@ from app.WealthButler.Models.holdingsModel import HoldingsModel
 from app.WealthButler.Models.transactionModel import TransactionModel
 from app.WealthButler.Models.workOrderModel import WorkOrderModel
 from app.WealthButler.Models.riskAlertModel import RiskAlertModel
+from app.Base.Config.setting import settings
+from app.Base.Repository.connections.mysqlConnection import MySQLConnection
+from app.Base.Repository.base.connectionManager import ConnectionManager
+
+# 初始化数据库连接
+def init_database():
+    """初始化MySQL数据库连接"""
+    mysql_conn = MySQLConnection(
+        host=settings.mysql.host,
+        port=settings.mysql.port,
+        user=settings.mysql.user,
+        password=str(settings.mysql.password),
+        database=settings.mysql.name,
+        charset=settings.mysql.charset
+    )
+
+    # 注册到ConnectionManager（BaseModuleDBModel会自动使用）
+    ConnectionManager.register("base_module", mysql_conn, is_default=True)
+
+    return mysql_conn
 
 
 def init_roles():
@@ -674,6 +700,14 @@ def main():
     print("=" * 60)
 
     try:
+        # 0. 初始化数据库连接
+        print("\n=== 初始化数据库连接 ===")
+        db_conn = init_database()
+        if not db_conn.is_available():
+            print("✗ 数据库连接失败，请检查.env配置")
+            return 1
+        print("✓ 数据库连接成功")
+
         # 1. 初始化角色
         init_roles()
 

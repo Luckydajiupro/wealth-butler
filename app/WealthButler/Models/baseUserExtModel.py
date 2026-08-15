@@ -1,6 +1,7 @@
 from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime
+import json
 
 
 class BaseUserExtModel(BaseDBModel):
@@ -44,6 +45,14 @@ class BaseUserExtModel(BaseDBModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
+
+    def model_dump(self, **kwargs):
+        """重写model_dump，序列化JSON字段"""
+        data = super().model_dump(**kwargs)
+        # 将extra_data字典序列化为JSON字符串
+        if 'extra_data' in data and isinstance(data['extra_data'], dict):
+            data['extra_data'] = json.dumps(data['extra_data'], ensure_ascii=False)
+        return data
 
     @classmethod
     def find_by_user_type(cls, user_type: str, limit: int = None, offset: int = 0):
