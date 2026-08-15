@@ -22,8 +22,10 @@ class HoldingsModel(BaseDBModel):
       `current_value` DECIMAL(14,2) COMMENT '当前市值',
       `profit_loss` DECIMAL(14,2) COMMENT '浮动盈亏',
       `profit_ratio` DECIMAL(6,4) COMMENT '盈亏比例',
+      `purchase_date` DATETIME COMMENT '首次购买日期',
       `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      `deleted_at` DATETIME COMMENT '软删除时间',
       PRIMARY KEY (`id`),
       UNIQUE KEY `uk_customer_product` (`customer_id`, `product_id`),
       KEY `idx_customer_id` (`customer_id`)
@@ -39,17 +41,19 @@ class HoldingsModel(BaseDBModel):
     current_value: Optional[Decimal] = None
     profit_loss: Optional[Decimal] = None
     profit_ratio: Optional[Decimal] = None
+    purchase_date: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
 
     @classmethod
     def find_by_customer_id(cls, customer_id: int):
-        """根据客户ID查询所有持仓"""
+        """根据客户ID查询所有持仓（排除软删除记录）"""
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:
             return []
-        sql = f"SELECT * FROM {cls.table_alias} WHERE customer_id = %s AND shares > 0"
+        sql = f"SELECT * FROM {cls.table_alias} WHERE customer_id = %s AND shares > 0 AND deleted_at IS NULL"
         results = db.execute(sql, (customer_id,))
         return [cls(**row) for row in results]
 

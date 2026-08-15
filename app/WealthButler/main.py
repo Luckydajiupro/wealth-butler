@@ -20,7 +20,9 @@ from app.WealthButler.EventBus.consumer import start_all_consumers
 from app.WealthButler.Api import (
     register_wealth_chat_router,
     register_risk_api,
-    register_wealth_frontend_router
+    register_wealth_frontend_router,
+    register_holdings_api,
+    register_workorder_api
 )
 
 
@@ -68,6 +70,8 @@ register_auth_router(app)
 register_wealth_frontend_router(app)  # 前端页面
 register_wealth_chat_router(app)      # 对话接口
 register_risk_api(app)                # 风控接口
+register_holdings_api(app)            # 持仓接口
+register_workorder_api(app)           # 工单接口
 
 
 if __name__ == '__main__':
