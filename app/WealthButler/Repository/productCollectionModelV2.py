@@ -50,13 +50,19 @@ class ProductCollectionModelV2(BaseVDBModel):
         }
     )
 
-    # 注：text_sparse稀疏向量字段暂时移除
-    # 原因：Milvus Function Output机制尚未完全支持自动BM25计算
-    # 当前V2版本仍使用纯稠密向量检索，但Schema已优化为三字段模式
+    # BM25稀疏向量字段（通过Function自动从text生成）
+    text_sparse: Optional[dict] = Field(
+        default=None,
+        json_schema_extra={
+            'is_sparse_vector': True,
+            'is_function_output': True,
+            'bm25_source_field': 'text'
+        }
+    )
 
     # 集合配置
     collection_alias: ClassVar[str] = "fin_product_collection"
-    description: ClassVar[str] = "产品资料集合（三字段Schema优化版）"
+    description: ClassVar[str] = "产品资料集合（稠密+BM25混合检索）"
     auto_create_collection: ClassVar[bool] = True
 
     # 稠密向量索引配置

@@ -822,6 +822,83 @@ class BaseVDBModel(BaseModel, ABC):
         )
 
     @classmethod
+    def hybrid_search(cls,
+                      dense_vector: list[float],
+                      query_text: str,
+                      dense_weight: float = 0.7,
+                      sparse_weight: float = 0.3,
+                      limit: int = 10,
+                      filter: str = "",
+                      output_fields: list[str] = None
+                      ):
+        """
+        混合检索：稠密向量 + BM25稀疏向量
+
+        Args:
+            dense_vector: 稠密向量（embedding）
+            query_text: 查询文本（用于BM25检索）
+            dense_weight: 稠密向量权重，默认0.7
+            sparse_weight: 稀疏向量权重，默认0.3
+            limit: 返回结果数量
+            filter: 过滤表达式
+            output_fields: 返回字段列表
+
+        Returns:
+            List[Dict]: 混合检索结果
+        """
+        from pymilvus import AnnSearchRequest, RRFRanker
+
+        connection = cls.get_connection()
+        collection_name = cls.get_collection_name()
+
+        # 检测稠密向量字段和稀疏向量字段
+        dense_field = cls._detect_vector_fields()[0]
+        sparse_fields = cls._detect_sparse_fields()
+
+        if not sparse_fields:
+            # 如果没有稀疏向量字段，降级为纯稠密向量检索
+            logger.warning(f"Collection {collection_name} has no sparse vector field, fallback to dense search only")
+            return cls.search(
+                data=dense_vector,
+                anns_field=dense_field,
+                limit=limit,
+                output_fields=output_fields
+            )
+
+        sparse_field = sparse_fields[0]
+
+        # 构建稠密向量检索请求
+        dense_req = AnnSearchRequest(
+            data=[dense_vector],
+            anns_field=dense_field,
+            param={"metric_type": "COSINE"},
+            limit=limit,
+            expr=filter if filter else None
+        )
+
+        # 构建BM25稀疏向量检索请求
+        sparse_req = AnnSearchRequest(
+            data=[query_text],
+            anns_field=sparse_field,
+            param={"metric_type": "BM25"},
+            limit=limit,
+            expr=filter if filter else None
+        )
+
+        # 使用RRF (Reciprocal Rank Fusion) 融合结果
+        rerank = RRFRanker()
+
+        results = connection.client.hybrid_search(
+            collection_name=collection_name,
+            reqs=[dense_req, sparse_req],
+            ranker=rerank,
+            limit=limit,
+            output_fields=output_fields or ["*"]
+        )
+
+        return results
+
+    @classmethod
     def query(
             cls,
             filter: str = "",
