@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业务管理员工作台 - 智能财富管家系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 65px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-item {
+            color: white;
+            text-decoration: none;
+            font-size: 15px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+
+        .user-info:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: white;
+            color: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            display: none;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            display: block;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background: #f5f7fa;
+        }
+
+        .dropdown-item:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-item:last-child {
+            border-radius: 0 0 8px 8px;
+            color: #e74c3c;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        /* 业务数据统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* NL2SQL数据查询区域 */
+        .query-section {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #333;
+        }
+
+        .query-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .query-input {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            font-size: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .query-examples {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .example-btn {
+            padding: 8px 16px;
+            background: #f5f7fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .query-btn {
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .query-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .query-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .query-results {
+            margin-top: 24px;
+            display: none;
+        }
+
+        .query-results.show {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .query-time {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .export-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #667eea;
+            color: #667eea;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .export-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .results-table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .results-table th {
+            background: #f5f7fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .results-table th:hover {
+            background: #e9ecef;
+        }
+
+        .results-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .results-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .sort-icon {
+            margin-left: 6px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* 双列布局 */
+        .two-column-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        /* 风控预警卡片 */
+        .alerts-section {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .alert-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alert-card {
+            background: #fff5f5;
+            border-left: 4px solid #e74c3c;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .alert-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .alert-level {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .alert-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .alert-reason {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #666;
+            margin-top: 12px;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .alert-action-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .approve-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        .approve-btn:hover {
+            background: #229954;
+        }
+
+        .reject-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .reject-btn:hover {
+            background: #c0392b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        /* 查询历史 */
+        .history-section {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .history-item {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .history-item:hover {
+            background: #f9fafb;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-question {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .rerun-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .rerun-btn:hover {
+            background: #5568d3;
+        }
+
+        /* AI助手浮动气泡 */
+        .ai-assistant {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s;
+            z-index: 999;
+        }
+
+        .ai-assistant:hover {
+            transform: scale(1.1);
+        }
+
+        .ai-chat-panel {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-direction: column;
+            z-index: 998;
+        }
+
+        .ai-chat-panel.show {
+            display: flex;
+        }
+
+        .ai-chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-chat-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .ai-chat-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .ai-chat-footer {
+            padding: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .ai-chat-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+        }
+
+        /* 确认对话框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 450px;
+            width: 90%;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-content {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn-cancel {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #d0d0d0;
+        }
+
+        .modal-btn-confirm {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            background: #c0392b;
+        }
+
+        .modal-btn-approve {
+            background: #27ae60;
+            color: white;
+        }
+
+        .modal-btn-approve:hover {
+            background: #229954;
+        }
+
+        /* 加载动画 */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .two-column-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .ai-chat-panel {
+                width: calc(100vw - 40px);
+                height: 500px;
+                right: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <div class="logo">💼</div>
+                <span>智能财富管家系统</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#" class="nav-item active">数据分析</a>
+                <a href="#" class="nav-item">风控复核</a>
+                <a href="#" class="nav-item">系统管理</a>
+            </div>
+            <div class="user-menu">
+                <div class="user-info" onclick="toggleUserDropdown()">
+                    <div class="user-avatar" id="userAvatar">管</div>
+                    <span id="userName">管理员</span>
+                    <span>▼</span>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="#" class="dropdown-item" onclick="viewProfile()">个人信息</a>
+                    <a href="#" class="dropdown-item" onclick="viewSettings()">系统设置</a>
+                    <a href="#" class="dropdown-item" onclick="logout()">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 业务数据统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">今日交易总额</div>
+                <div class="stat-value" id="statTodayAmount">¥0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">活跃客户数</div>
+                <div class="stat-value" id="statActiveUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">风控预警处理率</div>
+                <div class="stat-value" id="statAlertRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">系统健康度</div>
+                <div class="stat-value" id="statSystemHealth">0%</div>
+            </div>
+        </div>
+
+        <!-- NL2SQL数据查询区域 -->
+        <div class="query-section">
+            <h2 class="section-title">智能数据分析</h2>
+            <div class="query-input-wrapper">
+                <textarea
+                    class="query-input"
+                    id="queryInput"
+                    placeholder="请用自然语言提问，例如：查询本月交易额TOP10客户"
+                ></textarea>
+            </div>
+            <div class="query-examples">
+                <button class="example-btn" onclick="fillExample('本月新增客户数')">本月新增客户数</button>
+                <button class="example-btn" onclick="fillExample('交易金额最高的5个产品')">交易金额最高的5个产品</button>
+                <button class="example-btn" onclick="fillExample('风险预警数量趋势')">风险预警数量趋势</button>
+            </div>
+            <button class="query-btn" id="queryBtn" onclick="executeQuery()">
+                查询
+            </button>
+
+            <!-- 查询结果展示区 -->
+            <div class="query-results" id="queryResults">
+                <div class="results-header">
+                    <span class="query-time" id="queryTime">查询耗时: 0ms</span>
+                    <button class="export-btn" onclick="exportCSV()">导出CSV</button>
+                </div>
+                <div class="results-table-wrapper">
+                    <table class="results-table" id="resultsTable">
+                        <thead id="resultsTableHead"></thead>
+                        <tbody id="resultsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 双列布局：风控预警 + 查询历史 -->
+        <div class="two-column-layout">
+            <!-- 待复核风控预警 -->
+            <div class="alerts-section">
+                <div class="section-header">
+                    <h3 class="section-title">待人工裁决预警</h3>
+                    <span class="alert-badge" id="alertCount">0</span>
+                </div>
+                <div id="alertsList">
+                    <div class="empty-state">暂无需要裁决的预警</div>
+                </div>
+            </div>
+
+            <!-- 最近查询历史 -->
+            <div class="history-section">
+                <h3 class="section-title">最近查询历史</h3>
+                <div id="historyList">
+                    <div class="empty-state">暂无查询历史</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI数据分析助手浮动气泡 -->
+    <div class="ai-assistant" onclick="toggleAIChat()">
+        📊
+    </div>
+
+    <!-- AI聊天面板 -->
+    <div class="ai-chat-panel" id="aiChatPanel">
+        <div class="ai-chat-header">
+            <div class="ai-chat-title">数据分析助手</div>
+            <button class="close-chat-btn" onclick="toggleAIChat()">×</button>
+        </div>
+        <div class="ai-chat-body" id="aiChatBody">
+            <div style="text-align: center; color: #999; padding: 20px;">
+                您好！我是数据分析助手，可以帮您进行数据查询和分析。
+            </div>
+        </div>
+        <div class="ai-chat-footer">
+            <textarea
+                class="ai-chat-input"
+                id="aiChatInput"
+                placeholder="输入您的问题..."
+                rows="3"
+                onkeypress="handleAIChatKeyPress(event)"
+            ></textarea>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-title" id="modalTitle">确认操作</div>
+            <div class="modal-content" id="modalContent">请确认是否执行此操作？</div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn" onclick="confirmModalAction()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentModalAction = null;
+        let currentModalData = null;
+        let queryHistory = JSON.parse(localStorage.getItem('query_history') || '[]');
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc';
+        let currentResultsData = [];
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadUserInfo();
+            loadStatistics();
+            loadAlerts();
+            loadQueryHistory();
+        });
+
+        // 检查认证
+        function checkAuth() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            // 验证token和权限
+            fetch(`${API_BASE}/api/auth/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then(response => {
+                if (!response.ok) {
+                    localStorage.clear();
+                    window.location.href = '/login';
+                }
+            }).catch(() => {
+                localStorage.clear();
+                window.location.href = '/login';
+            });
+        }
+
+        // 加载用户信息
+        function loadUserInfo() {
+            const username = localStorage.getItem('username') || '管理员';
+            document.getElementById('userName').textContent = username;
+            document.getElementById('userAvatar').textContent = username.charAt(0);
+        }
+
+        // 加载统计数据
+        async function loadStatistics() {
+            // Mock数据
+            document.getElementById('statTodayAmount').textContent = '¥12,456,789';
+            document.getElementById('statActiveUsers').textContent = '1,234';
+            document.getElementById('statAlertRate').textContent = '95.6%';
+            document.getElementById('statSystemHealth').textContent = '99.2%';
+        }
+
+        // 加载风控预警
+        async function loadAlerts() {
+            const token = localStorage.getItem('access_token');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/risk/alerts?need_override=true`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 0 && result.data && result.data.length > 0) {
+                        displayAlerts(result.data);
+                    } else {
+                        displayMockAlerts();
+                    }
+                } else {
+                    displayMockAlerts();
+                }
+            } catch (error) {
+                console.error('加载预警失败:', error);
+                displayMockAlerts();
+            }
+        }
+
+        // 显示Mock预警数据
+        function displayMockAlerts() {
+            const mockAlerts = [
+                {
+                    id: 1,
+                    rule_code: 'RISK-001',
+                    rule_name: '大额交易预警',
+                    customer_name: '张先生',
+                    level: '高风险',
+                    reason: '单笔交易金额超过50万元，且客户近期交易频率异常增高',
+                    suggestion: '建议人工核实客户身份和交易意图，确认资金来源合法性'
+                },
+                {
+                    id: 2,
+                    rule_code: 'RISK-003',
+                    rule_name: '异常登录预警',
+                    customer_name: '李女士',
+                    level: '高风险',
+                    reason: '检测到来自境外IP的登录尝试，与客户常用地址不符',
+                    suggestion: '建议联系客户确认是否本人操作，必要时冻结账户'
+                }
+            ];
+            displayAlerts(mockAlerts);
+        }
+
+        // 显示预警列表
+        function displayAlerts(alerts) {
+            const alertsList = document.getElementById('alertsList');
+            const alertCount = document.getElementById('alertCount');
+
+            alertCount.textContent = alerts.length;
+
+            if (alerts.length === 0) {
+                alertsList.innerHTML = '<div class="empty-state">暂无需要裁决的预警</div>';
+                return;
+            }
+
+            alertsList.innerHTML = alerts.map(alert => `
+                <div class="alert-card">
+                    <div class="alert-header">
+                        <div>
+                            <div class="alert-title">${alert.rule_code} - ${alert.rule_name}</div>
+                            <div class="alert-info">客户：${alert.customer_name}</div>
+                        </div>
+                        <div class="alert-level">${alert.level}</div>
+                    </div>
+                    <div class="alert-reason">
+                        <strong>触发原因：</strong>${alert.reason}
+                    </div>
+                    <div class="alert-reason">
+                        <strong>系统建议：</strong>${alert.suggestion}
+                    </div>
+                    <div class="alert-actions">
+                        <button class="alert-action-btn approve-btn" onclick="handleAlert(${alert.id}, 'approve')">
+                            批准放行
+                        </button>
+                        <button class="alert-action-btn reject-btn" onclick="handleAlert(${alert.id}, 'reject')">
+                            确认拦截
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 处理预警裁决
+        function handleAlert(alertId, action) {
+            const actionText = action === 'approve' ? '批准放行' : '确认拦截';
+            const actionDesc = action === 'approve'
+                ? '批准放行后，该交易将被允许继续执行，相关风险由您承担责任。'
+                : '确认拦截后，该交易将被立即阻止，客户将收到风控通知。';
+
+            showModal(
+                `确认${actionText}`,
+                actionDesc,
+                action === 'approve' ? 'approve' : 'reject',
+                () => {
+                    executeAlertAction(alertId, action);
+                }
+            );
+        }
+
+        // 执行预警裁决
+        async function executeAlertAction(alertId, action) {
+            const token = localStorage.getItem('access_token');
+
+            try {
+                // 这里应该调用实际的API
+                // const response = await fetch(`${API_BASE}/api/wealth/risk/alerts/${alertId}/${action}`, {
+                //     method: 'POST',
+                //     headers: {
+                //         'Authorization': `Bearer ${token}`,
+                //         'Content-Type': 'application/json'
+                //     }
+                // });
+
+                // Mock成功响应
+                setTimeout(() => {
+                    alert(`预警已${action === 'approve' ? '批准放行' : '确认拦截'}`);
+                    loadAlerts();
+                }, 500);
+            } catch (error) {
+                console.error('执行裁决失败:', error);
+                alert('操作失败，请重试');
+            }
+        }
+
+        // 填充示例问题
+        function fillExample(question) {
+            document.getElementById('queryInput').value = question;
+        }
+
+        // 执行查询
+        async function executeQuery() {
+            const queryInput = document.getElementById('queryInput').value.trim();
+            if (!queryInput) {
+                alert('请输入查询问题');
+                return;
+            }
+
+            const queryBtn = document.getElementById('queryBtn');
+            const originalText = queryBtn.innerHTML;
+            queryBtn.disabled = true;
+            queryBtn.innerHTML = '<span class="spinner"></span>查询中...';
+
+            const startTime = Date.now();
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_BASE}/api/wealth/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: queryInput,
+                        agent_type: 'analyst'
+                    })
+                });
+
+                const elapsed = Date.now() - startTime;
+
+                if (response.ok) {
+                    const result = await response.json();
+                    // 假设返回的数据格式包含查询结果
+                    displayQueryResults(result.data || getMockData(queryInput), elapsed);
+                    saveQueryHistory(queryInput);
+                } else {
+                    // 使用Mock数据
+                    displayQueryResults(getMockData(queryInput), elapsed);
+                    saveQueryHistory(queryInput);
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+                const elapsed = Date.now() - startTime;
+                displayQueryResults(getMockData(queryInput), elapsed);
+                saveQueryHistory(queryInput);
+            } finally {
+                queryBtn.disabled = false;
+                queryBtn.innerHTML = originalText;
+            }
+        }
+
+        // 获取Mock数据
+        function getMockData(question) {
+            if (question.includes('客户')) {
+                return [
+                    { 客户名称: '张先生', 交易额: 1256000, 交易次数: 45, 风险等级: '低' },
+                    { 客户名称: '李女士', 交易额: 980000, 交易次数: 32, 风险等级: '中' },
+                    { 客户名称: '王先生', 交易额: 875000, 交易次数: 28, 风险等级: '低' },
+                    { 客户名称: '赵女士', 交易额: 756000, 交易次数: 21, 风险等级: '低' },
+                    { 客户名称: '刘先生', 交易额: 698000, 交易次数: 19, 风险等级: '中' }
+                ];
+            } else if (question.includes('产品')) {
+                return [
+                    { 产品名称: '稳健型理财A', 销售额: 5600000, 客户数: 234, 收益率: '4.2%' },
+                    { 产品名称: '成长型基金B', 销售额: 4800000, 客户数: 189, 收益率: '6.5%' },
+                    { 产品名称: '进取型股票C', 销售额: 3200000, 客户数: 98, 收益率: '8.9%' },
+                    { 产品名称: '保守型债券D', 销售额: 2900000, 客户数: 156, 收益率: '3.8%' },
+                    { 产品名称: '平衡型组合E', 销售额: 2100000, 客户数: 112, 收益率: '5.6%' }
+                ];
+            } else {
+                return [
+                    { 日期: '2026-08-01', 预警数量: 12, 处理数量: 11, 处理率: '91.7%' },
+                    { 日期: '2026-08-02', 预警数量: 15, 处理数量: 14, 处理率: '93.3%' },
+                    { 日期: '2026-08-03', 预警数量: 8, 处理数量: 8, 处理率: '100%' },
+                    { 日期: '2026-08-04', 预警数量: 19, 处理数量: 18, 处理率: '94.7%' },
+                    { 日期: '2026-08-05', 预警数量: 11, 处理数量: 10, 处理率: '90.9%' }
+                ];
+            }
+        }
+
+        // 显示查询结果
+        function displayQueryResults(data, elapsed) {
+            const queryResults = document.getElementById('queryResults');
+            const queryTime = document.getElementById('queryTime');
+            const tableHead = document.getElementById('resultsTableHead');
+            const tableBody = document.getElementById('resultsTableBody');
+
+            currentResultsData = data;
+            currentSortColumn = null;
+            currentSortDirection = 'asc';
+
+            queryTime.textContent = `查询耗时: ${elapsed}ms`;
+            queryResults.classList.add('show');
+
+            if (data.length === 0) {
+                tableHead.innerHTML = '';
+                tableBody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 40px; color: #999;">暂无数据</td></tr>';
+                return;
+            }
+
+            // 生成表头
+            const columns = Object.keys(data[0]);
+            tableHead.innerHTML = `
+                <tr>
+                    ${columns.map(col => `
+                        <th onclick="sortTable('${col}')">
+                            ${col}
+                            <span class="sort-icon" id="sort-${col}">⇅</span>
+                        </th>
+                    `).join('')}
+                </tr>
+            `;
+
+            // 生成表格内容
+            renderTableBody(data);
+        }
+
+        // 渲染表格内容
+        function renderTableBody(data) {
+            const tableBody = document.getElementById('resultsTableBody');
+            const columns = Object.keys(data[0]);
+
+            tableBody.innerHTML = data.map(row => `
+                <tr>
+                    ${columns.map(col => `<td>${row[col]}</td>`).join('')}
+                </tr>
+            `).join('');
+        }
+
+        // 表格排序
+        function sortTable(column) {
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+
+            // 更新排序图标
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.textContent = '⇅';
+            });
+            document.getElementById(`sort-${column}`).textContent = currentSortDirection === 'asc' ? '↑' : '↓';
+
+            // 排序数据
+            const sortedData = [...currentResultsData].sort((a, b) => {
+                const aVal = a[column];
+                const bVal = b[column];
+
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+
+                const aStr = String(aVal);
+                const bStr = String(bVal);
+                return currentSortDirection === 'asc'
+                    ? aStr.localeCompare(bStr, 'zh-CN')
+                    : bStr.localeCompare(aStr, 'zh-CN');
+            });
+
+            renderTableBody(sortedData);
+        }
+
+        // 导出CSV
+        function exportCSV() {
+            if (currentResultsData.length === 0) {
+                alert('暂无数据可导出');
+                return;
+            }
+
+            const columns = Object.keys(currentResultsData[0]);
+            const csv = [
+                columns.join(','),
+                ...currentResultsData.map(row => columns.map(col => row[col]).join(','))
+            ].join('\n');
+
+            const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `查询结果_${new Date().getTime()}.csv`;
+            link.click();
+        }
+
+        // 保存查询历史
+        function saveQueryHistory(question) {
+            queryHistory.unshift({
+                question: question,
+                time: new Date().toLocaleString('zh-CN')
+            });
+
+            if (queryHistory.length > 20) {
+                queryHistory = queryHistory.slice(0, 20);
+            }
+
+            localStorage.setItem('query_history', JSON.stringify(queryHistory));
+            loadQueryHistory();
+        }
+
+        // 加载查询历史
+        function loadQueryHistory() {
+            const historyList = document.getElementById('historyList');
+
+            if (queryHistory.length === 0) {
+                historyList.innerHTML = '<div class="empty-state">暂无查询历史</div>';
+                return;
+            }
+
+            historyList.innerHTML = queryHistory.slice(0, 5).map((item, index) => `
+                <div class="history-item">
+                    <div>
+                        <div class="history-question">${item.question}</div>
+                        <div class="history-time">${item.time}</div>
+                    </div>
+                    <button class="rerun-btn" onclick="rerunQuery('${item.question.replace(/'/g, "\\'")}')">
+                        重新执行
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 重新执行查询
+        function rerunQuery(question) {
+            document.getElementById('queryInput').value = question;
+            executeQuery();
+        }
+
+        // 切换用户下拉菜单
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // 点击外部关闭下拉菜单
+        document.addEventListener('click', function(e) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('userDropdown');
+            if (!userMenu.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // 切换AI聊天面板
+        function toggleAIChat() {
+            const chatPanel = document.getElementById('aiChatPanel');
+            chatPanel.classList.toggle('show');
+        }
+
+        // AI聊天输入处理
+        function handleAIChatKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAIMessage();
+            }
+        }
+
+        // 发送AI消息
+        async function sendAIMessage() {
+            const input = document.getElementById('aiChatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            const chatBody = document.getElementById('aiChatBody');
+
+            // 添加用户消息
+            chatBody.innerHTML += `
+                <div style="text-align: right; margin-bottom: 12px;">
+                    <div style="display: inline-block; background: #667eea; color: white; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                        ${message}
+                    </div>
+                </div>
+            `;
+
+            input.value = '';
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            // 发送到后端
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_BASE}/api/wealth/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        agent_type: 'analyst'
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const reply = result.data?.reply || '抱歉，我暂时无法回答这个问题。';
+
+                    chatBody.innerHTML += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                                ${reply}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    chatBody.innerHTML += `
+                        <div style="margin-bottom: 12px;">
+                            <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                                Mock回复：我已收到您的问题"${message}"，正在为您分析数据...
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('发送消息失败:', error);
+                chatBody.innerHTML += `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                            Mock回复：我已收到您的问题"${message}"，正在为您分析数据...
+                        </div>
+                    </div>
+                `;
+            }
+
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // 显示确认对话框
+        function showModal(title, content, type, callback) {
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+
+            modalTitle.textContent = title;
+            modalContent.textContent = content;
+
+            confirmBtn.className = 'modal-btn ' +
+                (type === 'approve' ? 'modal-btn-approve' : 'modal-btn-confirm');
+
+            currentModalAction = callback;
+            modalOverlay.classList.add('show');
+        }
+
+        // 关闭对话框
+        function closeModal() {
+            const modalOverlay = document.getElementById('modalOverlay');
+            modalOverlay.classList.remove('show');
+            currentModalAction = null;
+        }
+
+        // 确认对话框操作
+        function confirmModalAction() {
+            if (currentModalAction) {
+                currentModalAction();
+            }
+            closeModal();
+        }
+
+        // 查看个人信息
+        function viewProfile() {
+            alert('个人信息功能开发中...');
+        }
+
+        // 查看设置
+        function viewSettings() {
+            alert('系统设置功能开发中...');
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确认退出登录吗？')) {
+                localStorage.clear();
+                window.location.href = '/login';
+            }
+        }
+    </script>
+</body>
+</html>

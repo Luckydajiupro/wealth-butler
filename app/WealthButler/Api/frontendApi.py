@@ -26,3 +26,43 @@ def register_wealth_frontend_router(app: FastAPI):
         if file.exists():
             return FileResponse(str(file), media_type="text/html")
         return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/chat/customer", tags=["财富管家-页面"])
+    def customer_dashboard():
+        """客户工作台"""
+        file = FRONTEND_DIR / "pages" / "customer_dashboard.html"
+        if file.exists():
+            return FileResponse(str(file), media_type="text/html")
+        return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/chat/advisor", tags=["财富管家-页面"])
+    def advisor_dashboard():
+        """理财顾问工作台"""
+        file = FRONTEND_DIR / "pages" / "advisor_dashboard.html"
+        if file.exists():
+            return FileResponse(str(file), media_type="text/html")
+        return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/chat/risk", tags=["财富管家-页面"])
+    def risk_dashboard():
+        """风控专员工作台"""
+        file = FRONTEND_DIR / "pages" / "risk_dashboard.html"
+        if file.exists():
+            return FileResponse(str(file), media_type="text/html")
+        return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/chat/operator", tags=["财富管家-页面"])
+    def operator_dashboard():
+        """客户经理工作台"""
+        file = FRONTEND_DIR / "pages" / "operator_dashboard.html"
+        if file.exists():
+            return FileResponse(str(file), media_type="text/html")
+        return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/chat/analyst", tags=["财富管家-页面"])
+    def analyst_dashboard():
+        """业务管理员工作台"""
+        file = FRONTEND_DIR / "pages" / "admin_dashboard.html"
+        if file.exists():
+            return FileResponse(str(file), media_type="text/html")
+        return HTMLResponse("<h1>页面未找到</h1>", status_code=404)

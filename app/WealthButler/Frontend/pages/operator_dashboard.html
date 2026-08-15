@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户经理工作台 - 智能财富管家系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f6fa;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .navbar-logo {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-item {
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 15px;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 20px;
+            color: #333;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background: #f5f6fa;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 4px 0;
+        }
+
+        /* 主内容区域 */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* 统计卡片区 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .stat-trend {
+            font-size: 13px;
+            color: #27ae60;
+        }
+
+        /* 布局 */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 卡片通用样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* 待办工单区域 */
+        .workorder-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background: #f5f6fa;
+            color: #333;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .workorder-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .workorder-card {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .workorder-card:hover {
+            background: #f9fafb;
+        }
+
+        .workorder-card:last-child {
+            border-bottom: none;
+        }
+
+        .workorder-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .order-type-tag {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .order-type-referral {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .order-type-change {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .order-type-transfer {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .urgent-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #fff3e0;
+            color: #f57c00;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .customer-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .customer-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .customer-level {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .level-gold {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+
+        .level-silver {
+            background: #eceff1;
+            color: #546e7a;
+        }
+
+        .level-bronze {
+            background: #ffe0b2;
+            color: #e65100;
+        }
+
+        .workorder-summary {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .workorder-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .workorder-time {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .action-btn {
+            padding: 8px 20px;
+            border-radius: 6px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* 快速操作面板 */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .quick-btn {
+            padding: 16px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .quick-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .quick-btn-icon {
+            font-size: 20px;
+        }
+
+        /* 最近服务客户列表 */
+        .customer-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .customer-item {
+            padding: 16px 24px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+        }
+
+        .customer-item:hover {
+            background: #f9fafb;
+        }
+
+        .customer-item:last-child {
+            border-bottom: none;
+        }
+
+        .customer-detail {
+            flex: 1;
+        }
+
+        .customer-action {
+            font-size: 13px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .view-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .view-link:hover {
+            text-decoration: underline;
+        }
+
+        /* AI助手浮动气泡 */
+        .ai-assistant {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 360px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+
+        .ai-assistant.minimized {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+        }
+
+        .ai-assistant.minimized .ai-header {
+            justify-content: center;
+        }
+
+        .ai-assistant.minimized .ai-title,
+        .ai-assistant.minimized .ai-body {
+            display: none;
+        }
+
+        .ai-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .ai-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .ai-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .ai-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .ai-input-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .ai-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .ai-input:focus {
+            border-color: #667eea;
+        }
+
+        .ai-send-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .ai-send-btn:hover {
+            background: #5568d3;
+        }
+
+        .ai-suggestions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ai-suggestion {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9fafb;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .ai-suggestion:hover {
+            border-color: #667eea;
+            background: #f5f6fa;
+        }
+
+        /* 加载动画 */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <div class="navbar-logo">💼</div>
+                <span>智能财富管家系统</span>
+            </div>
+            <div class="navbar-menu">
+                <div class="nav-item active">工作台</div>
+                <div class="nav-item">客户管理</div>
+                <div class="nav-item">工单中心</div>
+            </div>
+            <div class="navbar-user">
+                <span id="userName">刘经理</span>
+                <div class="user-avatar" onclick="toggleUserDropdown()">👤</div>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-item" onclick="viewProfile()">个人信息</div>
+                    <div class="dropdown-item" onclick="viewSettings()">系统设置</div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item" onclick="logout()">退出登录</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-container">
+        <!-- 统计卡片区 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">今日处理工单</div>
+                <div class="stat-value" id="todayCount">0</div>
+                <div class="stat-trend">⬆ 较昨日 +0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">待处理工单</div>
+                <div class="stat-value" id="pendingCount">0</div>
+                <div class="stat-trend">需要及时处理</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">本月服务客户</div>
+                <div class="stat-value" id="monthlyCustomers">0</div>
+                <div class="stat-trend">⬆ 较上月 +0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">平均处理时长</div>
+                <div class="stat-value" id="avgTime">0</div>
+                <div class="stat-trend">分钟</div>
+            </div>
+        </div>
+
+        <!-- 主要内容布局 -->
+        <div class="dashboard-layout">
+            <!-- 左侧：待办工单 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">待办工单</h2>
+                    <span class="card-badge" id="totalWorkorders">0</span>
+                </div>
+                <div class="workorder-tabs">
+                    <button class="tab-btn active" onclick="filterWorkorders('all')">全部</button>
+                    <button class="tab-btn" onclick="filterWorkorders('客户转介')">客户转介</button>
+                    <button class="tab-btn" onclick="filterWorkorders('信息变更')">信息变更</button>
+                    <button class="tab-btn" onclick="filterWorkorders('转账审核')">转账审核</button>
+                </div>
+                <div class="workorder-list" id="workorderList">
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <div>加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：快速操作 + 最近客户 -->
+            <div>
+                <!-- 快速操作面板 -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h2 class="card-title">快速操作</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-actions">
+                            <button class="quick-btn" onclick="createWorkorder()">
+                                <span class="quick-btn-icon">➕</span>
+                                <span>创建工单</span>
+                            </button>
+                            <button class="quick-btn" onclick="queryCustomer()">
+                                <span class="quick-btn-icon">🔍</span>
+                                <span>客户查询</span>
+                            </button>
+                            <button class="quick-btn" onclick="transferAudit()">
+                                <span class="quick-btn-icon">💰</span>
+                                <span>转账审核</span>
+                            </button>
+                            <button class="quick-btn" onclick="reportSuspicious()">
+                                <span class="quick-btn-icon">⚠️</span>
+                                <span>可疑交易</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近服务客户 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">最近服务客户</h2>
+                    </div>
+                    <div class="customer-list" id="customerList">
+                        <div class="empty-state">
+                            <div class="empty-icon">👥</div>
+                            <div>暂无数据</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI助手浮动气泡 -->
+    <div class="ai-assistant" id="aiAssistant">
+        <div class="ai-header" onclick="toggleAI()">
+            <h3 class="ai-title">业务助手 💼</h3>
+            <button class="ai-toggle" id="aiToggle">−</button>
+        </div>
+        <div class="ai-body">
+            <div class="ai-suggestions">
+                <div class="ai-suggestion" onclick="sendAIMessage('帮我查询待处理的转账工单')">
+                    查询待处理转账工单
+                </div>
+                <div class="ai-suggestion" onclick="sendAIMessage('显示今天需要审核的客户信息变更')">
+                    显示今日信息变更审核
+                </div>
+                <div class="ai-suggestion" onclick="sendAIMessage('帮我创建一个客户转介工单')">
+                    创建客户转介工单
+                </div>
+            </div>
+            <div class="ai-input-group">
+                <input type="text" class="ai-input" id="aiInput" placeholder="输入您的需求..." onkeypress="handleAIKeyPress(event)">
+                <button class="ai-send-btn" onclick="sendAIMessage()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentFilter = 'all';
+        let allWorkorders = [];
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadUserInfo();
+            loadStatistics();
+            loadWorkorders();
+            loadRecentCustomers();
+        });
+
+        // 权限检查
+        function checkAuth() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const roles = JSON.parse(localStorage.getItem('roles') || '[]');
+            if (!roles.includes('operator')) {
+                alert('无权限访问此页面');
+                window.location.href = '/login.html';
+            }
+        }
+
+        // 加载用户信息
+        function loadUserInfo() {
+            const username = localStorage.getItem('username');
+            if (username) {
+                document.getElementById('userName').textContent = username;
+            }
+        }
+
+        // 加载统计数据
+        async function loadStatistics() {
+            const token = localStorage.getItem('access_token');
+
+            try {
+                // 模拟统计数据（实际应从API获取）
+                document.getElementById('todayCount').textContent = '0';
+                document.getElementById('pendingCount').textContent = '0';
+                document.getElementById('monthlyCustomers').textContent = '0';
+                document.getElementById('avgTime').textContent = '0';
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+
+        // 加载工单列表
+        async function loadWorkorders() {
+            const token = localStorage.getItem('access_token');
+            const workorderList = document.getElementById('workorderList');
+
+            workorderList.innerHTML = '<div class="empty-state"><div class="spinner"></div><div>加载中...</div></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/workorder/list?status=待处理`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('加载工单失败');
+                }
+
+                const result = await response.json();
+
+                if (result.code === 0 && result.data) {
+                    allWorkorders = result.data.filter(order => {
+                        // 客户经理处理的工单类型：转账、信息更新、工单创建相关
+                        const summary = order.intent_summary || '';
+                        return summary.includes('转账') ||
+                               summary.includes('信息更新') ||
+                               summary.includes('信息变更') ||
+                               summary.includes('工单') ||
+                               order.order_type === '客户转介';
+                    });
+
+                    document.getElementById('totalWorkorders').textContent = allWorkorders.length;
+                    document.getElementById('pendingCount').textContent = allWorkorders.length;
+
+                    renderWorkorders(allWorkorders);
+                } else {
+                    workorderList.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>暂无待办工单</div></div>';
+                }
+            } catch (error) {
+                console.error('加载工单失败:', error);
+                workorderList.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><div>加载失败，请刷新重试</div></div>';
+            }
+        }
+
+        // 渲染工单列表
+        function renderWorkorders(workorders) {
+            const workorderList = document.getElementById('workorderList');
+
+            if (!workorders || workorders.length === 0) {
+                workorderList.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>暂无待办工单</div></div>';
+                return;
+            }
+
+            let html = '';
+            workorders.forEach(order => {
+                const typeClass = getOrderTypeClass(order.order_type);
+                const urgentTag = order.urgent ? '<span class="urgent-tag">紧急</span>' : '';
+                const levelClass = getCustomerLevelClass(order.customer_level);
+                const summary = extractBusinessSummary(order.intent_summary);
+
+                html += `
+                    <div class="workorder-card" onclick="viewWorkorder('${order.id}')">
+                        <div class="workorder-header">
+                            <span class="order-type-tag ${typeClass}">${order.order_type || '客户转介'}</span>
+                            ${urgentTag}
+                        </div>
+                        <div class="customer-info">
+                            <span class="customer-name">${order.customer_name || '未知客户'}</span>
+                            <span class="customer-level ${levelClass}">${order.customer_level || '普通'}</span>
+                        </div>
+                        <div class="workorder-summary">${summary}</div>
+                        <div class="workorder-footer">
+                            <span class="workorder-time">${formatTime(order.created_at)}</span>
+                            <button class="action-btn" onclick="claimWorkorder('${order.id}', event)">领取处理</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            workorderList.innerHTML = html;
+        }
+
+        // 获取工单类型样式
+        function getOrderTypeClass(type) {
+            if (!type) return 'order-type-referral';
+            if (type.includes('转介')) return 'order-type-referral';
+            if (type.includes('变更')) return 'order-type-change';
+            if (type.includes('转账')) return 'order-type-transfer';
+            return 'order-type-referral';
+        }
+
+        // 获取客户等级样式
+        function getCustomerLevelClass(level) {
+            if (!level) return 'level-bronze';
+            if (level.includes('金') || level.includes('Gold')) return 'level-gold';
+            if (level.includes('银') || level.includes('Silver')) return 'level-silver';
+            return 'level-bronze';
+        }
+
+        // 提取业务摘要
+        function extractBusinessSummary(summary) {
+            if (!summary) return '查看详情';
+
+            // 提取关键信息
+            if (summary.includes('转账')) {
+                const match = summary.match(/转账.*?(\d+[万千百]?元?)/);
+                return match ? `转账 ${match[1]}` : '转账业务';
+            }
+            if (summary.includes('信息') || summary.includes('更新')) {
+                return '更新客户信息';
+            }
+            if (summary.length > 50) {
+                return summary.substring(0, 50) + '...';
+            }
+            return summary;
+        }
+
+        // 格式化时间
+        function formatTime(timeStr) {
+            if (!timeStr) return '刚刚';
+
+            const time = new Date(timeStr);
+            const now = new Date();
+            const diff = Math.floor((now - time) / 1000);
+
+            if (diff < 60) return '刚刚';
+            if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
+
+            return `${time.getMonth() + 1}月${time.getDate()}日 ${time.getHours()}:${String(time.getMinutes()).padStart(2, '0')}`;
+        }
+
+        // 筛选工单
+        function filterWorkorders(type) {
+            currentFilter = type;
+
+            // 更新Tab样式
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 筛选工单
+            let filtered = allWorkorders;
+            if (type !== 'all') {
+                filtered = allWorkorders.filter(order => {
+                    if (type === '客户转介') {
+                        return order.order_type === '客户转介';
+                    }
+                    if (type === '信息变更') {
+                        const summary = order.intent_summary || '';
+                        return summary.includes('信息') || summary.includes('更新');
+                    }
+                    if (type === '转账审核') {
+                        const summary = order.intent_summary || '';
+                        return summary.includes('转账');
+                    }
+                    return true;
+                });
+            }
+
+            renderWorkorders(filtered);
+        }
+
+        // 领取工单
+        async function claimWorkorder(orderId, event) {
+            event.stopPropagation();
+
+            const token = localStorage.getItem('access_token');
+            const userId = localStorage.getItem('user_id');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/workorder/${orderId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: '处理中',
+                        handler_id: userId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('领取工单失败');
+                }
+
+                alert('工单领取成功！');
+                loadWorkorders();
+                loadStatistics();
+            } catch (error) {
+                console.error('领取工单失败:', error);
+                alert('领取工单失败，请重试');
+            }
+        }
+
+        // 查看工单详情
+        function viewWorkorder(orderId) {
+            // 跳转到工单详情页面或打开弹窗
+            window.location.href = `/workorder/${orderId}`;
+        }
+
+        // 加载最近服务客户
+        async function loadRecentCustomers() {
+            const customerList = document.getElementById('customerList');
+
+            try {
+                // 模拟数据（实际应从API获取）
+                const customers = [];
+
+                if (customers.length === 0) {
+                    customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div>暂无数据</div></div>';
+                    return;
+                }
+
+                let html = '';
+                customers.forEach(customer => {
+                    html += `
+                        <div class="customer-item">
+                            <div class="customer-detail">
+                                <div class="customer-name">${customer.name}</div>
+                                <div class="customer-action">${customer.action} · ${customer.time}</div>
+                            </div>
+                            <a href="/customer/${customer.id}" class="view-link">查看详情</a>
+                        </div>
+                    `;
+                });
+
+                customerList.innerHTML = html;
+            } catch (error) {
+                console.error('加载客户列表失败:', error);
+            }
+        }
+
+        // 快速操作功能
+        function createWorkorder() {
+            alert('创建工单功能开发中');
+        }
+
+        function queryCustomer() {
+            alert('客户查询功能开发中');
+        }
+
+        function transferAudit() {
+            alert('转账审核功能开发中');
+        }
+
+        function reportSuspicious() {
+            alert('可疑交易上报功能开发中');
+        }
+
+        // 用户下拉菜单
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function viewProfile() {
+            alert('个人信息功能开发中');
+        }
+
+        function viewSettings() {
+            alert('系统设置功能开发中');
+        }
+
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.clear();
+                window.location.href = '/login.html';
+            }
+        }
+
+        // AI助手功能
+        function toggleAI() {
+            const assistant = document.getElementById('aiAssistant');
+            assistant.classList.toggle('minimized');
+
+            const toggle = document.getElementById('aiToggle');
+            toggle.textContent = assistant.classList.contains('minimized') ? '+' : '−';
+        }
+
+        function handleAIKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendAIMessage();
+            }
+        }
+
+        async function sendAIMessage(message) {
+            const input = document.getElementById('aiInput');
+            const query = message || input.value.trim();
+
+            if (!query) return;
+
+            console.log('AI助手查询:', query);
+            alert('AI助手功能开发中\n您的问题：' + query);
+
+            input.value = '';
+        }
+
+        // 点击外部关闭下拉菜单
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const userAvatar = document.querySelector('.user-avatar');
+
+            if (!userAvatar.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>

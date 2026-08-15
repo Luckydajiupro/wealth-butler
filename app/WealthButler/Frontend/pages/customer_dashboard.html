@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户工作台 - 智能财富管家系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f7fa;
+            min-width: 1200px;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0 40px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .navbar-brand .logo {
+            width: 32px;
+            height: 32px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 30px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .navbar-menu a {
+            color: white;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .navbar-menu a:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .navbar-menu a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar-user {
+            position: relative;
+        }
+
+        .user-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .user-trigger:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: white;
+            color: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-level {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-dropdown a {
+            display: block;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .user-dropdown a:hover {
+            background: #f5f7fa;
+        }
+
+        .user-dropdown .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 4px 0;
+        }
+
+        /* 主内容区域 */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 40px;
+        }
+
+        /* 数据卡片区 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-change {
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .stat-change.positive {
+            color: #10b981;
+        }
+
+        .stat-change.negative {
+            color: #ef4444;
+        }
+
+        /* 持仓表格区域 */
+        .holdings-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .refresh-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .holdings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .holdings-table thead {
+            background: #f8f9fa;
+        }
+
+        .holdings-table th {
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .holdings-table td {
+            padding: 16px;
+            font-size: 14px;
+            color: #333;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .holdings-table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .holdings-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .profit-rate {
+            font-weight: 600;
+        }
+
+        .profit-rate.positive {
+            color: #10b981;
+        }
+
+        .profit-rate.negative {
+            color: #ef4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* AI聊天气泡 */
+        .chat-bubble {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+        }
+
+        .chat-toggle {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-window.show {
+            display: flex;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .chat-close:hover {
+            opacity: 1;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .message-avatar.bot {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message-avatar.user {
+            background: #e0e0e0;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .chat-message.bot .message-content {
+            background: white;
+            color: #333;
+        }
+
+        .chat-message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chat-input-area {
+            padding: 16px 20px;
+            border-top: 1px solid #e0e0e0;
+            background: white;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-send {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .chat-send:hover {
+            transform: scale(1.05);
+        }
+
+        .chat-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <div class="logo">💼</div>
+                <span>智能财富管家</span>
+            </div>
+
+            <div class="navbar-menu">
+                <a href="#holdings" class="active">我的持仓</a>
+                <a href="#transactions">交易记录</a>
+                <a href="#products">产品中心</a>
+            </div>
+
+            <div class="navbar-user">
+                <div class="user-trigger" id="userTrigger">
+                    <div class="user-avatar" id="userAvatar">客</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">加载中...</div>
+                        <div class="user-level" id="userLevel">普通客户</div>
+                    </div>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="#profile">个人资料</a>
+                    <a href="#settings">账户设置</a>
+                    <div class="divider"></div>
+                    <a href="#logout" id="logoutBtn">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="main-container">
+        <!-- 数据卡片区 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">总资产</div>
+                <div class="stat-value" id="totalAssets">¥0.00</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">今日收益</div>
+                <div class="stat-value" id="todayProfit">¥0.00</div>
+                <div class="stat-change" id="todayProfitRate">+0.00%</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">持仓数量</div>
+                <div class="stat-value" id="holdingsCount">0</div>
+            </div>
+        </div>
+
+        <!-- 我的持仓表格 -->
+        <div class="holdings-section">
+            <div class="section-header">
+                <span>我的持仓</span>
+                <button class="refresh-btn" id="refreshBtn">刷新数据</button>
+            </div>
+
+            <div id="holdingsTableContainer">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 16px;">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI聊天气泡 -->
+    <div class="chat-bubble">
+        <button class="chat-toggle" id="chatToggle">💬</button>
+
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-header">
+                <span>智能客服 🤖</span>
+                <button class="chat-close" id="chatClose">×</button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message bot">
+                    <div class="message-avatar bot">🤖</div>
+                    <div>
+                        <div class="message-content">您好！我是智能客服助手，有什么可以帮您的吗？</div>
+                        <div class="message-time" id="welcomeTime"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <input
+                    type="text"
+                    class="chat-input"
+                    id="chatInput"
+                    placeholder="输入您的问题..."
+                    autocomplete="off"
+                >
+                <button class="chat-send" id="chatSend">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let chatSessionId = generateSessionId();
+
+        // 生成会话ID
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // 格式化货币
+        function formatCurrency(amount) {
+            return '¥' + parseFloat(amount).toLocaleString('zh-CN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // 格式化百分比
+        function formatPercent(value) {
+            const num = parseFloat(value);
+            const sign = num >= 0 ? '+' : '';
+            return sign + num.toFixed(2) + '%';
+        }
+
+        // 格式化时间
+        function formatTime(date) {
+            const h = date.getHours().toString().padStart(2, '0');
+            const m = date.getMinutes().toString().padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        // 获取JWT Token
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
+
+        // 检查登录状态
+        function checkAuth() {
+            const token = getToken();
+            if (!token) {
+                alert('请先登录');
+                window.location.href = '/login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // 加载用户信息
+        async function loadUserInfo() {
+            const username = localStorage.getItem('username') || '客户';
+            const userId = localStorage.getItem('user_id') || '';
+
+            document.getElementById('userName').textContent = username;
+            document.getElementById('userAvatar').textContent = username.charAt(0);
+
+            // TODO: 从API获取客户等级
+            document.getElementById('userLevel').textContent = '普通客户';
+        }
+
+        // 加载持仓数据
+        async function loadHoldings() {
+            const container = document.getElementById('holdingsTableContainer');
+            container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p style="margin-top: 16px;">加载中...</p></div>';
+
+            try {
+                const token = getToken();
+                const response = await fetch(`${API_BASE}/api/wealth/holdings`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 401) {
+                    alert('登录已过期，请重新登录');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (response.ok && result.code === 0) {
+                    const holdings = result.data || [];
+                    renderHoldings(holdings);
+                    updateStats(holdings);
+                } else {
+                    // API返回错误，使用模拟数据
+                    console.warn('API返回错误，使用模拟数据:', result.msg);
+                    useMockData();
+                }
+
+            } catch (error) {
+                console.error('加载持仓数据失败:', error);
+                // 网络错误，使用模拟数据
+                useMockData();
+            }
+        }
+
+        // 使用模拟数据
+        function useMockData() {
+            const mockHoldings = [
+                {
+                    product_name: '稳健增长基金A',
+                    shares: 10000.00,
+                    current_nav: 1.2345,
+                    market_value: 12345.00,
+                    profit_rate: 5.67
+                },
+                {
+                    product_name: '智选债券基金B',
+                    shares: 5000.00,
+                    current_nav: 1.1234,
+                    market_value: 5617.00,
+                    profit_rate: 3.21
+                },
+                {
+                    product_name: '平衡配置基金C',
+                    shares: 8000.00,
+                    current_nav: 0.9876,
+                    market_value: 7900.80,
+                    profit_rate: -2.45
+                }
+            ];
+            renderHoldings(mockHoldings);
+            updateStats(mockHoldings);
+        }
+
+        // 渲染持仓表格
+        function renderHoldings(holdings) {
+            const container = document.getElementById('holdingsTableContainer');
+
+            if (!holdings || holdings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <p>暂无持仓数据</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <table class="holdings-table">
+                    <thead>
+                        <tr>
+                            <th>产品名称</th>
+                            <th>持有份额</th>
+                            <th>当前净值</th>
+                            <th>持仓市值</th>
+                            <th>收益率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            holdings.forEach(holding => {
+                const profitClass = holding.profit_rate >= 0 ? 'positive' : 'negative';
+                tableHTML += `
+                    <tr>
+                        <td>${holding.product_name}</td>
+                        <td>${parseFloat(holding.shares).toLocaleString('zh-CN', {minimumFractionDigits: 2})}</td>
+                        <td>${formatCurrency(holding.current_nav)}</td>
+                        <td>${formatCurrency(holding.market_value)}</td>
+                        <td class="profit-rate ${profitClass}">${formatPercent(holding.profit_rate)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        // 更新统计数据
+        function updateStats(holdings) {
+            // 计算总资产
+            const totalAssets = holdings.reduce((sum, h) => sum + parseFloat(h.market_value), 0);
+            document.getElementById('totalAssets').textContent = formatCurrency(totalAssets);
+
+            // 计算今日收益（模拟数据）
+            const todayProfit = totalAssets * 0.0123; // 假设今日收益率1.23%
+            const todayProfitRate = 1.23;
+            const profitClass = todayProfit >= 0 ? 'positive' : 'negative';
+
+            document.getElementById('todayProfit').textContent = formatCurrency(todayProfit);
+            const profitRateEl = document.getElementById('todayProfitRate');
+            profitRateEl.textContent = formatPercent(todayProfitRate);
+            profitRateEl.className = 'stat-change ' + profitClass;
+
+            // 持仓数量
+            document.getElementById('holdingsCount').textContent = holdings.length;
+        }
+
+        // 用户下拉菜单
+        document.getElementById('userTrigger').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('userDropdown').classList.toggle('show');
+        });
+
+        document.addEventListener('click', function() {
+            document.getElementById('userDropdown').classList.remove('show');
+        });
+
+        // 退出登录
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.clear();
+            alert('已退出登录');
+            window.location.href = '/login.html';
+        });
+
+        // 刷新按钮
+        document.getElementById('refreshBtn').addEventListener('click', loadHoldings);
+
+        // AI聊天功能
+        const chatToggle = document.getElementById('chatToggle');
+        const chatWindow = document.getElementById('chatWindow');
+        const chatClose = document.getElementById('chatClose');
+        const chatInput = document.getElementById('chatInput');
+        const chatSend = document.getElementById('chatSend');
+        const chatMessages = document.getElementById('chatMessages');
+
+        // 从localStorage读取聊天窗口状态
+        const chatWindowState = localStorage.getItem('chatWindowOpen') === 'true';
+        if (chatWindowState) {
+            chatWindow.classList.add('show');
+        }
+
+        chatToggle.addEventListener('click', function() {
+            const isShown = chatWindow.classList.toggle('show');
+            localStorage.setItem('chatWindowOpen', isShown);
+        });
+
+        chatClose.addEventListener('click', function() {
+            chatWindow.classList.remove('show');
+            localStorage.setItem('chatWindowOpen', 'false');
+        });
+
+        // 发送消息
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage(message, 'user');
+            chatInput.value = '';
+            chatSend.disabled = true;
+
+            try {
+                const token = getToken();
+                const response = await fetch(`${API_BASE}/api/wealth/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        agent_type: 'customer_service',
+                        message: message,
+                        session_id: chatSessionId
+                    })
+                });
+
+                if (response.status === 401) {
+                    alert('登录已过期，请重新登录');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (response.ok && result.code === 0) {
+                    const reply = result.data.reply || '抱歉，我没有理解您的问题。';
+                    addMessage(reply, 'bot');
+                } else {
+                    // API错误，使用模拟回复
+                    const mockReply = generateMockReply(message);
+                    addMessage(mockReply, 'bot');
+                }
+
+            } catch (error) {
+                console.error('发送消息失败:', error);
+                const mockReply = generateMockReply(message);
+                addMessage(mockReply, 'bot');
+            } finally {
+                chatSend.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // 生成模拟回复
+        function generateMockReply(message) {
+            const lowerMsg = message.toLowerCase();
+
+            if (lowerMsg.includes('持仓') || lowerMsg.includes('产品')) {
+                return '您可以在上方的"我的持仓"表格中查看所有持仓产品的详细信息，包括持有份额、当前净值和收益率。';
+            } else if (lowerMsg.includes('收益') || lowerMsg.includes('赚')) {
+                return '您的今日收益信息显示在页面顶部的数据卡片中。如需了解更详细的收益分析，可以联系您的理财顾问。';
+            } else if (lowerMsg.includes('买') || lowerMsg.includes('购买')) {
+                return '您可以通过"产品中心"浏览可购买的理财产品，或联系您的理财顾问获取个性化推荐。';
+            } else {
+                return '感谢您的咨询！如需更详细的帮助，请联系您的专属理财顾问，或拨打客服热线 400-888-8888。';
+            }
+        }
+
+        // 添加消息到聊天窗口
+        function addMessage(content, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+
+            const time = formatTime(new Date());
+            const avatar = type === 'bot' ? '🤖' : '👤';
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar ${type}">${avatar}</div>
+                <div>
+                    <div class="message-content">${content}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        chatSend.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 初始化欢迎消息时间
+        document.getElementById('welcomeTime').textContent = formatTime(new Date());
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            if (checkAuth()) {
+                loadUserInfo();
+                loadHoldings();
+            }
+        });
+    </script>
+</body>
+</html>
