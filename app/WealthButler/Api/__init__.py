@@ -34,5 +34,6 @@
 
 from app.WealthButler.Api.chatApi import register_wealth_chat_router
 from app.WealthButler.Api.riskApi import register_risk_api
+from app.WealthButler.Api.frontendApi import register_wealth_frontend_router
 
-__all__ = ["register_wealth_chat_router", "register_risk_api"]
+__all__ = ["register_wealth_chat_router", "register_risk_api", "register_wealth_frontend_router"]

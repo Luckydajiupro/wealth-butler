@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能财富管家系统 - 登录</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .login-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .login-body {
+            padding: 40px 30px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .user-type-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .user-type-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .user-type-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .user-type-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .quick-login {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .quick-login h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .quick-login-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .quick-login-btn {
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background: #f8f9fa;
+            cursor: pointer;
+            font-size: 13px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .quick-login-btn:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .quick-login-btn .role {
+            font-weight: 600;
+            color: #333;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .quick-login-btn .username {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>智能财富管家系统</h1>
+            <p>Intelligent Wealth Butler System</p>
+        </div>
+
+        <div class="login-body">
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <div class="user-type-selector">
+                <button class="user-type-btn active" data-type="customer">客户登录</button>
+                <button class="user-type-btn" data-type="employee">员工登录</button>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    登录
+                </button>
+            </form>
+
+            <div class="quick-login">
+                <h3>快速登录（测试账号）</h3>
+                <div class="quick-login-grid" id="quickLoginGrid">
+                    <!-- 客户账号 -->
+                    <div class="quick-login-btn" data-username="customer_zhang" data-password="123456">
+                        <span class="role">客户A</span>
+                        <span class="username">张先生</span>
+                    </div>
+                    <div class="quick-login-btn" data-username="customer_li" data-password="123456">
+                        <span class="role">客户B</span>
+                        <span class="username">李女士</span>
+                    </div>
+                    <!-- 理财顾问 -->
+                    <div class="quick-login-btn" data-username="advisor_wang" data-password="123456">
+                        <span class="role">理财顾问</span>
+                        <span class="username">王顾问</span>
+                    </div>
+                    <!-- 风控专员 -->
+                    <div class="quick-login-btn" data-username="risk_zhao" data-password="123456">
+                        <span class="role">风控专员</span>
+                        <span class="username">赵专员</span>
+                    </div>
+                    <!-- 客户经理 -->
+                    <div class="quick-login-btn" data-username="operator_liu" data-password="123456">
+                        <span class="role">客户经理</span>
+                        <span class="username">刘经理</span>
+                    </div>
+                    <!-- 管理员 -->
+                    <div class="quick-login-btn" data-username="admin" data-password="123456">
+                        <span class="role">管理员</span>
+                        <span class="username">admin</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-links">
+                <a href="/docs" target="_blank" style="color: #667eea; text-decoration: none;">API文档</a> |
+                <a href="/superpowers" target="_blank" style="color: #667eea; text-decoration: none;">权限管理</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentUserType = 'customer';
+
+        // 用户类型切换
+        document.querySelectorAll('.user-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.user-type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentUserType = this.dataset.type;
+            });
+        });
+
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('请输入用户名和密码');
+                return;
+            }
+
+            await doLogin(username, password);
+        });
+
+        // 快速登录
+        document.querySelectorAll('.quick-login-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const username = this.dataset.username;
+                const password = this.dataset.password;
+                document.getElementById('username').value = username;
+                document.getElementById('password').value = password;
+                await doLogin(username, password);
+            });
+        });
+
+        // 执行登录
+        async function doLogin(username, password) {
+            const loginBtn = document.getElementById('loginBtn');
+            const originalText = loginBtn.innerHTML;
+
+            hideMessages();
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner"></span>登录中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.code === 0) {
+                    // 登录成功
+                    const userData = result.data;
+
+                    // 保存到localStorage
+                    localStorage.setItem('access_token', userData.access_token);
+                    localStorage.setItem('refresh_token', userData.refresh_token);
+                    localStorage.setItem('user_id', userData.id);
+                    localStorage.setItem('username', userData.username);
+                    localStorage.setItem('roles', JSON.stringify(userData.roles));
+                    localStorage.setItem('permissions', JSON.stringify(userData.permissions));
+
+                    showSuccess('登录成功！正在跳转...');
+
+                    // 根据角色跳转
+                    setTimeout(() => {
+                        if (userData.roles.includes('advisor')) {
+                            window.location.href = '/chat/advisor';
+                        } else if (userData.roles.includes('risk_officer')) {
+                            window.location.href = '/chat/risk';
+                        } else if (userData.roles.includes('operator')) {
+                            window.location.href = '/chat/operator';
+                        } else if (userData.roles.includes('business_admin')) {
+                            window.location.href = '/chat/analyst';
+                        } else {
+                            // 客户默认进入客服
+                            window.location.href = '/chat/customer';
+                        }
+                    }, 1000);
+
+                } else {
+                    showError(result.msg || '登录失败，请检查用户名和密码');
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = originalText;
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('网络错误，请检查服务器是否正常运行');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = originalText;
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // 检查是否已登录
+        window.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                // 验证token是否有效
+                fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        // Token有效，跳转到相应页面
+                        const roles = JSON.parse(localStorage.getItem('roles') || '[]');
+                        if (roles.includes('advisor')) {
+                            window.location.href = '/chat/advisor';
+                        } else if (roles.includes('risk_officer')) {
+                            window.location.href = '/chat/risk';
+                        } else if (roles.includes('operator')) {
+                            window.location.href = '/chat/operator';
+                        } else if (roles.includes('business_admin')) {
+                            window.location.href = '/chat/analyst';
+                        } else {
+                            window.location.href = '/chat/customer';
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

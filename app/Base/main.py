@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 # 导入 EventBus 消费者启动函数
 from app.WealthButler.EventBus.consumer import start_all_consumers
 # 导入 WealthButler 业务API
-from app.WealthButler.Api import register_risk_api, register_wealth_chat_router
+from app.WealthButler.Api import register_risk_api, register_wealth_chat_router, register_wealth_frontend_router
 
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ register_ai_chat_router(app)
 register_auth_router(app)
 register_risk_api(app)
 register_wealth_chat_router(app)
+register_wealth_frontend_router(app)
 
 # 自动注册定时任务
 auto_register_all_scheduler()
