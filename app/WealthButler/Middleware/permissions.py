@@ -1,75 +1,66 @@
 """
-业务操作权限常量定义（已整合到Base.Models.roleModel）
+权限定义模块 - 兼容层
 
-此文件保留作为兼容层，实际权限定义在 app/Base/Models/roleModel.py 的 Permission 类中。
+统一从 app.Base.Models.roleModel.Permission 导入权限常量，
+此模块作为兼容层保留旧代码的导入路径。
 
-使用方式：
-    from app.Base.Models.roleModel import Permission, RoleModel
-
-    # 检查权限
-    role = RoleModel.find_by_name('advisor')
-    if role.has_permission(Permission.OPERATION_PURCHASE):
-        # 允许申购操作
-        pass
+权限定义对应需求文档3.3节权限矩阵：
+- product:query          产品查询（员工专用）
+- product:recommend      产品推荐
+- operation:purchase     申购操作
+- operation:redeem       赎回操作
+- operation:transfer     转账操作
+- risk:reassess          风评重做
+- risk:suspicious_report 可疑交易上报
+- risk:override          风控规则人工复核/处置
+- customer:info_update   客户信息更新
+- workorder:create       工单创建
+- data:nl2sql_query      NL2SQL数据查询
 """
 
-# 导入统一的权限类
-from app.Base.Models.roleModel import Permission, RoleModel, BUILTIN_ROLES
+from app.Base.Models.roleModel import Permission
 
-# 兼容性别名（旧代码可能使用这些常量）
+# 导出所有业务权限常量
+PRODUCT_QUERY = Permission.PRODUCT_QUERY
+PRODUCT_RECOMMEND = Permission.PRODUCT_RECOMMEND
 OPERATION_PURCHASE = Permission.OPERATION_PURCHASE
 OPERATION_REDEEM = Permission.OPERATION_REDEEM
 OPERATION_TRANSFER = Permission.OPERATION_TRANSFER
 RISK_REASSESS = Permission.RISK_REASSESS
-CUSTOMER_INFO_UPDATE = Permission.CUSTOMER_INFO_UPDATE
-PRODUCT_QUERY = Permission.PRODUCT_QUERY
 RISK_SUSPICIOUS_REPORT = Permission.RISK_SUSPICIOUS_REPORT
+RISK_OVERRIDE = Permission.RISK_OVERRIDE
+CUSTOMER_INFO_UPDATE = Permission.CUSTOMER_INFO_UPDATE
 WORKORDER_CREATE = Permission.WORKORDER_CREATE
+DATA_NL2SQL_QUERY = Permission.DATA_NL2SQL_QUERY
 
 
-def check_permission(user_role: str, required_permission: str) -> bool:
+def check_permission(user_permissions: list, required_permission: str) -> bool:
     """
-    检查用户角色是否具有所需权限
+    检查用户是否拥有指定权限
 
     Args:
-        user_role: 用户角色名（customer/advisor/risk_officer/operator）
-        required_permission: 所需权限标识
+        user_permissions: 用户权限列表
+        required_permission: 需要的权限
 
     Returns:
-        bool: 是否有权限
+        bool: 是否拥有权限
     """
-    # 从内置角色定义中获取权限
-    role_config = BUILTIN_ROLES.get(user_role)
-    if not role_config:
-        return False
-
-    permissions = role_config.get('permissions', [])
-    return required_permission in permissions
+    return required_permission in user_permissions
 
 
-def get_role_permissions(user_role: str) -> list:
+def get_role_permissions(role_name: str) -> list:
     """
-    获取角色的所有权限列表
+    获取角色的权限列表
 
     Args:
-        user_role: 用户角色名
+        role_name: 角色名称
 
     Returns:
         list: 权限列表
     """
-    role_config = BUILTIN_ROLES.get(user_role)
-    if not role_config:
-        return []
+    from app.Base.Models.roleModel import BUILTIN_ROLES
 
-    return role_config.get('permissions', [])
-
-
-# 使用示例
-if __name__ == "__main__":
-    print("业务权限已整合到 app.Base.Models.roleModel.Permission")
-    print("\n财富管家业务角色:")
-    for role_name in ['customer', 'advisor', 'risk_officer', 'operator']:
-        perms = get_role_permissions(role_name)
-        print(f"\n{role_name}: {len(perms)} 个权限")
-        for perm in perms:
-            print(f"  - {perm}")
+    role_config = BUILTIN_ROLES.get(role_name)
+    if role_config:
+        return role_config.get("permissions", [])
+    return []
