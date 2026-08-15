@@ -332,7 +332,7 @@ def init_work_orders(users):
             "customer_name": "张先生",
             "summary": "客户咨询申购成长精选股票基金50万元",
             "status": "待处理",
-            "priority": "普通",
+            "priority": "中",
             "days_ago": 2,
         },
         {
@@ -341,7 +341,7 @@ def init_work_orders(users):
             "customer_name": "李女士",
             "summary": "客户申请赎回灵活配置A基金部分份额",
             "status": "待处理",
-            "priority": "普通",
+            "priority": "中",
             "days_ago": 1,
         },
         {
@@ -359,7 +359,7 @@ def init_work_orders(users):
             "customer_name": "李女士",
             "summary": "客户申购天天宝货币A 10万元",
             "status": "待处理",
-            "priority": "普通",
+            "priority": "中",
             "days_ago": 3,
         },
         {
@@ -368,7 +368,7 @@ def init_work_orders(users):
             "customer_name": "张先生",
             "summary": "客户赎回纯债增强基金全部份额",
             "status": "待处理",
-            "priority": "普通",
+            "priority": "中",
             "days_ago": 1,
         },
         # 客户转介（转账类）- 3条待处理/处理中
@@ -398,14 +398,14 @@ def init_work_orders(users):
             "customer_name": "李女士",
             "summary": "客户咨询大额转账手续费优惠政策",
             "status": "处理中",
-            "priority": "普通",
+            "priority": "中",
             "handled_by": advisor_wang.id if advisor_wang else None,
             "handler_name": "王顾问" if advisor_wang else None,
             "days_ago": 2,
         },
-        # 风险预警 - 4条
+        # 风险预警工单 - 4条
         {
-            "type": "风险预警",
+            "type": "系统工单",
             "customer_id": customer_zhang.id,
             "customer_name": "张先生",
             "summary": "触发RW-003高风险产品集中度预警",
@@ -414,16 +414,16 @@ def init_work_orders(users):
             "days_ago": 0,
         },
         {
-            "type": "风险预警",
+            "type": "系统工单",
             "customer_id": customer_li.id,
             "customer_name": "李女士",
             "summary": "触发RW-001单笔大额交易预警",
             "status": "待处理",
-            "priority": "普通",
+            "priority": "中",
             "days_ago": 1,
         },
         {
-            "type": "风险预警",
+            "type": "系统工单",
             "customer_id": customer_zhang.id,
             "customer_name": "张先生",
             "summary": "触发RW-015反洗钱可疑交易预警",
@@ -434,47 +434,47 @@ def init_work_orders(users):
             "days_ago": 2,
         },
         {
-            "type": "风险预警",
+            "type": "系统工单",
             "customer_id": customer_li.id,
             "customer_name": "李女士",
             "summary": "触发RW-005风险承受能力不匹配预警",
             "status": "处理中",
-            "priority": "普通",
+            "priority": "中",
             "handled_by": advisor_wang.id if advisor_wang else None,
             "handler_name": "王顾问" if advisor_wang else None,
             "days_ago": 3,
         },
-        # 信息变更 - 2条已完成
+        # 账户操作 - 2条已完成
         {
-            "type": "信息变更",
+            "type": "账户操作",
             "customer_id": customer_zhang.id,
             "customer_name": "张先生",
             "summary": "客户更新联系电话和邮箱地址",
             "status": "已完成",
-            "priority": "普通",
+            "priority": "中",
             "handled_by": operator_liu.id if operator_liu else None,
             "handler_name": "刘经理" if operator_liu else None,
             "days_ago": 5,
         },
         {
-            "type": "信息变更",
+            "type": "账户操作",
             "customer_id": customer_li.id,
             "customer_name": "李女士",
             "summary": "客户更新银行卡信息",
             "status": "已完成",
-            "priority": "普通",
+            "priority": "中",
             "handled_by": operator_liu.id if operator_liu else None,
             "handler_name": "刘经理" if operator_liu else None,
             "days_ago": 7,
         },
-        # 其他 - 1条已驳回
+        # 咨询 - 1条已驳回
         {
-            "type": "其他",
+            "type": "咨询",
             "customer_id": customer_zhang.id,
             "customer_name": "张先生",
             "summary": "客户投诉手续费收取过高",
             "status": "已驳回",
-            "priority": "普通",
+            "priority": "中",
             "handled_by": advisor_wang.id if advisor_wang else None,
             "handler_name": "王顾问" if advisor_wang else None,
             "remark": "经核实，手续费收取符合合同约定",
@@ -482,18 +482,25 @@ def init_work_orders(users):
         },
     ]
 
-    for wo in workorders_data:
+    for idx, wo in enumerate(workorders_data, start=1):
         created_at = datetime.now() - timedelta(days=wo["days_ago"])
         handled_at = created_at + timedelta(hours=2) if wo.get("handled_by") else None
         completed_at = handled_at + timedelta(hours=3) if wo["status"] in ["已完成", "已驳回"] else None
 
+        # 生成工单编号：WO + 日期 + 序号
+        order_no = f"WO{created_at.strftime('%Y%m%d')}{idx:03d}"
+
         workorder = WorkOrderModel(
+            order_no=order_no,
             order_type=wo["type"],
             customer_id=wo["customer_id"],
             customer_name=wo["customer_name"],
+            title=wo["summary"][:50],  # 添加title字段
+            description=wo["summary"],  # 添加description字段
             intent_summary=wo["summary"],
             status=wo["status"],
             priority=wo["priority"],
+            source="客户提交",  # 添加source字段
             handled_by=wo.get("handled_by"),
             handler_name=wo.get("handler_name"),
             handled_at=handled_at,
@@ -501,11 +508,14 @@ def init_work_orders(users):
             remark=wo.get("remark"),
         )
 
-        wo_id = workorder.save()
-        if wo_id > 0:
-            print(f"✓ 创建工单: [{wo['type']}] {wo['summary'][:30]}... (状态={wo['status']})")
-        else:
-            print(f"✗ 创建工单失败")
+        try:
+            wo_id = workorder.save()
+            if wo_id > 0:
+                print(f"✓ 创建工单: [{wo['type']}] {wo['summary'][:30]}... (状态={wo['status']})")
+            else:
+                print(f"✗ 创建工单失败")
+        except Exception as e:
+            print(f"✗ 创建工单失败: {str(e)}")
 
 
 def init_risk_alerts(users):
@@ -527,7 +537,7 @@ def init_risk_alerts(users):
             "customer_id": customer_zhang.id,
             "rule_id": "RW-003",
             "rule_name": "高风险产品集中度超标",
-            "severity": "高",
+            "severity": "high",
             "confidence": 0.95,
             "details": {"reason": "R4/R5级产品占比达68%，超过50%阈值"},
             "need_override": True,
@@ -538,7 +548,7 @@ def init_risk_alerts(users):
             "customer_id": customer_zhang.id,
             "rule_id": "RW-007",
             "rule_name": "客户年龄与产品期限不匹配",
-            "severity": "高",
+            "severity": "high",
             "confidence": 0.88,
             "details": {"reason": "客户年龄65岁，购买10年期产品"},
             "need_override": True,
@@ -549,7 +559,7 @@ def init_risk_alerts(users):
             "customer_id": customer_li.id,
             "rule_id": "RW-015",
             "rule_name": "反洗钱可疑交易",
-            "severity": "严重",
+            "severity": "critical",
             "confidence": 0.92,
             "details": {"reason": "7天内多次大额现金交易，累计超过20万元"},
             "need_override": True,
@@ -560,7 +570,7 @@ def init_risk_alerts(users):
             "customer_id": customer_zhang.id,
             "rule_id": "RW-003",
             "rule_name": "高风险产品集中度超标",
-            "severity": "高",
+            "severity": "high",
             "confidence": 0.90,
             "details": {"reason": "私募基金占比超过40%"},
             "need_override": True,
@@ -572,7 +582,7 @@ def init_risk_alerts(users):
             "customer_id": customer_zhang.id,
             "rule_id": "RW-001",
             "rule_name": "单笔大额交易",
-            "severity": "中",
+            "severity": "medium",
             "confidence": 0.85,
             "details": {"reason": "单笔申购金额50万元，超过20万元阈值"},
             "need_override": False,
@@ -583,7 +593,7 @@ def init_risk_alerts(users):
             "customer_id": customer_li.id,
             "rule_id": "RW-005",
             "rule_name": "风险承受能力不匹配",
-            "severity": "中",
+            "severity": "medium",
             "confidence": 0.80,
             "details": {"reason": "客户风险等级R2，购买R4产品"},
             "need_override": False,
@@ -594,7 +604,7 @@ def init_risk_alerts(users):
             "customer_id": customer_zhang.id,
             "rule_id": "RW-001",
             "rule_name": "单笔大额交易",
-            "severity": "中",
+            "severity": "medium",
             "confidence": 0.87,
             "details": {"reason": "单笔赎回金额80万元"},
             "need_override": False,
@@ -606,7 +616,7 @@ def init_risk_alerts(users):
             "customer_id": customer_li.id,
             "rule_id": "RW-005",
             "rule_name": "风险承受能力不匹配",
-            "severity": "中",
+            "severity": "medium",
             "confidence": 0.78,
             "details": {"reason": "客户未做过风险评估，购买R3产品"},
             "need_override": False,
@@ -618,7 +628,7 @@ def init_risk_alerts(users):
             "customer_id": customer_zhang.id,
             "rule_id": "RW-001",
             "rule_name": "单笔大额交易",
-            "severity": "中",
+            "severity": "medium",
             "confidence": 0.83,
             "details": {"reason": "单笔转账金额30万元"},
             "need_override": False,
@@ -630,7 +640,7 @@ def init_risk_alerts(users):
             "customer_id": customer_li.id,
             "rule_id": "RW-010",
             "rule_name": "交易频率异常",
-            "severity": "低",
+            "severity": "low",
             "confidence": 0.65,
             "details": {"reason": "7天内交易5笔"},
             "need_override": False,
@@ -643,7 +653,7 @@ def init_risk_alerts(users):
             "customer_id": customer_zhang.id,
             "rule_id": "RW-010",
             "rule_name": "交易频率异常",
-            "severity": "低",
+            "severity": "low",
             "confidence": 0.60,
             "details": {"reason": "短期内多次小额申购"},
             "need_override": False,
@@ -656,7 +666,7 @@ def init_risk_alerts(users):
             "customer_id": customer_li.id,
             "rule_id": "RW-010",
             "rule_name": "交易频率异常",
-            "severity": "低",
+            "severity": "low",
             "confidence": 0.58,
             "details": {"reason": "连续3天有交易记录"},
             "need_override": False,
@@ -686,11 +696,14 @@ def init_risk_alerts(users):
             handled_at=handled_at,
         )
 
-        alert_id = risk_alert.save()
-        if alert_id > 0:
-            print(f"✓ 创建风险预警: [{alert['rule_id']}] {alert['rule_name']} (严重度={alert['severity']}, 状态={alert['status']})")
-        else:
-            print(f"✗ 创建风险预警失败")
+        try:
+            alert_id = risk_alert.save()
+            if alert_id > 0:
+                print(f"✓ 创建风险预警: [{alert['rule_id']}] {alert['rule_name']} (严重度={alert['severity']}, 状态={alert['status']})")
+            else:
+                print(f"✗ 创建风险预警失败")
+        except Exception as e:
+            print(f"✗ 创建风险预警失败: {str(e)}")
 
 
 def main():

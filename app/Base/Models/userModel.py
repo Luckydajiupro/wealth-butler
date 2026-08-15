@@ -1,6 +1,8 @@
 from app.Base.Repository.models.moduleDbModel import BaseModuleDBModel
 from typing import Optional
 from datetime import datetime
+from pydantic import field_validator
+import json
 
 
 class UserModel(BaseModuleDBModel):
@@ -41,6 +43,26 @@ class UserModel(BaseModuleDBModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
+
+    @field_validator('extra_data', mode='before')
+    @classmethod
+    def parse_extra_data(cls, v):
+        """反序列化extra_data JSON字段"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v
+
+    def model_dump(self, **kwargs):
+        """重写model_dump，序列化JSON字段"""
+        data = super().model_dump(**kwargs)
+        if 'extra_data' in data and isinstance(data['extra_data'], dict):
+            data['extra_data'] = json.dumps(data['extra_data'], ensure_ascii=False)
+        return data
 
     @classmethod
     def find_by_username(cls, username: str):

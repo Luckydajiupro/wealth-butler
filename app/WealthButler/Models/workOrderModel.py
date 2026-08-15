@@ -1,6 +1,7 @@
 from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime
+import json
 
 
 class WorkOrderModel(BaseDBModel):
@@ -14,44 +15,71 @@ class WorkOrderModel(BaseDBModel):
     create_table_sql: ClassVar[str] = f"""
     CREATE TABLE `biz_work_order` (
       `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-      `order_type` ENUM('客户转介','风险预警','信息变更','转账审核','其他') NOT NULL COMMENT '工单类型',
+      `order_no` VARCHAR(32) NOT NULL COMMENT '工单编号',
+      `order_type` ENUM('风险预警','投顾','咨询','账户操作','业务办理','系统工单','客户转介') NOT NULL COMMENT '工单类型',
+      `source` ENUM('客户提交','系统生成','转介工单','其他来源') NOT NULL COMMENT '工单来源',
       `customer_id` INT COMMENT '客户ID，关联base_user表',
       `customer_name` VARCHAR(100) COMMENT '客户姓名（冗余字段，避免JOIN）',
+      `title` VARCHAR(200) NOT NULL COMMENT '工单标题',
+      `description` TEXT COMMENT '工单描述',
       `intent_summary` TEXT COMMENT '意向摘要/业务描述',
-      `status` ENUM('待处理','处理中','待审核','已完成','已驳回') DEFAULT '待处理' COMMENT '工单状态',
-      `priority` ENUM('普通','紧急') DEFAULT '普通' COMMENT '优先级',
+      `status` ENUM('待处理','处理中','待审核','已完成','已驳回','未处理','已关闭') DEFAULT '待处理' COMMENT '工单状态',
+      `priority` ENUM('低','中','高','紧急') DEFAULT '中' COMMENT '优先级',
       `handled_by` INT COMMENT '处理人ID，关联base_user表',
+      `handler_id` INT COMMENT '当前处理人ID',
       `handler_name` VARCHAR(100) COMMENT '处理人姓名（冗余字段）',
       `handled_at` DATETIME COMMENT '领取时间',
       `completed_at` DATETIME COMMENT '完成时间',
+      `closed_at` DATETIME COMMENT '关闭时间',
+      `related_entity_type` VARCHAR(50) COMMENT '关联实体类型',
+      `related_entity_id` BIGINT COMMENT '关联实体ID',
+      `handle_records` JSON COMMENT '处理记录（数组）',
       `remark` TEXT COMMENT '备注',
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
       `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
       `deleted_at` DATETIME COMMENT '软删除时间',
       PRIMARY KEY (`id`),
+      UNIQUE KEY `uk_order_no` (`order_no`),
       KEY `idx_customer_id` (`customer_id`),
       KEY `idx_status` (`status`),
       KEY `idx_order_type` (`order_type`),
-      KEY `idx_handled_by` (`handled_by`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='业务工单表';
+      KEY `idx_handled_by` (`handled_by`),
+      KEY `idx_handler_id` (`handler_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通用业务工单表';
     """
 
     # Pydantic字段定义
     id: Optional[int] = None
+    order_no: str
     order_type: str
+    source: str = "客户提交"
     customer_id: Optional[int] = None
     customer_name: Optional[str] = None
+    title: str
+    description: Optional[str] = None
     intent_summary: Optional[str] = None
     status: str = "待处理"
-    priority: str = "普通"
+    priority: str = "中"
     handled_by: Optional[int] = None
+    handler_id: Optional[int] = None
     handler_name: Optional[str] = None
     handled_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[int] = None
+    handle_records: Optional[dict] = None
     remark: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
+
+    def model_dump(self, **kwargs):
+        """重写model_dump，序列化JSON字段"""
+        data = super().model_dump(**kwargs)
+        if 'handle_records' in data and isinstance(data['handle_records'], (dict, list)):
+            data['handle_records'] = json.dumps(data['handle_records'], ensure_ascii=False)
+        return data
 
     @classmethod
     def find_by_filters(
