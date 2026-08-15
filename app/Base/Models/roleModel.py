@@ -42,10 +42,30 @@ class Permission:
     # 数据导出
     DATA_EXPORT = "data:export"
 
+    # ==================== 业务操作权限（财富管家） ====================
+    # 理财产品操作
+    OPERATION_PURCHASE = "operation:purchase"           # 申购操作
+    OPERATION_REDEEM = "operation:redeem"               # 赎回操作
+    OPERATION_TRANSFER = "operation:transfer"           # 转账操作
+    # 风险评估
+    RISK_REASSESS = "risk:reassess"                     # 风险重评
+    # 客户信息管理
+    CUSTOMER_INFO_UPDATE = "customer:info_update"       # 客户信息更新
+    # 产品查询
+    PRODUCT_QUERY = "product:query"                     # 产品查询
+    # 风控上报
+    RISK_SUSPICIOUS_REPORT = "risk:suspicious_report"   # 可疑行为上报
+    # 工单管理
+    WORKORDER_CREATE = "workorder:create"               # 创建工单
+
     ALL = [
         USER_MANAGE, USER_READ, ROLE_MANAGE,
         CONTENT_MANAGE, CONTENT_READ,
         SYSTEM_CONFIG, MODULE_MANAGE, DATA_EXPORT,
+        # 业务操作权限
+        OPERATION_PURCHASE, OPERATION_REDEEM, OPERATION_TRANSFER,
+        RISK_REASSESS, CUSTOMER_INFO_UPDATE, PRODUCT_QUERY,
+        RISK_SUSPICIOUS_REPORT, WORKORDER_CREATE,
     ]
 
 
@@ -82,6 +102,52 @@ BUILTIN_ROLES = {
         "display_name": "访客",
         "description": "仅拥有内容阅读权限",
         "permissions": [Permission.CONTENT_READ],
+    },
+    # ==================== 财富管家业务角色 ====================
+    "customer": {
+        "display_name": "客户",
+        "description": "普通客户，可查询产品和创建工单",
+        "permissions": [
+            Permission.PRODUCT_QUERY,
+            Permission.WORKORDER_CREATE,
+        ],
+    },
+    "advisor": {
+        "display_name": "理财顾问",
+        "description": "理财顾问，拥有客户服务和业务操作权限",
+        "permissions": [
+            Permission.OPERATION_PURCHASE,
+            Permission.OPERATION_REDEEM,
+            Permission.OPERATION_TRANSFER,
+            Permission.RISK_REASSESS,
+            Permission.CUSTOMER_INFO_UPDATE,
+            Permission.PRODUCT_QUERY,
+            Permission.RISK_SUSPICIOUS_REPORT,
+            Permission.WORKORDER_CREATE,
+        ],
+    },
+    "risk_officer": {
+        "display_name": "风控专员",
+        "description": "风控专员，负责风险评估和监控",
+        "permissions": [
+            Permission.RISK_REASSESS,
+            Permission.CUSTOMER_INFO_UPDATE,
+            Permission.PRODUCT_QUERY,
+            Permission.RISK_SUSPICIOUS_REPORT,
+            Permission.WORKORDER_CREATE,
+        ],
+    },
+    "operator": {
+        "display_name": "运营专员",
+        "description": "运营专员，处理业务操作和客户信息",
+        "permissions": [
+            Permission.OPERATION_PURCHASE,
+            Permission.OPERATION_REDEEM,
+            Permission.OPERATION_TRANSFER,
+            Permission.CUSTOMER_INFO_UPDATE,
+            Permission.PRODUCT_QUERY,
+            Permission.WORKORDER_CREATE,
+        ],
     },
 }
 
