@@ -1,0 +1,57 @@
+{
+  "XX货币市场基金": {
+    "risk_level": "R1",
+    "product_type": "货币市场基金",
+    "product_code": "JP884E"
+  },
+  "XX稳健增利债券A": {
+    "risk_level": "R2",
+    "product_type": "纯债债券型基金",
+    "product_code": "JP0E29"
+  },
+  "XX平衡优选混合": {
+    "risk_level": "R3",
+    "product_type": "偏股混合型基金",
+    "product_code": "JP6765"
+  },
+  "XX科技创新股票": {
+    "risk_level": "R4",
+    "product_type": "股票型基金",
+    "product_code": "JP7F29"
+  },
+  "XX全球精选QDII": {
+    "risk_level": "R4",
+    "product_type": "QDII股票型基金",
+    "product_code": "JP6559"
+  },
+  "XX红利价值股票": {
+    "risk_level": "R3",
+    "product_type": "股票型基金",
+    "product_code": "JP7D43"
+  },
+  "XX季季盈90天": {
+    "risk_level": "R2",
+    "product_type": "固定收益类银行理财",
+    "product_code": "JPABDE"
+  },
+  "XX年年盈365天": {
+    "risk_level": "R3",
+    "product_type": "固定收益类银行理财",
+    "product_code": "JPDEBB"
+  },
+  "XX结构性存款": {
+    "risk_level": "R2",
+    "product_type": "结构性存款",
+    "product_code": "JP6676"
+  },
+  "XX福享年金保险": {
+    "risk_level": "R2",
+    "product_type": "年金保险",
+    "product_code": "JP5C9A"
+  },
+  "XX传世增额终身寿险": {
+    "risk_level": "R2",
+    "product_type": "增额终身寿险",
+    "product_code": "JPCB6C"
+  }
+}

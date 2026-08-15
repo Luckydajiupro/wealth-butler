@@ -46,15 +46,16 @@ def publish_large_transaction_event():
     print("【步骤 1】发布大额交易事件")
     print("="*60)
 
-    # 构造交易事件载荷
+    # 构造交易事件载荷（使用新的统一Schema）
     payload = {
-        'transaction_id': 202408150001,
         'customer_id': 1001,
-        'customer_name': '张三',
+        'transaction_id': 202408150001,
+        'product_id': 2005,
         'product_code': 'FUND_005827',
         'product_name': '易方达蓝筹精选混合',
-        'transaction_type': 'buy',
-        'amount': 60000.00,
+        'transaction_type': '申购',
+        'amount': '60000.00',  # 字符串类型
+        'customer_name': '张三',
         'transaction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'channel': 'mobile_app'
     }
@@ -63,7 +64,8 @@ def publish_large_transaction_event():
     message_id = EventBus.publish(
         stream_key='stream:large_transaction',
         event_type='large_transaction_detected',
-        payload=payload
+        payload=payload,
+        source_agent='TransactionAgent'  # 新增：标识发布者
     )
 
     print(f"✅ 事件已发布")
@@ -102,7 +104,8 @@ def risk_monitor_handler(event_type: str, payload: dict, trace_id: str) -> bool:
         # ──────────────────────────────────────────────────────
         print("\n【步骤 2.1】应用反洗钱规则 RW-001")
 
-        amount = payload['amount']
+        # amount 是字符串类型，需要转换为 float
+        amount = float(payload.get('amount', '0'))
         threshold = 50000.00
 
         if amount >= threshold:
@@ -125,9 +128,9 @@ def risk_monitor_handler(event_type: str, payload: dict, trace_id: str) -> bool:
                     'threshold': threshold,
                     'actual_amount': amount,
                     'excess_amount': amount - threshold,
-                    'transaction_type': payload['transaction_type'],
-                    'product_code': payload['product_code'],
-                    'channel': payload['channel'],
+                    'transaction_type': payload.get('transaction_type', ''),
+                    'product_code': payload.get('product_code', ''),
+                    'channel': payload.get('channel', ''),
                     'trace_id': trace_id
                 },
                 related_transaction_id=payload['transaction_id'],

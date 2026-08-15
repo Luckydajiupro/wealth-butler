@@ -50,6 +50,7 @@ class EventBus:
         stream_key: str,
         event_type: str,
         payload: Dict[str, Any],
+        source_agent: str = 'unknown',
         trace_id: Optional[str] = None,
         maxlen: int = 10000
     ) -> str:
@@ -59,7 +60,8 @@ class EventBus:
             stream_key: Stream 队列标识（如 stream:large_transaction）
             event_type: 事件类型（如 product_purchased）
             payload: 事件载荷（业务数据，必须可 JSON 序列化）
-            trace_id: 分布式跟踪 ID（可选，自动生成）
+            source_agent: 发布者Agent名称（默认'unknown'）
+            trace_id: 分布式跟踪 ID（可选，自动生成UUID）
             maxlen: Stream 最大长度（近似裁剪，避免内存无限增长）
 
         Returns:
@@ -76,8 +78,9 @@ class EventBus:
         event = {
             'event_type': event_type,
             'payload': json.dumps(payload, ensure_ascii=False),
-            'timestamp': str(int(time.time() * 1000)),
-            'trace_id': trace_id
+            'timestamp': str(int(time.time() * 1000)),  # 毫秒时间戳字符串
+            'trace_id': trace_id,
+            'source_agent': source_agent
         }
 
         try:
@@ -119,14 +122,14 @@ class EventBus:
             consumer_group: 消费组名称
             consumer_name: 本消费者名称（单实例可用 "worker-1"）
             handler: 事件处理函数 (event_type, payload, trace_id) -> bool
-                     返回 True 表示处理成功（ACK），False 表示失败（不 ACK）
+                     返回 True 表示处理成功，False 表示失败（写入死信队列）
             block_ms: XREADGROUP 阻塞超时（毫秒），0 表示永久阻塞
             count: 每次拉取最多多少条消息
 
         注意：
             - 本方法会阻塞当前线程，应在独立线程中调用
-            - 处理失败的消息会留在 Pending List，需人工介入或重试机制
-            - 消费者重启后会自动重放 Pending List 中的消息（at-least-once）
+            - 采用无条件ACK + 幂等检查机制（at-least-once语义）
+            - 消费者重启时会先重放 Pending List 中的消息，再消费新消息
         """
         # 确保消费组存在（幂等操作）
         EventBus.create_consumer_group(stream_key, consumer_group)
@@ -136,13 +139,50 @@ class EventBus:
             f"group={consumer_group}, stream={stream_key}"
         )
 
+        # ═══════════════════════════════════════════════════════════
+        # 步骤1: 重放 Pending List（重启恢复）
+        # ═══════════════════════════════════════════════════════════
+        logger.info(f"[EventBus] 检查 Pending List: {stream_key}:{consumer_group}:{consumer_name}")
+
         while True:
             try:
-                # XREADGROUP GROUP group_name consumer_name BLOCK block_ms COUNT count STREAMS stream_key >
+                # 读取pending消息（id='0' 重放PEL）
+                pending_messages = redis_client.client.xreadgroup(
+                    consumer_group,
+                    consumer_name,
+                    {stream_key: '0'},  # '0' 重放该消费者的Pending List
+                    count=count,
+                    block=0  # 非阻塞，立即返回
+                )
+
+                if not pending_messages or not pending_messages[0][1]:
+                    logger.info(f"[EventBus] Pending List 已清空，切换到新消息模式")
+                    break
+
+                # 处理pending消息
+                for stream, msg_list in pending_messages:
+                    for msg_id, fields in msg_list:
+                        logger.warning(f"[EventBus] 重放PEL消息: {msg_id}")
+                        EventBus._process_message(
+                            stream_key, consumer_group, msg_id, fields, handler
+                        )
+
+            except Exception as e:
+                logger.error(f"[EventBus] PEL重放异常: {e}", exc_info=True)
+                break
+
+        # ═══════════════════════════════════════════════════════════
+        # 步骤2: 持续消费新消息
+        # ═══════════════════════════════════════════════════════════
+        logger.info(f"[EventBus] 开始消费新消息: {stream_key}")
+
+        while True:
+            try:
+                # XREADGROUP 读取新消息（id='>' 只读取未消费的新消息）
                 messages = redis_client.client.xreadgroup(
                     consumer_group,
                     consumer_name,
-                    {stream_key: '>'},  # '>' 表示读取未被消费的新消息
+                    {stream_key: '>'},  # '>' 只读取新消息
                     block=block_ms,
                     count=count
                 )
@@ -169,40 +209,78 @@ class EventBus:
         stream_key: str,
         consumer_group: str,
         msg_id: str,
-        fields: Dict[bytes, bytes],
+        fields: Dict,
         handler: Callable
     ) -> None:
-        """处理单条消息（内部方法）"""
+        """处理单条消息（无条件ACK + 幂等检查）"""
+        redis_client = get_redis_client()
+
         try:
-            # 解析消息字段
-            event_type = fields.get(b'event_type', b'').decode('utf-8')
-            payload_str = fields.get(b'payload', b'{}').decode('utf-8')
+            # ═══════════════════════════════════════════════════════
+            # 步骤1: 立即ACK（无条件）
+            # ═══════════════════════════════════════════════════════
+            redis_client.client.xack(stream_key, consumer_group, msg_id)
+            logger.info(f"[EventBus] ACK消息: {msg_id}")
+
+            # ═══════════════════════════════════════════════════════
+            # 步骤2: 解析消息字段（修复bytes键bug）
+            # ═══════════════════════════════════════════════════════
+            event_type = fields.get('event_type', '')
+            payload_str = fields.get('payload', '{}')
+            trace_id = fields.get('trace_id', '')
+            timestamp = fields.get('timestamp', '')
+
             payload = json.loads(payload_str)
-            trace_id = fields.get(b'trace_id', b'').decode('utf-8')
+
+            # ═══════════════════════════════════════════════════════
+            # 步骤3: 幂等检查（trace_id去重）
+            # ═══════════════════════════════════════════════════════
+            idempotent_key = f"eventbus:processed:{trace_id}"
+
+            # SET NX EX 86400 → 如果key不存在则设置，过期时间24小时
+            is_first_time = redis_client.client.set(idempotent_key, '1', nx=True, ex=86400)
+
+            if not is_first_time:
+                logger.warning(f"[EventBus] 重复消息，跳过: trace_id={trace_id}")
+                return
 
             logger.info(
                 f"[EventBus] Processing {event_type} from {stream_key}, "
                 f"msg_id={msg_id}, trace_id={trace_id}"
             )
 
-            # 调用业务处理函数
+            # ═══════════════════════════════════════════════════════
+            # 步骤4: 调用业务handler
+            # ═══════════════════════════════════════════════════════
             success = handler(event_type, payload, trace_id)
 
-            if success:
-                # ACK 确认（从 Pending List 移除）
-                redis_client.client.xack(stream_key, consumer_group, msg_id)
-                logger.info(f"[EventBus] ACK {msg_id}")
-            else:
-                # 处理失败，不 ACK（保留在 Pending List）
-                logger.warning(
-                    f"[EventBus] Handler returned False for {msg_id}, "
-                    f"kept in pending"
-                )
+            if not success:
+                # ═══════════════════════════════════════════════════
+                # 步骤5: 失败写入死信队列
+                # ═══════════════════════════════════════════════════
+                dead_letter_key = f"{stream_key}:dead_letter"
+                redis_client.client.xadd(dead_letter_key, {
+                    'original_stream': stream_key,
+                    'original_msg_id': msg_id,
+                    'event_type': event_type,
+                    'payload': payload_str,
+                    'trace_id': trace_id,
+                    'error_time': datetime.now().isoformat(),
+                    'handler_name': handler.__name__
+                })
+                logger.error(f"[EventBus] 处理失败，已写入死信队列: {dead_letter_key}")
 
         except json.JSONDecodeError as e:
             logger.error(f"[EventBus] Invalid JSON in {msg_id}: {e}")
-            # JSON 格式错误，无法重试，直接 ACK 丢弃
-            redis_client.client.xack(stream_key, consumer_group, msg_id)
+            # JSON 格式错误，写入死信队列
+            dead_letter_key = f"{stream_key}:dead_letter"
+            redis_client.client.xadd(dead_letter_key, {
+                'original_stream': stream_key,
+                'original_msg_id': msg_id,
+                'payload': fields.get('payload', ''),
+                'error': f"JSONDecodeError: {str(e)}",
+                'error_time': datetime.now().isoformat()
+            })
 
         except Exception as e:
             logger.error(

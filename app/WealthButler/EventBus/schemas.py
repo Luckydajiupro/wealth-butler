@@ -11,15 +11,26 @@ from typing import Optional, Dict, Any
 class LargeTransactionEvent(BaseModel):
     """大额交易事件（业务操作 Agent → 风控监测 Agent）
 
-    触发条件：单笔交易金额 ≥ 50000 元
-    用途：实时风控规则 RW-001/RW-003 的触发信号
+    基于 Group A 冻结合约：
+    - 必填字段：customer_id, transaction_id
+    - 可选字段：product_id, amount(字符串), transaction_type(中文)
+    - 注意：发布者不过滤金额，消费者自行判断阈值
     """
+    # 必填字段
     customer_id: int = Field(..., description="客户ID")
-    product_id: int = Field(..., description="产品ID")
-    amount: float = Field(..., description="交易金额（元）")
-    tx_type: str = Field(..., description="交易类型: purchase | redeem")
-    tx_id: str = Field(..., description="交易流水号")
-    timestamp: Optional[int] = Field(None, description="交易时间戳（毫秒）")
+    transaction_id: int = Field(..., description="交易流水号")
+
+    # 可选字段（发布者尽量提供，消费者容错处理）
+    product_id: Optional[int] = Field(None, description="产品ID")
+    amount: Optional[str] = Field(None, description="交易金额（字符串，如'60000.00'）")
+    transaction_type: Optional[str] = Field(None, description="交易类型（中文，如'申购'/'赎回'）")
+
+    # 扩展字段（不影响核心合约）
+    customer_name: Optional[str] = Field(None, description="客户姓名")
+    product_code: Optional[str] = Field(None, description="产品代码")
+    product_name: Optional[str] = Field(None, description="产品名称")
+    channel: Optional[str] = Field(None, description="交易渠道")
+    transaction_time: Optional[str] = Field(None, description="交易时间")
 
 
 class SuspiciousIntentEvent(BaseModel):
@@ -30,9 +41,13 @@ class SuspiciousIntentEvent(BaseModel):
     """
     customer_id: int = Field(..., description="客户ID")
     session_id: str = Field(..., description="会话ID")
-    suspicious_text: str = Field(..., description="可疑对话文本片段")
     intent_type: str = Field(..., description="意图类型: money_laundering | fraud | phishing | other")
-    confidence: float = Field(0.0, ge=0.0, le=1.0, description="置信度 0-1")
+    confidence: str = Field(..., description="置信度（字符串，如'0.85'）")
+
+    # 可选字段
+    suspicious_text: Optional[str] = Field(None, description="可疑对话文本片段")
+    evidence: Optional[dict] = Field(None, description="证据详情（JSON）")
+    detected_at: Optional[str] = Field(None, description="检测时间")
 
 
 class RiskAlertEvent(BaseModel):
@@ -43,10 +58,12 @@ class RiskAlertEvent(BaseModel):
     """
     customer_id: int = Field(..., description="客户ID")
     alert_id: int = Field(..., description="预警记录ID（fin_risk_alert表主键）")
-    rule_code: str = Field(..., description="触发规则编号（如 RW-001）")
-    alert_level: str = Field(..., description="预警级别: 低 | 中 | 高")
-    alert_reason: str = Field(..., description="预警原因描述")
-    triggered_at: int = Field(..., description="触发时间戳（毫秒）")
+    rule_id: str = Field(..., description="触发规则编号（如 RW-001）")
+    severity: str = Field(..., description="预警级别: low | medium | high | critical")
+
+    # 可选字段
+    trigger_details: Optional[dict] = Field(None, description="触发详情（JSON）")
+    created_at: Optional[str] = Field(None, description="创建时间")
 
 
 class ProfileUpdatedEvent(BaseModel):
