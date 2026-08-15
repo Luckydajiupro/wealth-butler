@@ -252,4 +252,25 @@ EventBus 核心类实现：
 - 事件 payload 必须可 JSON 序列化（不能包含 SQLAlchemy 对象）
 """
 
-__all__ = ['EventBus']
+from app.WealthButler.EventBus.eventBus import EventBus
+from app.WealthButler.EventBus.schemas import (
+    LargeTransactionEvent,
+    SuspiciousIntentEvent,
+    RiskAlertEvent,
+    ProfileUpdatedEvent,
+    WorkOrderEvent,
+    validate_event
+)
+from app.WealthButler.EventBus.consumer import start_all_consumers, stop_all_consumers
+
+__all__ = [
+    'EventBus',
+    'LargeTransactionEvent',
+    'SuspiciousIntentEvent',
+    'RiskAlertEvent',
+    'ProfileUpdatedEvent',
+    'WorkOrderEvent',
+    'validate_event',
+    'start_all_consumers',
+    'stop_all_consumers'
+]

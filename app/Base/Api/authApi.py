@@ -409,7 +409,7 @@ def get_user_roles(user_id: int, credentials: HTTPAuthorizationCredentials = Dep
     user = _get_current_user(credentials)
     if user.id != user_id:
         _require_permission(credentials, Permission.USER_READ)
-    from Base.Models.userModel import UserModel
+    from app.Base.Models.userModel import UserModel
     target = UserModel.get_by_id(user_id)
     if not target:
         raise HTTPException(status_code=404, detail="用户不存在")

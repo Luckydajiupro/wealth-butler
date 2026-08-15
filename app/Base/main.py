@@ -7,8 +7,24 @@ setup_logging()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+# 导入 EventBus 消费者启动函数
+from app.WealthButler.EventBus.consumer import start_all_consumers
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    # 启动时：启动所有 EventBus 消费者
+    start_all_consumers()
+
+    yield
+
+    # 关闭时：消费者为守护线程，会自动退出
+
+
+app = FastAPI(lifespan=lifespan)
 
 # CORS
 app.add_middleware(
