@@ -209,3 +209,41 @@ class RiskAlertRepository:
 
         results = db.execute(sql, tuple(params))
         return results[0]['cnt'] if results else 0
+
+    @staticmethod
+    def get_monthly_alerts(year: int, month: int) -> List[RiskAlertModel]:
+        """查询某自然月的全部预警（组G G3 月度误报统计的数据来源）。
+
+        统计窗口（Asia/Shanghai）：[当月第一天 00:00:00, 下月第一天 00:00:00)。
+        中国无夏令时，Asia/Shanghai 计算出的边界与库内本地 DATETIME 一致，
+        以无时区 datetime 参数传入（避免 pymysql 序列化 tzinfo 偏移）。
+        数据库不可用/查询异常向上抛（Service 层负责结构化错误，不在此伪装空列表）。
+
+        Args:
+            year: 年（如 2026）
+            month: 月（1-12）
+
+        Returns:
+            当月预警列表（created_at 升序）
+        """
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("Asia/Shanghai")
+        if isinstance(month, bool) or not isinstance(year, int) or not isinstance(month, int):
+            raise ValueError(f"year/month 必须是整数: year={year!r}, month={month!r}")
+        if month < 1 or month > 12:
+            raise ValueError(f"month 必须在 1-12: {month!r}")
+        start = datetime(year, month, 1, 0, 0, 0, tzinfo=tz).replace(tzinfo=None)
+        if month == 12:
+            next_month = datetime(year + 1, 1, 1, 0, 0, 0, tzinfo=tz).replace(tzinfo=None)
+        else:
+            next_month = datetime(year, month + 1, 1, 0, 0, 0, tzinfo=tz).replace(tzinfo=None)
+
+        RiskAlertModel._ensure_table_exists()
+        db = RiskAlertModel.get_db_connection()
+        if db is None:
+            raise RuntimeError("fin_risk_alert 数据库连接不可用，无法查询月度预警")
+        sql = f"""SELECT * FROM {RiskAlertModel.table_alias}
+                  WHERE created_at >= %s AND created_at < %s
+                  ORDER BY created_at ASC"""
+        results = db.execute(sql, (start, next_month))
+        return [RiskAlertModel(**row) for row in results]

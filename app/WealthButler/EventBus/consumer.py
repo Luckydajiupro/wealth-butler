@@ -18,6 +18,27 @@ from app.WealthButler.EventBus.schemas import validate_event
 
 logger = logging.getLogger(__name__)
 
+
+def handle_large_transaction(event_type: str, payload: Dict[str, Any], trace_id: str) -> bool:
+    """大额交易事件处理器（调用风控Agent）"""
+    try:
+        from app.WealthButler.Agent.riskAgent import large_transaction_event_handler
+        return large_transaction_event_handler(event_type, payload, trace_id)
+    except Exception as e:
+        logger.error(f"large_transaction handler failed: {e}", exc_info=True)
+        return False
+
+
+def handle_suspicious_intent(event_type: str, payload: Dict[str, Any], trace_id: str) -> bool:
+    """可疑意图事件处理器（调用风控Agent）"""
+    try:
+        from app.WealthButler.Agent.riskAgent import suspicious_intent_event_handler
+        return suspicious_intent_event_handler(event_type, payload, trace_id)
+    except Exception as e:
+        logger.error(f"suspicious_intent handler failed: {e}", exc_info=True)
+        return False
+
+
 # 消费者配置（Stream Key → Consumer Group 映射）
 CONSUMER_CONFIGS = [
     {
@@ -57,82 +78,6 @@ CONSUMER_CONFIGS = [
 # 事件处理函数（Handler）
 # ============================================================
 
-def handle_large_transaction(event_type: str, payload: Dict[str, Any], trace_id: str) -> bool:
-    """处理大额交易事件
-
-    业务逻辑：
-    1. 校验事件格式
-    2. 触发风控规则引擎（RW-001/RW-003）
-    3. 如果命中规则，写入 fin_risk_alert 表并发布 risk_alert 事件
-
-    Args:
-        event_type: 事件类型
-        payload: 事件载荷
-        trace_id: 追踪ID
-
-    Returns:
-        bool: 处理成功返回 True，失败返回 False
-    """
-    try:
-        # 校验事件格式
-        event = validate_event('large_transaction', payload)
-
-        logger.info(
-            f"[Consumer] Processing large_transaction: customer_id={event.customer_id}, "
-            f"amount={event.amount}, transaction_type={event.transaction_type}, trace_id={trace_id}"
-        )
-
-        # TODO: 调用风控规则引擎
-        # from app.WealthButler.Rules.ruleEngine import RuleEngine
-        # result = RuleEngine.evaluate_transaction(event.dict())
-        # if result['triggered']:
-        #     # 写入 fin_risk_alert 表
-        #     # 发布 risk_alert 事件
-        #     pass
-
-        logger.info(f"[Consumer] Large transaction processed successfully, trace_id={trace_id}")
-        return True
-
-    except Exception as e:
-        logger.error(f"[Consumer] Failed to process large_transaction: {e}", exc_info=True)
-        return False
-
-
-def handle_suspicious_intent(event_type: str, payload: Dict[str, Any], trace_id: str) -> bool:
-    """处理可疑意图事件
-
-    业务逻辑：
-    1. 校验事件格式
-    2. 记录到 fin_risk_alert 表
-    3. 如果置信度 > 0.7，立即发送预警通知
-
-    Args:
-        event_type: 事件类型
-        payload: 事件载荷
-        trace_id: 追踪ID
-
-    Returns:
-        bool: 处理成功返回 True，失败返回 False
-    """
-    try:
-        event = validate_event('suspicious_intent', payload)
-
-        logger.info(
-            f"[Consumer] Processing suspicious_intent: customer_id={event.customer_id}, "
-            f"intent_type={event.intent_type}, confidence={event.confidence}, trace_id={trace_id}"
-        )
-
-        # TODO: 实现可疑意图处理逻辑
-        # if event.confidence > 0.7:
-        #     # 高置信度，立即预警
-        #     pass
-
-        logger.info(f"[Consumer] Suspicious intent processed successfully, trace_id={trace_id}")
-        return True
-
-    except Exception as e:
-        logger.error(f"[Consumer] Failed to process suspicious_intent: {e}", exc_info=True)
-        return False
 
 
 def handle_risk_alert(event_type: str, payload: Dict[str, Any], trace_id: str) -> bool:
