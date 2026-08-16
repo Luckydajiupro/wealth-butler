@@ -15,5 +15,6 @@
 """
 
 from app.WealthButler.Service.riskService import RiskService
+from app.WealthButler.Service.advisorService import AdvisorService
 
-__all__ = ["RiskService"]
+__all__ = ["RiskService", "AdvisorService"]

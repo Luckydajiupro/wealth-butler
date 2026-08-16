@@ -1070,7 +1070,7 @@
             document.getElementById('queryInput').value = question;
         }
 
-        // 执行查询
+        // 执行查询（真实NL2SQL集成）
         async function executeQuery() {
             const queryInput = document.getElementById('queryInput').value.trim();
             if (!queryInput) {
@@ -1087,7 +1087,10 @@
 
             try {
                 const token = localStorage.getItem('access_token');
-                const response = await fetch(`${API_BASE}/api/wealth/chat`, {
+                const userId = parseInt(localStorage.getItem('user_id')) || 1;
+
+                // 调用真实的analyst API（NL2SQL）
+                const response = await fetch(`${API_BASE}/api/chat/analyst`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1095,7 +1098,9 @@
                     },
                     body: JSON.stringify({
                         message: queryInput,
-                        agent_type: 'analyst'
+                        user_id: userId,
+                        session_id: `admin_analyst_${Date.now()}`,
+                        is_stream: false
                     })
                 });
 
@@ -1103,19 +1108,39 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    // 假设返回的数据格式包含查询结果
-                    displayQueryResults(result.data || getMockData(queryInput), elapsed);
+
+                    // 解析NL2SQL返回的数据
+                    let queryData = [];
+                    if (result.code === 0 && result.data) {
+                        // 如果返回了query_result，直接使用
+                        if (result.data.query_result && Array.isArray(result.data.query_result)) {
+                            queryData = result.data.query_result;
+                        } else if (result.data.response) {
+                            // 尝试从response中提取数据
+                            try {
+                                const parsed = JSON.parse(result.data.response);
+                                if (parsed.query_result) {
+                                    queryData = parsed.query_result;
+                                }
+                            } catch (e) {
+                                console.warn('无法解析返回数据，使用空结果', e);
+                            }
+                        }
+                    }
+
+                    displayQueryResults(queryData, elapsed);
                     saveQueryHistory(queryInput);
                 } else {
-                    // 使用Mock数据
-                    displayQueryResults(getMockData(queryInput), elapsed);
-                    saveQueryHistory(queryInput);
+                    const errorText = await response.text();
+                    console.error('API返回错误:', response.status, errorText);
+                    alert(`查询失败: ${response.status} - 请检查后端服务是否正常`);
+                    displayQueryResults([], elapsed);
                 }
             } catch (error) {
                 console.error('查询失败:', error);
                 const elapsed = Date.now() - startTime;
-                displayQueryResults(getMockData(queryInput), elapsed);
-                saveQueryHistory(queryInput);
+                alert(`网络错误: ${error.message}\n请确保后端服务已启动`);
+                displayQueryResults([], elapsed);
             } finally {
                 queryBtn.disabled = false;
                 queryBtn.innerHTML = originalText;
@@ -1166,36 +1191,39 @@
             queryResults.classList.add('show');
 
             if (data.length === 0) {
-                tableHead.innerHTML = '';
-                tableBody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 40px; color: #999;">暂无数据</td></tr>';
+                tableHead.innerHTML = '<tr><th>查询结果</th></tr>';
+                tableBody.innerHTML = '<tr><td style="text-align:center;padding:40px;color:#999;">暂无数据</td></tr>';
                 return;
             }
 
-            // 生成表头
+            // 生成表头（转义列名）
             const columns = Object.keys(data[0]);
             tableHead.innerHTML = `
                 <tr>
                     ${columns.map(col => `
-                        <th onclick="sortTable('${col}')">
-                            ${col}
-                            <span class="sort-icon" id="sort-${col}">⇅</span>
+                        <th onclick="sortTable('${escapeHtml(col)}')">
+                            ${escapeHtml(col)}
+                            <span class="sort-icon" id="sort-${escapeHtml(col)}">⇅</span>
                         </th>
                     `).join('')}
                 </tr>
             `;
 
-            // 生成表格内容
+            // 生成表体（转义所有数据）
             renderTableBody(data);
         }
-
         // 渲染表格内容
         function renderTableBody(data) {
             const tableBody = document.getElementById('resultsTableBody');
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 40px; color: #999;">暂无数据</td></tr>';
+                return;
+            }
             const columns = Object.keys(data[0]);
 
             tableBody.innerHTML = data.map(row => `
                 <tr>
-                    ${columns.map(col => `<td>${row[col]}</td>`).join('')}
+                    ${columns.map(col => `<td>${escapeHtml(String(row[col] ?? ''))}</td>`).join('')}
                 </tr>
             `).join('');
         }
@@ -1436,6 +1464,13 @@
         // 查看设置
         function viewSettings() {
             alert('系统设置功能开发中...');
+        }
+
+        // HTML转义函数（防XSS攻击）
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+            return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
         // 退出登录

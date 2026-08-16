@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>客户经理工作台 - 智能财富管家系统</title>
+    <!-- 引入AI助手通用模块 -->
+    <script src="/static/js/aiAssistant.js"></script>
     <style>
         * {
             margin: 0;
@@ -808,11 +810,24 @@
             const token = localStorage.getItem('access_token');
 
             try {
-                // 模拟统计数据（实际应从API获取）
-                document.getElementById('todayCount').textContent = '0';
-                document.getElementById('pendingCount').textContent = '0';
-                document.getElementById('monthlyCustomers').textContent = '0';
-                document.getElementById('avgTime').textContent = '0';
+                // 调用业务助手统计API
+                const response = await fetch(`${API_BASE}/api/wealth/operator/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 0 && result.data) {
+                        document.getElementById('todayCount').textContent = result.data.today_count || 0;
+                        document.getElementById('pendingCount').textContent = result.data.pending_count || 0;
+                        document.getElementById('monthlyCustomers').textContent = result.data.monthly_customers || 0;
+                        document.getElementById('avgTime').textContent = result.data.avg_time || 0;
+                    }
+                } else {
+                    console.error('加载统计数据失败:', response.statusText);
+                }
             } catch (error) {
                 console.error('加载统计数据失败:', error);
             }
@@ -839,15 +854,7 @@
                 const result = await response.json();
 
                 if (result.code === 0 && result.data) {
-                    allWorkorders = result.data.filter(order => {
-                        // 客户经理处理的工单类型：转账、信息更新、工单创建相关
-                        const summary = order.intent_summary || '';
-                        return summary.includes('转账') ||
-                               summary.includes('信息更新') ||
-                               summary.includes('信息变更') ||
-                               summary.includes('工单') ||
-                               order.order_type === '客户转介';
-                    });
+                    allWorkorders = result.data.workorders || [];
 
                     document.getElementById('totalWorkorders').textContent = allWorkorders.length;
                     document.getElementById('pendingCount').textContent = allWorkorders.length;
@@ -879,19 +886,19 @@
                 const summary = extractBusinessSummary(order.intent_summary);
 
                 html += `
-                    <div class="workorder-card" onclick="viewWorkorder('${order.id}')">
+                    <div class="workorder-card" onclick="viewWorkorder('${escapeHtml(order.id)}')">
                         <div class="workorder-header">
-                            <span class="order-type-tag ${typeClass}">${order.order_type || '客户转介'}</span>
+                            <span class="order-type-tag ${typeClass}">${escapeHtml(order.order_type || '客户转介')}</span>
                             ${urgentTag}
                         </div>
                         <div class="customer-info">
-                            <span class="customer-name">${order.customer_name || '未知客户'}</span>
-                            <span class="customer-level ${levelClass}">${order.customer_level || '普通'}</span>
+                            <span class="customer-name">${escapeHtml(order.customer_name || '未知客户')}</span>
+                            <span class="customer-level ${levelClass}">${escapeHtml(order.customer_level || '普通')}</span>
                         </div>
-                        <div class="workorder-summary">${summary}</div>
+                        <div class="workorder-summary">${escapeHtml(summary)}</div>
                         <div class="workorder-footer">
                             <span class="workorder-time">${formatTime(order.created_at)}</span>
-                            <button class="action-btn" onclick="claimWorkorder('${order.id}', event)">领取处理</button>
+                            <button class="action-btn" onclick="claimWorkorder('${escapeHtml(order.id)}', event)">领取处理</button>
                         </div>
                     </div>
                 `;
@@ -1023,33 +1030,43 @@
 
         // 加载最近服务客户
         async function loadRecentCustomers() {
+            const token = localStorage.getItem('access_token');
             const customerList = document.getElementById('customerList');
 
             try {
-                // 模拟数据（实际应从API获取）
-                const customers = [];
-
-                if (customers.length === 0) {
-                    customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div>暂无数据</div></div>';
-                    return;
-                }
-
-                let html = '';
-                customers.forEach(customer => {
-                    html += `
-                        <div class="customer-item">
-                            <div class="customer-detail">
-                                <div class="customer-name">${customer.name}</div>
-                                <div class="customer-action">${customer.action} · ${customer.time}</div>
-                            </div>
-                            <a href="/customer/${customer.id}" class="view-link">查看详情</a>
-                        </div>
-                    `;
+                // 调用业务助手客户列表API
+                const response = await fetch(`${API_BASE}/api/wealth/operator/clients?limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
 
-                customerList.innerHTML = html;
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 0 && result.data && result.data.clients.length > 0) {
+                        const customers = result.data.clients;
+                        let html = '';
+                        customers.forEach(customer => {
+                            html += `
+                                <div class="customer-item">
+                                    <div class="customer-detail">
+                                        <div class="customer-name">${escapeHtml(customer.name)}</div>
+                                        <div class="customer-action">${escapeHtml(customer.action)} · ${escapeHtml(customer.time)}</div>
+                                    </div>
+                                    <a href="/customer/${escapeHtml(customer.id)}" class="view-link">查看详情</a>
+                                </div>
+                            `;
+                        });
+                        customerList.innerHTML = html;
+                    } else {
+                        customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div>暂无数据</div></div>';
+                    }
+                } else {
+                    customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div>暂无数据</div></div>';
+                }
             } catch (error) {
                 console.error('加载客户列表失败:', error);
+                customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><div>加载失败</div></div>';
             }
         }
 
@@ -1100,6 +1117,13 @@
             toggle.textContent = assistant.classList.contains('minimized') ? '+' : '−';
         }
 
+        // HTML转义函数（防XSS攻击）
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
         function handleAIKeyPress(event) {
             if (event.key === 'Enter') {
                 sendAIMessage();
@@ -1113,7 +1137,28 @@
             if (!query) return;
 
             console.log('AI助手查询:', query);
-            alert('AI助手功能开发中\n您的问题：' + query);
+
+            // 使用通用AI助手模块
+            if (!window.operatorAI) {
+                window.operatorAI = new AIAssistant({
+                    agentType: 'operator',
+                    conversationId: 'operator_dashboard',
+                    customerId: null, // 根据当前工单设置
+                    onMessage: (chunk) => {
+                        // 实时显示AI回复（可以在页面上显示，或者弹出对话框）
+                        console.log('AI回复:', chunk);
+                    },
+                    onError: (error) => {
+                        alert('AI助手错误：' + error);
+                    },
+                    onComplete: () => {
+                        console.log('AI助手回复完成');
+                    }
+                });
+            }
+
+            // 发送消息
+            await window.operatorAI.sendMessage(query);
 
             input.value = '';
         }

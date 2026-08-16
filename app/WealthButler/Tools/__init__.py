@@ -147,4 +147,8 @@ Schema 与 Prompt 的关系：
 - 日志记录：Tool 执行前后记录参数与耗时，供 Metrics 中间件收集
 """
 
-__all__ = []
+__all__ = [
+    "GraphQueryTool",
+    "SuitabilityCheckTool"
+]
+

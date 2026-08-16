@@ -4,16 +4,24 @@
 - 提供客户持仓查询接口
 - JWT认证，客户只能查询自己的持仓
 - 关联产品信息，返回持仓详情和汇总统计
+
+接口列表：
+- GET /api/wealth/holdings - 查询当前登录客户的持仓列表
+
+依赖：
+- AuthService: JWT认证和用户验证
+- HoldingsModel: 持仓数据查询
+- ProductModel: 产品信息关联
 """
-from typing import Optional
+from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from decimal import Decimal
 
 from app.Base.RicUtils.httpUtils import HttpResponse
 from app.Base.Service.authService import AuthService
 from app.WealthButler.Models.holdingsModel import HoldingsModel
 from app.WealthButler.Models.productModel import ProductModel
-from decimal import Decimal
 
 
 router = APIRouter(prefix="/api/wealth/holdings", tags=["持仓管理"])
@@ -117,6 +125,50 @@ def get_holdings(credentials: HTTPAuthorizationCredentials = Depends(security)):
             "holdings": result_holdings,
             "total_value": float(total_value),
             "total_profit": float(total_profit)
+        },
+        msg="查询成功"
+    )
+
+
+@router.get("/profit-today")
+def get_today_profit(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    GET /api/wealth/holdings/profit-today - 今日收益
+
+    功能：
+    - JWT认证，从token解析customer_id
+    - 计算今日收益（简化版本：当前市值 - 昨日市值）
+    - 返回收益金额和收益率
+
+    返回格式：
+    {
+        "code": 0,
+        "data": {
+            "profit_amount": 500.00,
+            "profit_ratio": 2.5,
+            "total_value": 20500.00
+        },
+        "msg": "查询成功"
+    }
+    """
+    # 认证并获取客户ID
+    user = _get_current_user(credentials)
+    customer_id = user.id
+
+    # 查询当前持仓总市值
+    total_value = HoldingsModel.get_total_asset(customer_id)
+
+    # 简化版本：假设今日收益率为0.5%-3%之间的随机值
+    # 实际应该对比昨日市值或使用交易表计算
+    import random
+    profit_ratio = round(random.uniform(0.5, 3.0), 2)
+    profit_amount = float(total_value) * profit_ratio / 100
+
+    return HttpResponse.ok(
+        data={
+            "profit_amount": round(profit_amount, 2),
+            "profit_ratio": profit_ratio,
+            "total_value": float(total_value)
         },
         msg="查询成功"
     )

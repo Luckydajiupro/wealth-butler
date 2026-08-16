@@ -961,25 +961,21 @@
             const token = localStorage.getItem('access_token');
 
             try {
-                // 加载待处理工单数
-                const workorderResponse = await fetch(`${API_BASE}/api/wealth/workorder/list?status=待处理`, {
+                // 调用理财顾问统计API
+                const response = await fetch(`${API_BASE}/api/wealth/advisor/stats`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
 
-                if (workorderResponse.ok) {
-                    const workorderResult = await workorderResponse.json();
-                    if (workorderResult.code === 0) {
-                        document.getElementById('pendingWorkorderCount').textContent = workorderResult.data.length;
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 0 && result.data) {
+                        document.getElementById('todayCustomerCount').textContent = result.data.today_customer_count || 0;
+                        document.getElementById('monthTransactionCount').textContent = result.data.month_transaction_count || 0;
+                        document.getElementById('pendingWorkorderCount').textContent = result.data.pending_workorder_count || 0;
                     }
                 }
-
-                // TODO: 加载今日客户数和本月交易数（需要相应的API）
-                // 临时使用模拟数据
-                document.getElementById('todayCustomerCount').textContent = Math.floor(Math.random() * 20) + 5;
-                document.getElementById('monthTransactionCount').textContent = Math.floor(Math.random() * 100) + 50;
-
             } catch (error) {
                 console.error('Failed to load statistics:', error);
             }
@@ -1006,9 +1002,9 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.code === 0 && result.data.length > 0) {
-                        renderWorkorders(result.data);
-                        document.getElementById('workorderCount').textContent = result.data.length;
+                    if (result.code === 0 && result.data.workorders && result.data.workorders.length > 0) {
+                        renderWorkorders(result.data.workorders);
+                        document.getElementById('workorderCount').textContent = result.data.workorders.length;
                     } else {
                         showEmptyWorkorders();
                     }
@@ -1030,15 +1026,15 @@
                 const timeStr = formatTime(order.created_at || order.submit_time);
 
                 return `
-                    <div class="workorder-card" data-id="${order.id}">
+                    <div class="workorder-card" data-id="${escapeHtml(order.id)}">
                         <div class="workorder-header">
-                            <div class="workorder-type ${typeClass}">${order.order_type}</div>
+                            <div class="workorder-type ${typeClass}">${escapeHtml(order.order_type)}</div>
                         </div>
-                        <div class="workorder-customer">${order.customer_name || '未知客户'}</div>
-                        <div class="workorder-summary">${order.intent_summary || order.alert_reason || '无摘要'}</div>
+                        <div class="workorder-customer">${escapeHtml(order.customer_name || '未知客户')}</div>
+                        <div class="workorder-summary">${escapeHtml(order.intent_summary || order.alert_reason || '无摘要')}</div>
                         <div class="workorder-footer">
                             <span class="workorder-time">${timeStr}</span>
-                            <button class="claim-btn" onclick="claimWorkorder('${order.id}')">领取处理</button>
+                            <button class="claim-btn" onclick="claimWorkorder('${escapeHtml(order.id)}')">领取处理</button>
                         </div>
                     </div>
                 `;
@@ -1096,36 +1092,67 @@
 
         // 加载今日客户列表
         async function loadTodayCustomers() {
+            const token = localStorage.getItem('access_token');
             const customerListEl = document.getElementById('customerList');
 
-            // 使用模拟数据（实际应该从API加载）
-            const mockCustomers = [
-                { id: 1, name: '张先生', risk_level: '稳健型', total_assets: 500000 },
-                { id: 2, name: '李女士', risk_level: '平衡型', total_assets: 1200000 },
-                { id: 3, name: '王总', risk_level: '激进型', total_assets: 3500000 },
-                { id: 4, name: '赵女士', risk_level: '稳健型', total_assets: 800000 }
-            ];
+            try {
+                // 调用理财顾问客户列表API
+                const response = await fetch(`${API_BASE}/api/wealth/advisor/clients?limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-            customerListEl.innerHTML = mockCustomers.map(customer => {
-                const riskClass = customer.risk_level === '稳健型' ? 'conservative' :
-                                  customer.risk_level === '平衡型' ? 'moderate' : 'aggressive';
-                const riskLabel = customer.risk_level;
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 0 && result.data && result.data.clients.length > 0) {
+                        const customers = result.data.clients;
 
-                return `
-                    <div class="customer-item">
-                        <div class="customer-name">${customer.name}</div>
-                        <div class="customer-info">
-                            <div class="customer-info-item">
-                                <span class="risk-badge ${riskClass}">${riskLabel}</span>
+                        customerListEl.innerHTML = customers.map(customer => {
+                            const riskClass = customer.risk_level === 'C1' || customer.risk_level === 'C2' ? 'conservative' :
+                                              customer.risk_level === 'C3' ? 'moderate' : 'aggressive';
+                            const riskLabel = customer.risk_level || 'C3';
+
+                            return `
+                                <div class="customer-item">
+                                    <div class="customer-name">${escapeHtml(customer.name)}</div>
+                                    <div class="customer-info">
+                                        <div class="customer-info-item">
+                                            <span class="risk-badge ${riskClass}">${escapeHtml(riskLabel)}</span>
+                                        </div>
+                                        <div class="customer-info-item">
+                                            📞 ${escapeHtml(customer.phone)}
+                                        </div>
+                                    </div>
+                                    <button class="customer-btn" onclick="viewCustomerDetail(${escapeHtml(customer.id)})">查看详情</button>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        customerListEl.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <div class="empty-state-text">暂无客户数据</div>
                             </div>
-                            <div class="customer-info-item">
-                                💰 ${formatMoney(customer.total_assets)}
-                            </div>
+                        `;
+                    }
+                } else {
+                    customerListEl.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">❌</div>
+                            <div class="empty-state-text">加载失败</div>
                         </div>
-                        <button class="customer-btn" onclick="viewCustomerDetail(${customer.id})">查看详情</button>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load customers:', error);
+                customerListEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <div class="empty-state-text">加载失败</div>
                     </div>
                 `;
-            }).join('');
+            }
         }
 
         // 查看客户详情
@@ -1217,7 +1244,7 @@
             renderChatHistory();
         }
 
-        // 发送AI消息
+        // 发送AI消息（真实实现：SSE流式接收）
         async function sendAIMessage() {
             const aiChatInput = document.getElementById('aiChatInput');
             const aiChatSendBtn = document.getElementById('aiChatSendBtn');
@@ -1235,7 +1262,15 @@
             aiChatSendBtn.disabled = true;
             renderChatHistory();
 
-            // 发送到API
+            // 添加AI消息占位符（用于流式追加内容）
+            const aiMessageIndex = chatHistory[currentAgentType].length;
+            chatHistory[currentAgentType].push({
+                role: 'assistant',
+                content: ''
+            });
+            renderChatHistory();
+
+            // 发送到API（SSE流式接收）
             const token = localStorage.getItem('access_token');
 
             try {
@@ -1252,34 +1287,48 @@
                     })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.code === 0) {
-                        chatHistory[currentAgentType].push({
-                            role: 'assistant',
-                            content: result.data.response || result.data.message
-                        });
-                    } else {
-                        chatHistory[currentAgentType].push({
-                            role: 'assistant',
-                            content: '抱歉，处理您的请求时出现错误：' + result.msg
-                        });
+                if (!response.ok) {
+                    chatHistory[currentAgentType][aiMessageIndex].content = '抱歉，服务暂时不可用，请稍后重试。';
+                    renderChatHistory();
+                    return;
+                }
+
+                // 处理SSE流式响应
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6).trim();
+                            if (data) {
+                                try {
+                                    // 尝试解析JSON（错误消息）
+                                    const json = JSON.parse(data);
+                                    if (json.type === 'error') {
+                                        chatHistory[currentAgentType][aiMessageIndex].content += json.content;
+                                    }
+                                } catch {
+                                    // 普通文本内容，直接追加
+                                    chatHistory[currentAgentType][aiMessageIndex].content += data;
+                                }
+                                renderChatHistory();
+                            }
+                        }
                     }
-                } else {
-                    chatHistory[currentAgentType].push({
-                        role: 'assistant',
-                        content: '抱歉，服务暂时不可用，请稍后重试。'
-                    });
                 }
             } catch (error) {
                 console.error('Failed to send AI message:', error);
-                chatHistory[currentAgentType].push({
-                    role: 'assistant',
-                    content: '抱歉，网络连接出现问题，请稍后重试。'
-                });
+                chatHistory[currentAgentType][aiMessageIndex].content = '抱歉，网络连接出现问题，请稍后重试。';
+                renderChatHistory();
             } finally {
                 aiChatSendBtn.disabled = false;
-                renderChatHistory();
             }
         }
 

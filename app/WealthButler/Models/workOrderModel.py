@@ -1,13 +1,32 @@
 from app.Base.Repository.base.baseDBModel import BaseDBModel
-from typing import Optional, ClassVar
+from typing import Optional, ClassVar, Tuple
 from datetime import datetime
 import json
 
 
 class WorkOrderModel(BaseDBModel):
     """
-    业务工单表
-    支持客户转介、风险预警、信息变更、转账审核等工单类型
+    业务工单表 Model
+
+    职责：
+    - 管理业务工单（客户转介、风险预警、信息变更、转账审核等）
+    - 支持工单状态机流转
+    - 提供工单查询、筛选、统计功能
+
+    工单类型：
+    - 风控预警：系统自动生成的风险预警工单
+    - 投诉：客户投诉工单
+    - 咨询：客户咨询工单
+    - 账户变更：账户信息变更申请
+    - 业务申请：业务办理申请
+    - 系统故障：系统问题反馈
+    - 客户转介：Agent识别并生成的转介工单
+
+    状态流转：
+    - 待处理 → 处理中 → 待审核/已完成/已驳回/已关闭
+
+    关联表：
+    - base_user: 客户信息和处理人信息
     """
 
     table_alias: ClassVar[str] = "biz_work_order"
@@ -90,8 +109,21 @@ class WorkOrderModel(BaseDBModel):
         handled_by: Optional[int] = None,
         limit: int = 20,
         offset: int = 0
-    ):
-        """根据筛选条件查询工单列表"""
+    ) -> Tuple[list['WorkOrderModel'], int]:
+        """
+        根据筛选条件查询工单列表
+
+        Args:
+            order_type: 工单类型
+            status: 工单状态
+            keyword: 关键词搜索（搜索intent_summary字段）
+            handled_by: 处理人ID
+            limit: 返回数量限制
+            offset: 偏移量
+
+        Returns:
+            Tuple[list[WorkOrderModel], int]: (工单列表, 总数)
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:
@@ -137,8 +169,17 @@ class WorkOrderModel(BaseDBModel):
         return workorders, total
 
     @classmethod
-    def find_by_customer_id(cls, customer_id: int, limit: int = 50):
-        """查询客户的工单历史"""
+    def find_by_customer_id(cls, customer_id: int, limit: int = 50) -> list['WorkOrderModel']:
+        """
+        查询客户的工单历史
+
+        Args:
+            customer_id: 客户ID
+            limit: 返回数量限制
+
+        Returns:
+            list[WorkOrderModel]: 工单列表
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:

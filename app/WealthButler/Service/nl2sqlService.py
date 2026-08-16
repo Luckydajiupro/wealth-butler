@@ -74,6 +74,7 @@ class Nl2sqlResult:
 
     def to_metadata(self) -> Dict[str, Any]:
         return {
+            "query_result": self.query_result,
             "generated_sql": self.generated_sql,
             "row_count": self.row_count,
             "cache_hit": self.cache_hit,

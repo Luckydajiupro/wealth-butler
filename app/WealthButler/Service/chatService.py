@@ -3,8 +3,8 @@
 职责：
 - 处理统一入口的 agent_type 分发逻辑
 - 封装 5 个 Agent 的调用接口
-- 当前为骨架实现，返回 mock 响应
-- 后续填充真实 Agent 调用逻辑
+- 实例化Agent并执行对话
+- 流式输出的生成器在此层返回
 
 分层原则：
 - 本层封装业务逻辑，不直接处理 HTTP 请求/响应
@@ -12,12 +12,32 @@
 - 流式输出的生成器在此层返回
 """
 import asyncio
+import logging
 from typing import AsyncGenerator, Dict, Any
 import json
+
+from app.WealthButler.Agent.advisorChatAgent import (
+    AdvisorChatAgent,
+    CustomerChatAgent,
+    RiskChatAgent,
+    OperatorChatAgent
+)
+from app.WealthButler.Agent.analystAgent import AnalystAgent
+from app.WealthButler.Service.nl2sqlService import Nl2sqlService
+from app.Base.Ai.llms.qwenLlm import QwenLlm
+
+logger = logging.getLogger(__name__)
 
 
 class ChatService:
     """对话服务统一封装"""
+
+    _operator_runtime = None
+
+    @staticmethod
+    def configure_operator_runtime(runtime):
+        """配置业务操作Agent运行时"""
+        ChatService._operator_runtime = runtime
 
     @staticmethod
     async def route_to_agent(
@@ -78,19 +98,35 @@ class ChatService:
         功能：RAG知识库检索 + 会话记忆
         权限：客户本人 或 员工代客户
         """
-        # TODO: 调用真实 CustomerAgent
-        # 当前返回 mock 响应
-        mock_chunks = [
-            "您好，",
-            "我是智能客服助手。",
-            "您的问题是：",
-            message,
-            "\n\n（当前为 mock 响应，Agent 实现待完成）"
-        ]
+        try:
+            # 导入真实的客服Agent
+            from app.WealthButler.Agent.customerServiceAgent import CustomerServiceAgent
 
-        for chunk in mock_chunks:
-            await asyncio.sleep(0.1)  # 模拟流式延迟
-            yield chunk
+            # 实例化客服Agent
+            agent = CustomerServiceAgent(validate_customer=True)
+
+            # 调用Agent的run方法（同步调用）
+            result = agent.run(
+                user_input=message,
+                customer_id=user_id,
+                session_id=session_id
+            )
+
+            # 流式输出结果
+            if result.success:
+                # 将输出按字符拆分，模拟流式效果
+                output = result.output
+                chunk_size = 20  # 每次输出20个字符
+                for i in range(0, len(output), chunk_size):
+                    chunk = output[i:i + chunk_size]
+                    yield chunk
+                    await asyncio.sleep(0.05)  # 模拟流式延迟
+            else:
+                yield f"抱歉，处理您的请求时出现错误：{result.metadata.get('error', '未知错误')}"
+
+        except Exception as e:
+            logger.error(f"CustomerServiceAgent执行失败: {e}", exc_info=True)
+            yield f"抱歉，系统出现异常，请稍后重试。"
 
     @staticmethod
     async def _call_advisor_agent(
@@ -105,17 +141,55 @@ class ChatService:
         功能：客户画像 + 产品推荐 + 适当性匹配 + GraphRAG增强
         权限：理财顾问（product:recommend）
         """
-        # TODO: 调用真实 AdvisorAgent
-        mock_chunks = [
-            f"正在为客户 {customer_id} 分析投资方案...\n\n",
-            "基于客户画像：风险等级 C3（平衡型）\n",
-            "推荐产品：XX混合基金（R3）\n",
-            "（当前为 mock 响应，Agent 实现待完成）"
-        ]
+        try:
+            # 导入真实的投顾Agent（带GraphRAG和推荐逻辑）
+            from app.WealthButler.Agent.advisorAgent import AdvisorAgent
 
-        for chunk in mock_chunks:
-            await asyncio.sleep(0.1)
-            yield chunk
+            # 校验必填参数
+            if not customer_id:
+                yield "错误：投顾助手必须指定客户ID（customer_id）"
+                return
+
+            # 实例化投顾Agent（使用默认LLM和Service）
+            agent = AdvisorAgent()
+
+            # 调用Agent的run方法，传入customer_id
+            result = agent.run(
+                user_input=message,
+                customer_id=customer_id
+            )
+
+            # 流式输出结果
+            if result.success:
+                output = result.output
+                chunk_size = 20
+                for i in range(0, len(output), chunk_size):
+                    chunk = output[i:i + chunk_size]
+                    yield chunk
+                    await asyncio.sleep(0.05)
+
+                # 输出推荐审计信息（如果有）
+                if result.metadata:
+                    metadata_summary = (
+                        f"\n\n【推荐审计信息】\n"
+                        f"- 客户ID: {result.metadata.get('customer_id', 'N/A')}\n"
+                        f"- 图谱信号: 多样性分数={result.metadata.get('graph_signals', {}).get('diversity_score', 0.0):.4f}, "
+                        f"节点数={result.metadata.get('graph_signals', {}).get('node_count', 0)}, "
+                        f"查询{'成功' if result.metadata.get('graph_signals', {}).get('query_success') else '失败'}\n"
+                        f"- 推荐产品数: {len(result.metadata.get('recommendations', []))}\n"
+                        f"- 准入层级: {result.metadata.get('admission_tier', '未知')}"
+                    )
+                    for i in range(0, len(metadata_summary), chunk_size):
+                        chunk = metadata_summary[i:i + chunk_size]
+                        yield chunk
+                        await asyncio.sleep(0.05)
+            else:
+                error_msg = result.metadata.get('error', '未知错误') if result.metadata else '未知错误'
+                yield f"抱歉，处理您的请求时出现错误：{error_msg}"
+
+        except Exception as e:
+            logger.error(f"AdvisorAgent执行失败: {e}", exc_info=True)
+            yield f"抱歉，系统出现异常：{str(e)}"
 
     @staticmethod
     async def _call_analyst_agent(
@@ -129,17 +203,78 @@ class ChatService:
         功能：自然语言转SQL + 动态Schema筛选 + 安全校验
         权限：全体员工（data:nl2sql_query）
         """
-        # TODO: 调用真实 AnalystAgent
-        mock_chunks = [
-            "正在解析您的查询需求...\n\n",
-            "生成 SQL：SELECT * FROM fin_customer LIMIT 10\n",
-            "（安全校验通过）\n",
-            "（当前为 mock 响应，Agent 实现待完成）"
-        ]
+        try:
+            # 导入依赖（延迟导入避免循环依赖）
+            from app.Base.Client.mysqlClient import MySQLClient
+            from app.Base.Client.redisClient import RedisClient
+            from app.WealthButler.Service.nl2sqlGuard import Nl2sqlGuard
+            from app.WealthButler.Service.nl2sqlService import (
+                Nl2sqlService,
+                MySqlReadExecutor,
+                RedisNl2sqlCache
+            )
+            from app.Base.Ai.llms.qwenLlm import QwenLlm
 
-        for chunk in mock_chunks:
-            await asyncio.sleep(0.1)
-            yield chunk
+            # 实例化依赖组件
+            llm = QwenLlm()
+            mysql_client = MySQLClient()
+            redis_client = RedisClient()
+
+            executor = MySqlReadExecutor(mysql_client)
+            cache = RedisNl2sqlCache(redis_client)
+            guard = Nl2sqlGuard()
+
+            # 实例化NL2SQL服务
+            nl2sql_service = Nl2sqlService(
+                llm=llm,
+                executor=executor,
+                guard=guard,
+                cache=cache,
+                scope_token=kwargs.get('scope_token', '')
+            )
+
+            # 实例化分析Agent
+            agent = AnalystAgent(
+                service=nl2sql_service,
+                llm=llm
+            )
+
+            # 调用Agent执行查询
+            result = agent.run(message, scope_token=kwargs.get('scope_token', ''))
+
+            # 流式输出结果（将查询结果JSON化后返回）
+            if result.success:
+                # 构建包含查询结果的响应
+                response_data = {
+                    "code": 0,
+                    "message": "查询成功",
+                    "data": {
+                        "response": result.output,
+                        "query_result": result.metadata.get("query_result", []) if result.metadata else [],
+                        "generated_sql": result.metadata.get("generated_sql", "") if result.metadata else "",
+                        "row_count": result.metadata.get("row_count", 0) if result.metadata else 0,
+                        "execution_time_ms": result.duration_ms
+                    }
+                }
+
+                # 返回JSON格式的完整响应
+                yield json.dumps(response_data, ensure_ascii=False)
+            else:
+                error_response = {
+                    "code": -1,
+                    "message": result.error_msg or "查询失败",
+                    "data": None
+                }
+                yield json.dumps(error_response, ensure_ascii=False)
+
+        except Exception as e:
+            logger.error(f"AnalystAgent执行失败: {e}", exc_info=True)
+            error_response = {
+                "code": -1,
+                "message": f"系统异常：{str(e)}",
+                "data": None
+            }
+            yield json.dumps(error_response, ensure_ascii=False)
 
     @staticmethod
     async def _call_operator_agent(
@@ -154,18 +289,42 @@ class ChatService:
         功能：意图识别 + 参数提取 + RBAC权限校验 + 二次确认
         权限：理财顾问（申购/赎回/风评重做）+ 客户经理（转账/信息更新/工单创建）
         """
-        # TODO: 调用真实 OperatorAgent
-        mock_chunks = [
-            f"正在解析操作意图（客户 {customer_id}）...\n\n",
-            "识别意图：申购基金\n",
-            "提取参数：产品=XX货币基金，金额=10000元\n",
-            "⚠️ 需要二次确认（金额>1万）\n",
-            "（当前为 mock 响应，Agent 实现待完成）"
-        ]
+        try:
+            # 确保运行时已配置
+            if ChatService._operator_runtime is None:
+                from app.WealthButler.Service.operatorApiRuntime import OperatorApiRuntimeFactory
+                ChatService._operator_runtime = OperatorApiRuntimeFactory.create_fake()
 
-        for chunk in mock_chunks:
-            await asyncio.sleep(0.1)
-            yield chunk
+            # 使用真实的OperatorAgent执行
+            runtime = ChatService._operator_runtime
+            result = runtime.execute(
+                employee_id=user_id,
+                customer_id=customer_id if customer_id else 0,
+                user_input=message,
+                candidate=None,
+                session_id=session_id
+            )
+
+            # 流式输出结果
+            response_message = result.get("message", "操作完成")
+            if result.get("success"):
+                # 成功响应
+                metadata = result.get("metadata", {})
+                if metadata.get("confirm_required"):
+                    response_message = f"{response_message}\n确认令牌: {metadata.get('confirm_token')}"
+
+                chunk_size = 20
+                for i in range(0, len(response_message), chunk_size):
+                    chunk = response_message[i:i + chunk_size]
+                    yield chunk
+                    await asyncio.sleep(0.05)
+            else:
+                # 失败响应
+                yield f"业务操作失败：{response_message}"
+
+        except Exception as e:
+            logger.error(f"OperatorAgent执行失败: {e}", exc_info=True)
+            yield f"抱歉，系统出现异常，请稍后重试。"
 
     @staticmethod
     async def _call_risk_agent(
@@ -180,16 +339,30 @@ class ChatService:
         权限：风控专员（risk:monitor）
         注：此 Agent 无对话入口，主要通过事件总线被动触发
         """
-        # TODO: 调用真实 RiskAgent
-        mock_chunks = [
-            "风控 Agent 当前无对话入口，",
-            "主要通过事件总线被动触发。\n",
-            "（当前为 mock 响应）"
-        ]
+        try:
+            # 实例化风控助手Agent
+            agent = RiskChatAgent(
+                user_id=str(user_id),
+                session_id=session_id
+            )
 
-        for chunk in mock_chunks:
-            await asyncio.sleep(0.1)
-            yield chunk
+            # 调用Agent的run方法
+            result = agent.run(message)
+
+            # 流式输出结果
+            if result.success:
+                output = result.output
+                chunk_size = 20
+                for i in range(0, len(output), chunk_size):
+                    chunk = output[i:i + chunk_size]
+                    yield chunk
+                    await asyncio.sleep(0.05)
+            else:
+                yield f"抱歉，处理您的请求时出现错误：{result.error_msg}"
+
+        except Exception as e:
+            logger.error(f"RiskAgent执行失败: {e}", exc_info=True)
+            yield f"抱歉，系统出现异常，请稍后重试。"
 
     @staticmethod
     async def get_session_history(session_id: str, limit: int = 50) -> Dict[str, Any]:

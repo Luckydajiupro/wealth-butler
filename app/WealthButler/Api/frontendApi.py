@@ -4,12 +4,18 @@ WealthButler 前端页面路由
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 FRONTEND_DIR = Path(__file__).parent.parent / "Frontend"
 
 
 def register_wealth_frontend_router(app: FastAPI):
     """注册财富管家前端页面路由"""
+
+    # 注册静态文件服务（JS、CSS等）
+    static_dir = FRONTEND_DIR / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     @app.get("/", tags=["财富管家-页面"])
     def login_page():
@@ -63,6 +69,22 @@ def register_wealth_frontend_router(app: FastAPI):
     def analyst_dashboard():
         """业务管理员工作台"""
         file = FRONTEND_DIR / "pages" / "admin_dashboard.html"
+        if file.exists():
+            return FileResponse(str(file), media_type="text/html")
+        return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/admin_dashboard", tags=["财富管家-页面"])
+    def admin_dashboard_direct():
+        """业务管理员工作台（直接路径）"""
+        file = FRONTEND_DIR / "pages" / "admin_dashboard.html"
+        if file.exists():
+            return FileResponse(str(file), media_type="text/html")
+        return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/risk_dashboard", tags=["财富管家-页面"])
+    def risk_dashboard_direct():
+        """风控专员工作台（直接路径）"""
+        file = FRONTEND_DIR / "pages" / "risk_dashboard.html"
         if file.exists():
             return FileResponse(str(file), media_type="text/html")
         return HTMLResponse("<h1>页面未找到</h1>", status_code=404)

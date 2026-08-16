@@ -37,11 +37,17 @@ from app.WealthButler.Api.riskApi import register_risk_api
 from app.WealthButler.Api.frontendApi import register_wealth_frontend_router
 from app.WealthButler.Api.holdingsApi import register_holdings_api
 from app.WealthButler.Api.workOrderApi import register_workorder_api
+from app.WealthButler.Api.advisorApi import register_advisor_api
+from app.WealthButler.Api.operatorApi import register_operator_api
+from app.WealthButler.Api.analystApi import register_analyst_api
 
 __all__ = [
     "register_wealth_chat_router",
     "register_risk_api",
     "register_wealth_frontend_router",
     "register_holdings_api",
-    "register_workorder_api"
+    "register_workorder_api",
+    "register_advisor_api",
+    "register_operator_api",
+    "register_analyst_api"
 ]

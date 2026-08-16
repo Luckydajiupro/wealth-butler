@@ -4,8 +4,25 @@
 - 提供工单的创建、查询、领取、处理功能
 - JWT认证，根据用户角色自动筛选工单
 - 支持工单状态机流转（待处理→处理中→已完成/已驳回）
+
+接口列表：
+- GET /api/wealth/workorder/list - 查询工单列表（支持筛选）
+- POST /api/wealth/workorder - 创建工单
+- PUT /api/wealth/workorder/{id} - 更新工单状态
+- GET /api/wealth/workorder/{id} - 查询单个工单详情
+
+角色权限：
+- 理财顾问：筛选包含"申购/赎回/产品推荐"的客户转介工单
+- 客户经理：筛选包含"转账/信息更新/工单"的客户转介工单
+- 风控专员：筛选风险预警类工单
+- 管理员：查看所有工单
+
+依赖：
+- AuthService: JWT认证和角色权限管理
+- WorkOrderModel: 工单数据操作
+- UserModel: 用户信息查询
 """
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials

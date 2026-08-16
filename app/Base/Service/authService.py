@@ -37,10 +37,22 @@ class AuthService:
     @staticmethod
     def verify_password(password: str, password_hash: str) -> bool:
         from argon2 import PasswordHasher, exceptions
+        import bcrypt
+
+        # 兼容bcrypt格式的密码hash（Mock数据使用了bcrypt）
+        if password_hash.startswith('$2b$') or password_hash.startswith('$2a$'):
+            try:
+                return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+            except Exception:
+                return False
+
+        # Argon2格式
         ph = PasswordHasher()
         try:
             return ph.verify(password_hash, password)
         except exceptions.VerifyMismatchError:
+            return False
+        except exceptions.InvalidHash:
             return False
 
     # =========================

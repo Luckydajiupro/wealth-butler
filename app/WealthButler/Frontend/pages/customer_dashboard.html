@@ -763,7 +763,7 @@
                 const profitClass = holding.profit_rate >= 0 ? 'positive' : 'negative';
                 tableHTML += `
                     <tr>
-                        <td>${holding.product_name}</td>
+                        <td>${escapeHtml(holding.product_name)}</td>
                         <td>${parseFloat(holding.shares).toLocaleString('zh-CN', {minimumFractionDigits: 2})}</td>
                         <td>${formatCurrency(holding.current_nav)}</td>
                         <td>${formatCurrency(holding.market_value)}</td>
@@ -926,6 +926,13 @@
 
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // HTML转义函数（防XSS攻击）
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+            return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
         chatSend.addEventListener('click', sendMessage);

@@ -22,7 +22,10 @@ from app.WealthButler.Api import (
     register_risk_api,
     register_wealth_frontend_router,
     register_holdings_api,
-    register_workorder_api
+    register_workorder_api,
+    register_advisor_api,
+    register_operator_api,
+    register_analyst_api
 )
 
 
@@ -30,19 +33,19 @@ from app.WealthButler.Api import (
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时：启动所有 EventBus 消费者
-    print("🚀 启动 EventBus 消费者...")
+    print("[Startup] 启动 EventBus 消费者...")
     start_all_consumers()
 
     # 启动时：注册定时任务
-    print("⏰ 注册定时任务...")
+    print("[Startup] 注册定时任务...")
     auto_register_all_scheduler()
 
-    print("✅ 智能财富管家系统启动完成")
+    print("[Startup] 智能财富管家系统启动完成")
 
     yield
 
     # 关闭时：消费者为守护线程，会自动退出
-    print("👋 智能财富管家系统关闭")
+    print("[Shutdown] 智能财富管家系统关闭")
 
 
 # 创建FastAPI应用
@@ -72,6 +75,9 @@ register_wealth_chat_router(app)      # 对话接口
 register_risk_api(app)                # 风控接口
 register_holdings_api(app)            # 持仓接口
 register_workorder_api(app)           # 工单接口
+register_advisor_api(app)             # 理财顾问接口
+register_operator_api(app)            # 业务助手接口
+register_analyst_api(app)             # 数据分析师接口
 
 
 if __name__ == '__main__':

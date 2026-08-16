@@ -10,6 +10,8 @@
 
 参考：app/Base/Api/ai/chatApi.py 的流式实现模式
 """
+import json
+import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -18,15 +20,18 @@ from pydantic import BaseModel, Field
 from app.Base.RicUtils.httpUtils import HttpResponse
 from app.WealthButler.Service.chatService import ChatService
 
+logger = logging.getLogger(__name__)
+
 
 # ==================== 请求模型 ====================
 
 class ChatRequest(BaseModel):
     """统一对话请求模型"""
-    agent_type: str = Field(..., description="Agent类型: customer|advisor|analyst|operator|risk")
     message: str = Field(..., description="用户消息")
-    session_id: Optional[str] = Field(None, description="会话ID，不传则自动创建")
-    user_id: int = Field(..., description="当前登录用户ID")
+    agent_type: Optional[str] = Field(None, description="Agent类型: customer|advisor|analyst|operator|risk（可选，前端可不传）")
+    conversation_id: Optional[str] = Field(None, description="会话ID，不传则自动创建")
+    session_id: Optional[str] = Field(None, description="会话ID（兼容旧字段）")
+    user_id: Optional[int] = Field(None, description="当前登录用户ID（可从token解析）")
     customer_id: Optional[int] = Field(None, description="客户ID（投顾/业务操作必填）")
     is_stream: bool = Field(True, description="是否流式输出，默认True")
 
@@ -76,6 +81,59 @@ async def sse_wrapper(generator):
         import json
         error_event = f"data: {json.dumps({'type': 'error', 'content': str(e)}, ensure_ascii=False)}\n\n"
         yield error_event.encode("utf-8")
+
+
+# ==================== 新增：前端简化入口 ====================
+
+@router.post("/wealth/chat")
+async def chat_simple(request: ChatRequest):
+    """
+    POST /api/wealth/chat - 前端简化对话接口（兼容前端现有调用）
+
+    前端调用示例：
+    {
+        "message": "帮我查询客户张三的持仓",
+        "agent_type": "advisor",  // 可选
+        "conversation_id": "advisor_dashboard_advisor"  // 可选
+    }
+
+    自动从请求中推断：
+    - user_id: 从认证token解析
+    - session_id: 使用conversation_id或自动生成
+    - agent_type: 如果不传，默认为 advisor
+    """
+    # 设置默认值
+    if not request.agent_type:
+        request.agent_type = "advisor"
+
+    if not request.user_id:
+        # TODO: 从认证token解析user_id，暂时使用默认值
+        request.user_id = 1
+
+    # 使用conversation_id作为session_id
+    session_id = request.conversation_id or request.session_id or "default_session"
+
+    # 参数校验
+    if request.agent_type in ["advisor", "operator"] and not request.customer_id:
+        # advisor和operator如果没有customer_id，也允许通过（用于通用咨询）
+        pass
+
+    # 流式输出
+    if request.is_stream:
+        generator = ChatService.route_to_agent(
+            agent_type=request.agent_type,
+            message=request.message,
+            session_id=session_id,
+            user_id=request.user_id,
+            customer_id=request.customer_id
+        )
+        return StreamingResponse(
+            sse_wrapper(generator),
+            media_type="text/event-stream"
+        )
+
+    # 非流式输出
+    return HttpResponse.error("非流式输出暂不支持，请设置 is_stream=true")
 
 
 # ==================== 统一入口（最高优先级）====================
@@ -198,7 +256,33 @@ async def chat_analyst(request: DirectChatRequest):
             media_type="text/event-stream"
         )
 
-    return HttpResponse.error("非流式输出暂不支持")
+    # 非流式响应：收集完整结果后返回JSON
+    try:
+        result_chunks = []
+        generator = ChatService.route_to_agent(
+            agent_type="analyst",
+            message=request.message,
+            session_id=request.session_id or "default",
+            user_id=request.user_id,
+            customer_id=request.customer_id
+        )
+
+        async for chunk in generator:
+            result_chunks.append(chunk)
+
+        # 拼接所有块并解析JSON
+        full_response = "".join(result_chunks)
+
+        try:
+            response_data = json.loads(full_response)
+            return HttpResponse.ok(data=response_data.get("data"))
+        except json.JSONDecodeError:
+            # 如果不是JSON格式，返回原始文本
+            return HttpResponse.ok(data={"response": full_response})
+
+    except Exception as e:
+        logger.error(f"Analyst查询失败: {e}", exc_info=True)
+        return HttpResponse.error(f"查询失败: {str(e)}")
 
 
 @router.post("/operator")

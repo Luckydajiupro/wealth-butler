@@ -13,65 +13,42 @@
 - 可以调用 Service 层获取业务数据，但不直接操作数据库
 
 5 大智能体设计：
-1. customerServiceAgent.py   智能客服 Agent
-   - 多轮对话管理、意图识别、FAQ 检索
-   - 结合向量数据库实现知识问答
-   - 自动转人工、满意度评价
+1. advisorChatAgent.py      投顾助手 Agent（理财顾问对话）
+   - 多轮对话管理、产品推荐、客户分析
+   - 结合客户画像提供个性化建议
 
-2. advisorAgent.py           投顾助手 Agent
-   - 投资咨询、产品解读、市场分析
-   - 基于用户画像生成个性化建议
-   - 调用知识图谱关联金融实体（公司、基金、行业）
+2. advisorChatAgent.py      客户服务 Agent
+   - 智能客服、FAQ 检索、知识问答
+   - 基于向量数据库的语义检索
 
-3. riskAgent.py              风险研判 Agent
-   - 动态风险评估、市场风险预警
-   - 异常交易检测、风险承受能力分析
-   - 生成风险报告与应对策略
+3. analystAgent.py          数据分析 Agent
+   - NL2SQL、数据查询、结果解读
+   - 安全校验、权限控制
 
-4. portfolioAgent.py         资产配置 Agent
-   - 基于现代投资组合理论（MPT）的智能配置
-   - 再平衡建议、止盈止损策略
-   - 模拟回测、情景分析
+4. advisorChatAgent.py      业务操作 Agent
+   - NL2API、意图识别、参数提取
+   - 二次确认、权限校验
 
-5. dataMiningAgent.py        数据挖掘 Agent
-   - 用户行为模式挖掘、聚类分析
-   - 市场趋势预测、情感分析
-   - 生成洞察报告、可视化数据
-
-示例：
-    from app.Base.Ai.llms.qwenLlm import QwenLlm
-    from app.Base.Service.memoryV1Service import MemoryV1Service
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
-    from langchain.tools import Tool
-
-    class AdvisorAgent:
-        def __init__(self):
-            self.llm = QwenLlm()
-            self.memory = MemoryV1Service()
-
-        def consult(self, user_id: int, question: str, session_id: str):
-            '''投顾咨询主流程'''
-            # 1. 检索用户画像与历史对话
-            context = self.memory.get_context(user_id, session_id)
-
-            # 2. 构建工具集（产品查询、风险评估、知识检索）
-            tools = [
-                Tool(name="产品查询", func=self._query_products),
-                Tool(name="风险评估", func=self._assess_risk),
-            ]
-
-            # 3. Agent 推理与工具调用
-            agent = create_tool_calling_agent(self.llm, tools)
-            executor = AgentExecutor(agent=agent, tools=tools)
-            response = executor.invoke({"input": question, "context": context})
-
-            return response
-
-技术栈：
-- LangGraph：复杂多步骤编排（状态机、条件分支、循环）
-- LangChain：工具调用、记忆管理、提示工程
-- Milvus：语义检索、向量相似度匹配
-- Neo4j：知识图谱推理、关系查询
+5. advisorChatAgent.py      风控助手 Agent
+   - 风险分析、预警建议、规则解读
+   - 事件驱动、跨Agent通知
 """
 
-__all__ = []
+from app.WealthButler.Agent.analystAgent import AnalystAgent
+from app.WealthButler.Agent.advisorAgent import AdvisorAgent
+from app.WealthButler.Agent.advisorChatAgent import (
+    AdvisorChatAgent,
+    CustomerChatAgent,
+    RiskChatAgent,
+    OperatorChatAgent
+)
+
+__all__ = [
+    "AnalystAgent",
+    "AdvisorAgent",
+    "AdvisorChatAgent",
+    "CustomerChatAgent",
+    "RiskChatAgent",
+    "OperatorChatAgent"
+]
+

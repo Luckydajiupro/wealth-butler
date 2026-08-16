@@ -6,8 +6,25 @@ from decimal import Decimal
 
 class ProductModel(BaseDBModel):
     """
-    理财产品表
-    包含产品编码、类型、风险等级、起投金额、净值等字段
+    理财产品表 Model
+
+    职责：
+    - 管理理财产品基础信息（编码、类型、风险等级、净值等）
+    - 提供产品查询和筛选方法
+
+    产品分类：
+    - 公募基金、私募基金、银行理财、保险、信托、结构性存款
+
+    风险等级：
+    - R1（谨慎型）、R2（稳健型）、R3（平衡型）、R4（进取型）、R5（激进型）
+
+    主要字段：
+    - product_code: 产品编码（唯一）
+    - product_name: 产品名称
+    - product_type: 产品类型
+    - risk_level: 风险等级
+    - nav: 最新净值
+    - min_investment: 起投金额
     """
 
     table_alias: ClassVar[str] = "fin_product"
@@ -55,8 +72,16 @@ class ProductModel(BaseDBModel):
     updated_at: Optional[datetime] = None
 
     @classmethod
-    def find_by_product_code(cls, product_code: str):
-        """根据产品编码查询"""
+    def find_by_product_code(cls, product_code: str) -> Optional['ProductModel']:
+        """
+        根据产品编码查询
+
+        Args:
+            product_code: 产品编码
+
+        Returns:
+            Optional[ProductModel]: 产品记录，不存在则返回None
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:
@@ -66,8 +91,17 @@ class ProductModel(BaseDBModel):
         return cls(**results[0]) if results else None
 
     @classmethod
-    def find_by_type(cls, product_type: str, status: str = "在售"):
-        """根据产品类型查询在售产品"""
+    def find_by_type(cls, product_type: str, status: str = "在售") -> list['ProductModel']:
+        """
+        根据产品类型查询在售产品
+
+        Args:
+            product_type: 产品类型
+            status: 产品状态，默认"在售"
+
+        Returns:
+            list[ProductModel]: 产品列表
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:
@@ -77,8 +111,17 @@ class ProductModel(BaseDBModel):
         return [cls(**row) for row in results]
 
     @classmethod
-    def find_by_risk_level(cls, risk_level: str, status: str = "在售"):
-        """根据风险等级查询产品"""
+    def find_by_risk_level(cls, risk_level: str, status: str = "在售") -> list['ProductModel']:
+        """
+        根据风险等级查询产品
+
+        Args:
+            risk_level: 风险等级（R1-R5）
+            status: 产品状态，默认"在售"
+
+        Returns:
+            list[ProductModel]: 产品列表
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:

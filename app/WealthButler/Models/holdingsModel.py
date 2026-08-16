@@ -6,8 +6,24 @@ from decimal import Decimal
 
 class HoldingsModel(BaseDBModel):
     """
-    持仓表
-    包含客户持有份额、成本、市值、盈亏等字段
+    持仓表 Model
+
+    职责：
+    - 管理客户产品持仓数据（份额、成本、市值、盈亏）
+    - 提供持仓查询和统计方法
+
+    关联表：
+    - fin_product: 产品信息
+    - base_user: 客户信息
+
+    主要字段：
+    - customer_id: 客户ID
+    - product_id: 产品ID
+    - shares: 持有份额
+    - cost_amount: 累计成本金额
+    - current_value: 当前市值
+    - profit_loss: 浮动盈亏
+    - profit_ratio: 盈亏比例
     """
 
     table_alias: ClassVar[str] = "fin_holdings"
@@ -47,8 +63,16 @@ class HoldingsModel(BaseDBModel):
     deleted_at: Optional[datetime] = None
 
     @classmethod
-    def find_by_customer_id(cls, customer_id: int):
-        """根据客户ID查询所有持仓（排除软删除记录）"""
+    def find_by_customer_id(cls, customer_id: int) -> list['HoldingsModel']:
+        """
+        根据客户ID查询所有持仓（排除软删除记录）
+
+        Args:
+            customer_id: 客户ID
+
+        Returns:
+            list[HoldingsModel]: 持仓列表
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:
@@ -58,8 +82,17 @@ class HoldingsModel(BaseDBModel):
         return [cls(**row) for row in results]
 
     @classmethod
-    def find_by_customer_and_product(cls, customer_id: int, product_id: int):
-        """根据客户ID和产品ID查询持仓"""
+    def find_by_customer_and_product(cls, customer_id: int, product_id: int) -> Optional['HoldingsModel']:
+        """
+        根据客户ID和产品ID查询持仓
+
+        Args:
+            customer_id: 客户ID
+            product_id: 产品ID
+
+        Returns:
+            Optional[HoldingsModel]: 持仓记录，不存在则返回None
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:
@@ -70,7 +103,15 @@ class HoldingsModel(BaseDBModel):
 
     @classmethod
     def get_total_asset(cls, customer_id: int) -> Decimal:
-        """计算客户总资产（支持FM-05熔断规则）"""
+        """
+        计算客户总资产（支持FM-05熔断规则）
+
+        Args:
+            customer_id: 客户ID
+
+        Returns:
+            Decimal: 总资产金额
+        """
         cls._ensure_table_exists()
         db = cls.get_db_connection()
         if db is None:

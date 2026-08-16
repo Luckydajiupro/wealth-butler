@@ -437,6 +437,78 @@ def get_risk_stats(
     )
 
 
+@router.get("/trend")
+def get_risk_trend(
+    days: int = Query(7, ge=1, le=30, description="查询天数"),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    GET /api/wealth/risk/trend - 风险趋势数据
+
+    功能：
+    - 返回最近N天的风险预警趋势
+    - 包括每日预警数量、处理数量、误报数量
+
+    返回格式：
+    {
+        "code": 0,
+        "data": {
+            "trend": [
+                {
+                    "date": "2026-08-10",
+                    "total": 15,
+                    "processed": 12,
+                    "false_positive": 3
+                }
+            ]
+        },
+        "msg": "查询成功"
+    }
+    """
+    # 认证
+    user = _get_current_user(credentials)
+    is_risk_officer, is_admin = _check_risk_permission(user.id)
+
+    # 权限校验
+    if not is_risk_officer and not is_admin:
+        raise HTTPException(status_code=403, detail="您没有查看风险趋势的权限")
+
+    db = RiskAlertModel.get_db_connection()
+    if not db:
+        raise HTTPException(status_code=500, detail="数据库连接失败")
+
+    # 查询最近N天的趋势数据
+    trend_sql = f"""
+        SELECT
+            DATE(created_at) as date,
+            COUNT(*) as total,
+            SUM(CASE WHEN status IN ('处理中', '已确认', '误报') THEN 1 ELSE 0 END) as processed,
+            SUM(CASE WHEN status = '误报' THEN 1 ELSE 0 END) as false_positive
+        FROM {RiskAlertModel.table_alias}
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+    """
+    results = db.execute(trend_sql, (days,))
+
+    # 构建返回数据
+    trend_data = []
+    for row in results:
+        trend_data.append({
+            "date": str(row['date']),
+            "total": row['total'],
+            "processed": row['processed'],
+            "false_positive": row['false_positive']
+        })
+
+    return HttpResponse.ok(
+        data={
+            "trend": trend_data
+        },
+        msg="查询成功"
+    )
+
+
 def register_risk_api(app):
     """注册风控API路由"""
     app.include_router(router)

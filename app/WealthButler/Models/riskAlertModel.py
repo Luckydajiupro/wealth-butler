@@ -2,6 +2,7 @@ from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime
 from decimal import Decimal
+from pydantic import field_validator
 import json
 
 
@@ -55,6 +56,19 @@ class RiskAlertModel(BaseDBModel):
     handled_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    @field_validator('trigger_details', mode='before')
+    @classmethod
+    def parse_trigger_details(cls, v):
+        """反序列化trigger_details JSON字段"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v
 
     def model_dump(self, **kwargs):
         """重写model_dump，序列化JSON字段"""

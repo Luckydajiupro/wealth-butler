@@ -146,10 +146,28 @@ zstandard==0.25.0
 # TTS 客户端：gradio_client（脚手架 ttsClient 依赖）
 # 中文分词：jieba（脚手架 jiebaClient 依赖）
 # 任务调度：apscheduler（脚手架 schedulerClient 依赖）
+# 密码哈希：argon2-cffi（authService.py依赖，已有argon2-cffi-bindings需配套）
+# JWT认证：PyJWT（已包含在上方列表第97行）
+# 模板引擎：Jinja2（已包含在上方列表第44行）
+# HTTP客户端：httpx（已包含在上方列表第42行，含httpx-sse）
 # 安装方式：项目根目录执行 pip install -r requirements.txt
 # 说明：已剔除两个 Python 3 上的坑包——
 #   pathlib==1.0.1（3.x 内置 pathlib，勿装）与 fitz==0.0.1.dev2（PyPI 空白包，真正的 fitz 模块由 PyMuPDF 提供）
-streamlit
-gradio_client
-jieba
-apscheduler
+streamlit==1.30.0
+gradio_client==0.10.1
+jieba==0.42.1
+apscheduler==3.10.4
+
+# ===== 测试依赖（开发环境，可选）=====
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# ===== PostgreSQL 支持（生产环境可选，仅在使用 PostgreSQL 时需要）=====
+# psycopg2-binary>=2.9.9  # 默认注释，项目当前使用 MySQL，如需 PostgreSQL 请取消注释
+
+# ===== 测试依赖 =====
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# ===== PostgreSQL支持 =====
+psycopg2-binary>=2.9.9  # PostgreSQL数据库驱动（若使用PostgreSQL则必需）
