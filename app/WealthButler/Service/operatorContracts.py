@@ -17,9 +17,25 @@ INTENT_PERMISSIONS = {
     "workorder_create": "workorder:create",
 }
 
+# 客户经理对话 Agent 的职责范围。其他内部能力由各自 Agent 或结构化流程承接。
+OPERATOR_AGENT_INTENTS = frozenset({"purchase", "redeem", "transfer", "update_info", "product_query"})
+
+TRANSACTION_CONFIRMATION_INTENTS = frozenset({"purchase", "redeem", "transfer"})
+
+
+COMPLIANCE_THRESHOLDS = {
+    "operation_confirm_purchase": Decimal("10000"),
+    "operation_confirm_transfer": Decimal("50000"),
+    "aml_single_cash": Decimal("50000"),
+    "aml_transfer_single": Decimal("200000"),
+    "aml_transfer_daily": Decimal("500000"),
+    "suitability_double_record_amount": Decimal("500000"),
+}
+
+# 阈值仅用于标记增强复核，不能作为是否需要二次确认的开关。
 CONFIRMATION_THRESHOLDS = {
-    "purchase": Decimal("10000"),
-    "transfer": Decimal("50000"),
+    "purchase": COMPLIANCE_THRESHOLDS["operation_confirm_purchase"],
+    "transfer": COMPLIANCE_THRESHOLDS["operation_confirm_transfer"],
 }
 
 

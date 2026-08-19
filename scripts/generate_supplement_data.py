@@ -216,7 +216,7 @@ def generate_insert_sql(table_name: str, data_list: List[Dict]) -> List[str]:
         sqls.append(sql)
     return sqls
 
-def main():
+def _legacy_main():
     print("="*60)
     print("补充数据生成 - 员工、工单、风控、会话等")
     print("="*60)
@@ -280,6 +280,13 @@ def main():
     print(f"  会话归档: {len(conversation_archive)}")
     print(f"  知识库元数据: {len(knowledge_meta)}")
     print(f"\nSQL文件: scripts/supplement_data_seed.sql")
+
+def main():
+    raise SystemExit(
+        "该随机补充脚本已停用：它假设客户ID连续且使用旧版表字段，会产生孤儿工单。"
+        "请使用 scripts/seed_wealthbutler_business_data.py。"
+    )
+
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,8 @@
 import logging
-from datetime import datetime, timedelta
+import hashlib
+import hmac
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, List
 
 import jwt
@@ -46,6 +49,12 @@ class AuthService:
             except Exception:
                 return False
 
+        # 兼容历史跨库数据脚本使用的 SHA-256 测试哈希。
+        # 登录成功后由 login() 立即升级为 Argon2，不接受其它明文/弱哈希格式。
+        if re.fullmatch(r"[0-9a-fA-F]{64}", password_hash or ""):
+            candidate = hashlib.sha256(password.encode("utf-8")).hexdigest()
+            return hmac.compare_digest(candidate.lower(), password_hash.lower())
+
         # Argon2格式
         ph = PasswordHasher()
         try:
@@ -60,28 +69,40 @@ class AuthService:
     # =========================
 
     @staticmethod
+    def _get_jwt_secret() -> str:
+        """返回显式配置的 JWT 密钥；禁止使用可预测的开发回退值。"""
+        secret = getattr(settings.auth, "jwt_secret", None)
+        if not secret:
+            raise RuntimeError("JWT_SECRET 未配置，拒绝签发或验证 Token")
+        return secret
+
+    @staticmethod
     def _create_jwt(payload: dict, expires_delta: timedelta) -> str:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         to_encode = payload.copy()
         to_encode.update({"exp": now + expires_delta, "iat": now})
         return jwt.encode(
             to_encode,
-            settings.auth.jwt_secret or "fallback-secret-change-in-env",
-            algorithm=settings.auth.jwt_algorithm,
+            AuthService._get_jwt_secret(),
+            algorithm=getattr(settings.auth, "jwt_algorithm"),
         )
 
     @classmethod
     def create_access_token(cls, user_id: int, source_module: str) -> str:
         return cls._create_jwt(
             payload={"sub": str(user_id), "source_module": source_module, "type": "access"},
-            expires_delta=timedelta(minutes=settings.auth.access_token_expire_minutes),
+            expires_delta=timedelta(
+                minutes=getattr(settings.auth, "access_token_expire_minutes")
+            ),
         )
 
     @classmethod
     def create_refresh_token(cls, user_id: int, source_module: str) -> str:
         return cls._create_jwt(
             payload={"sub": str(user_id), "source_module": source_module, "type": "refresh"},
-            expires_delta=timedelta(days=settings.auth.refresh_token_expire_days),
+            expires_delta=timedelta(
+                days=getattr(settings.auth, "refresh_token_expire_days")
+            ),
         )
 
     @classmethod
@@ -89,8 +110,8 @@ class AuthService:
         try:
             return jwt.decode(
                 token,
-                settings.auth.jwt_secret or "fallback-secret-change-in-env",
-                algorithms=[settings.auth.jwt_algorithm],
+                cls._get_jwt_secret(),
+                algorithms=[getattr(settings.auth, "jwt_algorithm")],
             )
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             return None
@@ -155,6 +176,9 @@ class AuthService:
 
         if not cls.verify_password(password, user.password_hash):
             return False, user, None, None, "密码错误"
+
+        if re.fullmatch(r"[0-9a-fA-F]{64}", user.password_hash or ""):
+            user.update(password_hash=cls.hash_password(password))
 
         user.update(last_login_at=datetime.utcnow())
 
@@ -323,6 +347,35 @@ class AuthService:
         """获取用户的角色和权限信息（所有角色权限取并集）"""
         assignments = UserRoleModel.find_by_user(user_id, source_module)
         if not assignments:
+            db = UserModel.get_db_connection()
+            identity_rows = db.execute(
+                "SELECT user_type, employee_role FROM base_user WHERE id=%s LIMIT 1",
+                (user_id,),
+            ) if db is not None else []
+            identity = identity_rows[0] if identity_rows else {}
+            user_type = str(identity.get("user_type") or "").upper()
+            employee_role = identity.get("employee_role")
+            fallback_role = {
+                "理财顾问": "advisor",
+                "风控专员": "risk_officer",
+                "客户经理": "operator",
+                "业务管理员": "business_admin",
+            }.get(employee_role)
+            if user_type == "CUSTOMER":
+                fallback_role = "user"
+            if fallback_role in BUILTIN_ROLES:
+                role_data = BUILTIN_ROLES[fallback_role]
+                return {
+                    "roles": [{
+                        "id": None,
+                        "name": fallback_role,
+                        "display_name": role_data["display_name"],
+                    }],
+                    "role_names": [fallback_role],
+                    "permissions": list(role_data["permissions"]),
+                    "is_admin": fallback_role in {"super_admin", "admin"},
+                    "is_super_admin": fallback_role == "super_admin",
+                }
             return {
                 "roles": [],
                 "role_names": [],

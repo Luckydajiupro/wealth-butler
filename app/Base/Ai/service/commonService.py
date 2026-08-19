@@ -3,7 +3,7 @@ from typing import Any, Optional
 from app.Base.Ai.base.baseLlm import BaseLlm
 from pydantic import BaseModel,Field
 
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Ai.prompt.commonPrompt import rewrite_question_prompt_v1
 from app.Base.Ai.utils.common import jinja2_prompt_render
 
@@ -17,7 +17,7 @@ class RewriteQuestionParams(BaseModel):
     question: str = Field(..., description="问题")
     similarity: Optional[Any] = Field(None, description="相似问题")
     history: Optional[Any] = Field(None, description="历史问题")
-    llm: BaseLlm = Field(get_default_qwen_llm(), description="llm")
+    llm: BaseLlm = Field(get_default_deepseek_llm(), description="llm")
 
 
 def rewrite_question(params: RewriteQuestionParams):

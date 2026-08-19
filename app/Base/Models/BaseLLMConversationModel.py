@@ -72,7 +72,8 @@ class BaseLLMConversationModel(BaseModuleDBModel):
     def to_messages(self, is_rewrite=False):
         # 安全构建 answer 或 error_msg
         if self.answer:
-            answer_content = self.answer[:100]
+            # 保留足够的多产品列表和匹配理由，否则“第二个产品”类追问无法解析。
+            answer_content = self.answer[:2000]
         elif self.error_msg:
             answer_content = self.error_msg + '...'
         else:

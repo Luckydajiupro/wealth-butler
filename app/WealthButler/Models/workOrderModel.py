@@ -2,6 +2,7 @@ from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar, Tuple
 from datetime import datetime
 import json
+from pydantic import field_validator
 
 
 class WorkOrderModel(BaseDBModel):
@@ -87,7 +88,7 @@ class WorkOrderModel(BaseDBModel):
     closed_at: Optional[datetime] = None
     related_entity_type: Optional[str] = None
     related_entity_id: Optional[int] = None
-    handle_records: Optional[dict] = None
+    handle_records: Optional[list | dict] = None
     remark: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -100,6 +101,29 @@ class WorkOrderModel(BaseDBModel):
             data['handle_records'] = json.dumps(data['handle_records'], ensure_ascii=False)
         return data
 
+    @property
+    def business_subtype(self) -> Optional[str]:
+        """Structured referral subtype stored in the existing JSON audit field."""
+        records = self.handle_records
+        if isinstance(records, dict) and records.get("business_subtype"):
+            return str(records["business_subtype"])
+        if isinstance(records, list):
+            for item in records:
+                if isinstance(item, dict) and item.get("business_subtype"):
+                    return str(item["business_subtype"])
+        return None
+
+    @field_validator("handle_records", mode="before")
+    @classmethod
+    def decode_handle_records(cls, value):
+        if value is None or isinstance(value, (list, dict)):
+            return value
+        if isinstance(value, str):
+            parsed = json.loads(value)
+            if isinstance(parsed, (list, dict)):
+                return parsed
+        raise ValueError("handle_records 必须是 JSON 数组或对象")
+
     @classmethod
     def find_by_filters(
         cls,
@@ -107,6 +131,7 @@ class WorkOrderModel(BaseDBModel):
         status: Optional[str] = None,
         keyword: Optional[str] = None,
         handled_by: Optional[int] = None,
+        intent_keywords: Optional[list[str]] = None,
         limit: int = 20,
         offset: int = 0
     ) -> Tuple[list['WorkOrderModel'], int]:
@@ -143,8 +168,14 @@ class WorkOrderModel(BaseDBModel):
             conditions.append("handled_by = %s")
             params.append(handled_by)
         if keyword:
-            conditions.append("intent_summary LIKE %s")
+            conditions.append("COALESCE(intent_summary, description, title, '') LIKE %s")
             params.append(f"%{keyword}%")
+        if intent_keywords:
+            keyword_conditions = []
+            for intent_keyword in intent_keywords:
+                keyword_conditions.append("COALESCE(intent_summary, description, title, '') LIKE %s")
+                params.append(f"%{intent_keyword}%")
+            conditions.append(f"({' OR '.join(keyword_conditions)})")
 
         where_clause = " AND ".join(conditions)
 

@@ -4,7 +4,7 @@ import re
 from typing import Any, Dict, List
 
 from app.Base.Ai.base.baseLlm import UserMessages
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Repository.base.baseDBModel import BaseDBModel
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ class BaseAiDBModel(BaseDBModel):
             f"请直接输出 SQL 语句："
         )
 
-        llm = get_default_qwen_llm()
+        llm = get_default_deepseek_llm()
 
         response = llm.chat([
             UserMessages(user_content),

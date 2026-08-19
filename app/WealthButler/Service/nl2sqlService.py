@@ -8,7 +8,7 @@
     → 写缓存 / 审计返回
 
 依赖注入（复用脚手架，不自行造连接）：
-    llm       : Base.Ai.base.baseLlm.BaseLlm（DeepSeekLlm/QwenLlm）
+    llm       : Base.Ai.base.baseLlm.BaseLlm（DeepSeekLlm）
     executor  : 只读执行器（默认 MySqlReadExecutor 包装 MySQLClient）
     cache     : 缓存（默认 RedisNl2sqlCache 包装 RedisClient 单例）
     guard     : Nl2sqlGuard（必须新写的安全校验层）

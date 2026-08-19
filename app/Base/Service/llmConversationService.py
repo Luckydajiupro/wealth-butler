@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
 from app.Base.Models.VdbLLMConversation import VdbLLMConversation
 
@@ -35,7 +35,7 @@ def save_conversation_from_db_2_vdb_only_data(data: Dict[str, Any]):
             - rewrite_question: 改写后的问题（可选）
             - answer: AI 回答
     """
-    llm = get_default_qwen_llm()
+    llm = get_default_deepseek_llm()
     question_embedding = llm.embedding(text=data.get('question', ''), dimensions=1024)
 
     question_embedding = question_embedding[0] if question_embedding and isinstance(question_embedding[0],

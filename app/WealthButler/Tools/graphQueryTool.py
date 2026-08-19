@@ -84,41 +84,17 @@ class GraphQueryTool(BaseTool):
             return {"success": False, "error": f"图谱查询暂不可用: {exc}"}
 
     def _generate_query(self, customer_id: int, depth: int, query_intent: str) -> Dict[str, Any]:
-        """调用 LLM 生成结构化查询；不提供固定查询兜底，避免掩盖 schema 问题。"""
-        llm = self.llm
-        if llm is None:
-            from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
-
-            llm = get_default_qwen_llm()
-
-        schema_text = json.dumps(
-            {
-                "nodes": Neo4jGraphSchema.NODE_PROPERTIES,
-                "relationships": Neo4jGraphSchema.RELATIONSHIP_PROPERTIES,
-            },
-            ensure_ascii=False,
-        )
-        system_prompt = (
-            "你是投顾 GraphRAG 查询生成器。只能生成单条只读 Cypher，不能使用 "
-            "CREATE、MERGE、SET、DELETE、DROP、CALL。查询必须以客户范围为中心，"
-            "使用 $customer_id 参数，禁止查询其他客户。只能使用给定节点和关系。"
-            "只输出 JSON：{\"cypher\":\"...\",\"parameters\":{...}}。"
-            f"图谱 schema：{schema_text}。"
-            "示例：{\"cypher\":\"MATCH (c:Customer {customer_id: $customer_id})-[:INVESTS_IN]->(p:Product)-[:BELONGS_TO]->(i:Industry) RETURN i.industry_name AS industry, count(p) AS product_count LIMIT $limit\",\"parameters\":{}}"
-        )
-        user_prompt = json.dumps(
-            {"customer_id": customer_id, "depth": depth, "query_intent": query_intent},
-            ensure_ascii=False,
-        )
-        response = llm.model_client.chat.completions.create(
-            model=llm.model_name,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-        )
-        content = response.choices[0].message.content or ""
-        return self._parse_generation(content)
+        """Build the only graph shape needed by advisor ranking without an LLM round trip."""
+        return {
+            "cypher": (
+                "MATCH (c:Customer {customer_id: $customer_id})"
+                "-[h:INVESTS_IN]->(p:Product)-[:BELONGS_TO]->(i:Industry) "
+                "RETURN p.product_id AS product_id, p.product_code AS product_code, "
+                "p.product_name AS product_name, i.industry_name AS industry_name, "
+                "h.market_value AS market_value LIMIT $limit"
+            ),
+            "parameters": {"customer_id": customer_id, "depth": depth, "limit": 50},
+        }
 
     @staticmethod
     def _parse_generation(content: str) -> Dict[str, Any]:
@@ -152,13 +128,25 @@ class GraphQueryTool(BaseTool):
 
         if "`" in cypher:
             return False, "Cypher 不允许使用反引号标识符"
+        if len(re.findall(r"\bMATCH\b", upper_cypher)) != 1:
+            return False, "Cypher 只允许一条以目标客户为根的 MATCH 路径"
+
+        node_patterns = re.findall(r"\([^)]*\)", cypher)
         labels = set()
-        for node_pattern in re.findall(r"\([^)]*\)", cypher):
+        customer_patterns = []
+        for node_pattern in node_patterns:
             node_prefix = node_pattern.split("{", 1)[0]
-            labels.update(re.findall(r":\s*([A-Za-z_]\w*)", node_prefix))
+            pattern_labels = re.findall(r":\s*([A-Za-z_]\w*)", node_prefix)
+            if not pattern_labels:
+                return False, "Cypher 中每个节点都必须声明白名单标签"
+            labels.update(pattern_labels)
+            if "Customer" in pattern_labels:
+                customer_patterns.append(node_pattern)
         allowed_labels = set(Neo4jGraphSchema.NODE_LABELS)
         if labels - allowed_labels:
             return False, f"Cypher 使用了未允许的节点标签: {sorted(labels - allowed_labels)}"
+        if len(customer_patterns) != 1:
+            return False, "投顾图查询只能包含当前目标客户节点"
         relationships = set()
         for relationship_pattern in re.findall(r"\[[^\]]*\]", cypher):
             relationship_prefix = relationship_pattern.split("{", 1)[0]
@@ -166,6 +154,8 @@ class GraphQueryTool(BaseTool):
         allowed_relationships = set(Neo4jGraphSchema.RELATIONSHIP_TYPES)
         if relationships - allowed_relationships:
             return False, f"Cypher 使用了未允许的关系类型: {sorted(relationships - allowed_relationships)}"
+        if "RELATED_TO" in relationships:
+            return False, "投顾图查询不允许扩展到关联客户"
 
         # A bare `$customer_id` predicate is not enough: bind it to a
         # Customer node so the query cannot return every customer.
@@ -196,12 +186,15 @@ class GraphQueryTool(BaseTool):
         nodes: list[Dict[str, Any]] = []
         edges: list[Dict[str, Any]] = []
         industry_weights: Dict[str, float] = {}
+        product_industries: Dict[str, str] = {}
 
         def visit(value: Any):
             if isinstance(value, dict):
                 if "industry_name" in value:
                     industry = str(value["industry_name"])
                     industry_weights[industry] = industry_weights.get(industry, 0.0) + float(value.get("market_value", 1) or 1)
+                    if value.get("product_code"):
+                        product_industries[str(value["product_code"])] = industry
                 if "type" in value and value.get("type") in Neo4jGraphSchema.RELATIONSHIP_TYPES:
                     edges.append(value)
                 elif any(key in value for key in ("id", "labels", "properties", "product_id", "customer_id")):
@@ -219,11 +212,19 @@ class GraphQueryTool(BaseTool):
             diversity = 1.0 - sum(item * item for item in proportions)
         else:
             diversity = 0.0
+        product_scores = {}
+        if industry_weights:
+            total = sum(industry_weights.values())
+            product_scores = {
+                code: round(max(0.0, min(1.0, 1.0 - industry_weights[industry] / total)), 4)
+                for code, industry in product_industries.items()
+            }
         return {
             "nodes": nodes,
             "edges": edges,
             "industry_weights": industry_weights,
             "diversity_score": round(max(0.0, min(1.0, diversity)), 4),
             "graph_score": round(max(0.0, min(1.0, diversity)), 4),
+            "product_scores": product_scores,
             "rows": rows,
         }

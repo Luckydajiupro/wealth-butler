@@ -1,3 +1,4 @@
+import json
 import logging
 from abc import ABC
 from typing import Optional, Dict, Any, List, Type, TypeVar, ClassVar, Literal
@@ -630,7 +631,9 @@ class BaseDBModel(BaseModel, ABC):
             quoted_keys = [f"`{k}`" for k in keys]
             sql = f"INSERT INTO {table_name} ({','.join(quoted_keys)}) VALUES ({placeholders})"
 
-            self.id = db.execute(sql, tuple(data[k] for k in keys))
+            self.id = db.execute(
+                sql, tuple(self._prepare_db_value(data[k]) for k in keys)
+            )
             return self.id
         except Exception as e:
             logger.error(f"{self.__class__.__name__}._insert() 失败：{str(e)}")
@@ -656,7 +659,10 @@ class BaseDBModel(BaseModel, ABC):
             sets = ",".join([f"`{k}`=%s" for k in data])
             sql = f"UPDATE {table_name} SET {sets} WHERE id = %s"
 
-            affected = db.execute(sql, tuple(data.values()) + (self.id,))
+            affected = db.execute(
+                sql,
+                tuple(self._prepare_db_value(value) for value in data.values()) + (self.id,),
+            )
             if affected is None or affected < 0:
                 logger.warning(f"{self.__class__.__name__}._update() 执行异常，affected={affected}, id={self.id}")
                 return False
@@ -783,7 +789,7 @@ class BaseDBModel(BaseModel, ABC):
                 for instance in batch:
                     data = instance.model_dump(exclude_none=False, exclude={'id'})
                     # 按照字段顺序取值
-                    row_data = [data.get(field) for field in fields]
+                    row_data = [cls._prepare_db_value(data.get(field)) for field in fields]
                     batch_data.append(row_data)
 
                 # 构建批量插入 SQL
@@ -861,3 +867,9 @@ class BaseDBModel(BaseModel, ABC):
         except Exception as e:
             logger.error(f"{cls.__name__}.count() 失败：{str(e)}")
             return 0
+    @staticmethod
+    def _prepare_db_value(value: Any) -> Any:
+        """Encode structured model values for SQL JSON columns."""
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, ensure_ascii=False, default=str)
+        return value

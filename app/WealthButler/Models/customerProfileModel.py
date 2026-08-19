@@ -1,3 +1,7 @@
+import json
+
+from pydantic import field_validator
+
 from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime
@@ -16,6 +20,7 @@ class CustomerProfileModel(BaseDBModel):
     CREATE TABLE `fin_customer_profile` (
       `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
       `customer_id` INT NOT NULL COMMENT '客户ID，关联base_user.id',
+      `advisor_id` INT COMMENT '负责理财顾问ID，关联base_user.id',
       `risk_level` ENUM('C1','C2','C3','C4','C5') COMMENT '客户风险分级',
       `risk_score` DECIMAL(5,2) COMMENT '综合评分0-100',
       `dimension1_score` DECIMAL(5,2) COMMENT '维度一-基础属性分（满分25）',
@@ -32,6 +37,7 @@ class CustomerProfileModel(BaseDBModel):
       `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
       PRIMARY KEY (`id`),
       UNIQUE KEY `uk_customer_id` (`customer_id`),
+      KEY `idx_advisor_id` (`advisor_id`),
       KEY `idx_risk_level` (`risk_level`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户画像主表';
     """
@@ -39,6 +45,7 @@ class CustomerProfileModel(BaseDBModel):
     # Pydantic字段定义
     id: Optional[int] = None
     customer_id: int
+    advisor_id: Optional[int] = None
     risk_level: Optional[str] = None
     risk_score: Optional[Decimal] = None
     dimension1_score: Optional[Decimal] = None
@@ -53,6 +60,34 @@ class CustomerProfileModel(BaseDBModel):
     updated_reason: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    @field_validator('fm_flags', 'memory_units', mode='before')
+    @classmethod
+    def parse_json_lists(cls, value):
+        """将数据库 JSON 文本恢复为列表。"""
+        if value is None or isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return None
+            return parsed if isinstance(parsed, list) else None
+        return value
+
+    @field_validator('asset_allocation', 'product_preference', mode='before')
+    @classmethod
+    def parse_json_dicts(cls, value):
+        """将数据库 JSON 文本恢复为字典。"""
+        if value is None or isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return None
+            return parsed if isinstance(parsed, dict) else None
+        return value
 
     @classmethod
     def find_by_customer_id(cls, customer_id: int):

@@ -2,7 +2,7 @@ from typing import Optional, List, ClassVar
 
 from pydantic import Field
 
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Repository.base.baseVDB import BaseVDBModel
 from pymilvus import Function, FunctionType
 
@@ -86,7 +86,7 @@ class VDBLLMKeyword(BaseVDBModel):
 
     @staticmethod
     def get_similarity_keywords(question: str, limit: int = 10):
-        llm = get_default_qwen_llm()
+        llm = get_default_deepseek_llm()
         embedding = llm.embedding(question, dimensions=1024)
         ranker = Function(
             name="rrf",

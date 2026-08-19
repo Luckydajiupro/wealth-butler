@@ -1,6 +1,6 @@
 import logging
 
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Client.jiebaClient import jieba_client
 from app.Base.Models.BaseKeywordModel import BaseKeywordModel
 from app.Base.Models.VdbKeyword import VDBLLMKeyword
@@ -50,9 +50,9 @@ def data_migration():
     """
     res = BaseKeywordModel.get_all_active()
     for i in res:
-        embedding = [0.1] * 1024
-        if i.semantic_desc:
-            embedding = get_default_qwen_llm().embedding(i.keyword_name)
+        # 使用本地Ollama的bge-m3模型生成向量
+        from app.Base.Ai.llms.ollamaEmbedding import ollama_embedding
+        embedding = ollama_embedding(i.keyword_name)
         VDBLLMKeyword(keyword_name=i.keyword_name,
                       db_id=str(i.id),
                       keyword_code=i.keyword_code,

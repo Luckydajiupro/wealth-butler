@@ -1,528 +1,532 @@
-"""RAG 知识库切片入库脚本
+"""
+RAG知识库切片入库脚本
 
-根据 docs/RAG知识库切片与向量化策略.md 的规范，将源文档切片并写入三层存储：
-1. MySQL fin_knowledge_meta 表（元数据）
-2. Milvus 对应集合（向量 + 文本）
-3. MinIO fin-documents 桶（原始文件）
+功能：
+1. 按照RAG切片入库策略.md要求处理7个源文件
+2. 占位符清洗
+3. 分文件类型切片（FAQ/产品/政策）
+4. 生成1024维embedding（本地Ollama bge-m3）
+5. 写入Milvus集合 + MySQL fin_knowledge_meta表
+6. 支持幂等性（可重复执行）
 
-使用本地 Ollama bge-m3 模型生成 1024 维向量。
-
-运行方式：
-    python scripts/rag_ingestion.py
+责任人：李清华
+创建时间：2026-08-17
 """
 import os
 import sys
 import re
 import json
-import hashlib
 import logging
-from pathlib import Path
-from typing import List, Dict, Tuple
+import hashlib
+from typing import List, Dict, Any, Tuple
 from datetime import datetime
 
-# 添加项目根目录到 Python 路径
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# 添加项目根目录到路径
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
-from app.Base.Client.ollamaClient import ollama_client
-from app.Base.Client.minioClient import default_minio_client as minio_client
-from app.Base.Client.milvusClient import MilvusClientSingleton
+from app.Base.Ai.llms.ollamaEmbedding import ollama_embedding
+from app.WealthButler.Repository.faqCollectionModelV2 import FaqCollectionModelV2
+from app.WealthButler.Repository.productCollectionModelV2 import ProductCollectionModelV2
+from app.WealthButler.Repository.policyCollectionModelV2 import PolicyCollectionModelV2
 from app.WealthButler.Models.knowledgeMetaModel import KnowledgeMetaModel
-from app.Base.Repository.base.baseDBModel import BaseDBModel
-from app.Base.Repository.connections.mysqlConnection import MySQLConnection
-from app.Base.Config.setting import settings
+from app.Base.Client.mysqlClient import MySQLClient
 
+# 配置日志
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# 创建 Milvus 客户端实例
-milvus_client = MilvusClientSingleton()
+# 源文件目录
+DATA_DIR = os.path.join(project_root, "")
+FAQ_FILE = os.path.join(DATA_DIR, "公司信息/高频问答对.txt")
+PRODUCT_FILE = os.path.join(DATA_DIR, "公司业务/个人理财产品手册.md")
+POLICY_FILES = [
+    os.path.join(DATA_DIR, "金融政策/反洗钱合规操作手册.md"),
+    os.path.join(DATA_DIR, "金融政策/个人投资者适当性管理指南.md"),
+    os.path.join(DATA_DIR, "金融政策/理财产品销售管理办法.md"),
+    os.path.join(DATA_DIR, "用户研判规则/反洗钱可疑交易识别规则.md"),
+    os.path.join(DATA_DIR, "用户研判规则/投资者风险画像研判规则.md"),
+]
 
-# ============================================================
-# 配置常量
-# ============================================================
-
-# Ollama 模型配置
-EMBEDDING_MODEL = "bge-m3:latest"
-EMBEDDING_DIM = 1024
-
-# MinIO 桶名
-MINIO_BUCKET = "fin-documents"
-
-# 源文档路径映射（绝对路径，指向 D:/lqh/金融/ 目录）
-# 根据 docs/RAG切片入库策略.md §1 的范围界定：11个源文件中7个入库
-SOURCE_DOCS = {
-    'FAQ': [
-        'D:/lqh/金融/公司信息/高频问答对.txt'
-    ],
-    '产品说明书': [
-        'D:/lqh/金融/公司业务/个人理财产品手册.md'
-    ],
-    '政策法规': [
-        'D:/lqh/金融/金融政策/反洗钱合规操作手册.md',
-        'D:/lqh/金融/金融政策/个人投资者适当性管理指南.md',
-        'D:/lqh/金融/金融政策/理财产品销售管理办法.md',
-        'D:/lqh/金融/用户研判规则/反洗钱可疑交易识别规则.md',
-        'D:/lqh/金融/用户研判规则/投资者风险画像研判规则.md'
-    ]
-}
-
-# Milvus 集合映射
-COLLECTION_MAPPING = {
-    'FAQ': 'fin_faq_collection',
-    '产品说明书': 'fin_product_collection',
-    '政策法规': 'fin_policy_collection'
-}
-
-# 切片策略（字符数）
-CHUNK_STRATEGIES = {
-    'FAQ': {'size': 200, 'overlap': 0},      # FAQ 按条目切片，不重叠
-    '产品说明书': {'size': 500, 'overlap': 50},  # 产品说明按章节切片
-    '政策法规': {'size': 800, 'overlap': 100}   # 政策法规按段落切片
+# 占位符替换词典（呼应RAG切片入库策略.md §4.1）
+PLACEHOLDER_DICT = {
+    r'XX科技(?:有限公司)?': '锦鹏科技有限公司',
+    r'XX Tech Co\., Ltd\.': 'Jinpeng Tech Co., Ltd.',
+    r'www\.xxtech\.com': 'www.jinpengtech.com',
+    r'400-XXX-XXXX': '400-822-6699',
+    r'某市': '临江市',
+    r'20XX年X月XX日': '2014年6月18日',
+    r'20XX年': '2014年',
+    r'X亿元': '8亿元',
+    r'XX,XXX万元': '80,000万元',
+    r'X,XXX人': '3,200人',
 }
 
 
-# ============================================================
-# 工具函数
-# ============================================================
-
-def calculate_file_hash(file_path: str) -> str:
-    """计算文件 SHA256 哈希值"""
-    sha256 = hashlib.sha256()
-    with open(file_path, 'rb') as f:
-        for chunk in iter(lambda: f.read(8192), b''):
-            sha256.update(chunk)
-    return sha256.hexdigest()
+def clean_placeholder(text: str) -> str:
+    """占位符清洗"""
+    for pattern, replacement in PLACEHOLDER_DICT.items():
+        text = re.sub(pattern, replacement, text)
+    return text
 
 
-def clean_placeholders(text: str, placeholder_dict: Dict[str, str]) -> str:
-    """使用占位符字典清洗文本
+def compute_content_hash(content: str) -> str:
+    """计算内容hash用于幂等性检查"""
+    return hashlib.md5(content.encode('utf-8')).hexdigest()
 
-    Args:
-        text: 原始文本
-        placeholder_dict: 占位符替换字典
 
-    Returns:
-        清洗后的文本
+def process_faq_file(file_path: str) -> List[Dict[str, Any]]:
     """
-    cleaned_text = text
-
-    # 按照字典顺序替换（长占位符优先，避免短占位符先替换导致长占位符匹配失败）
-    sorted_items = sorted(placeholder_dict.items(), key=lambda x: len(x[0]), reverse=True)
-
-    for placeholder, replacement in sorted_items:
-        cleaned_text = cleaned_text.replace(placeholder, replacement)
-
-    return cleaned_text
-
-
-def read_file_content(file_path: str, placeholder_dict: Dict[str, str]) -> str:
-    """读取文件内容并清洗占位符（支持 txt/md）
-
-    Args:
-        file_path: 文件路径
-        placeholder_dict: 占位符替换字典
-
-    Returns:
-        清洗后的文件内容
+    处理FAQ文件
+    格式：序号\t问题\t答案
+    切片粒度：1行 = 1个chunk
+    Embedding对象：question
     """
-    ext = Path(file_path).suffix.lower()
+    logger.info(f"开始处理FAQ文件: {file_path}")
 
-    if ext in ['.txt', '.md']:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-        # 清洗占位符
-        cleaned_content = clean_placeholders(content, placeholder_dict)
-        logger.info(f"文件已读取并清洗占位符: {file_path}")
-        return cleaned_content
-    else:
-        logger.warning(f"不支持的文件格式：{file_path}")
-        return ""
-
-
-def chunk_text(text: str, chunk_size: int, overlap: int) -> List[str]:
-    """文本切片（滑动窗口）
-
-    Args:
-        text: 原始文本
-        chunk_size: 切片大小（字符数）
-        overlap: 重叠字符数
-
-    Returns:
-        切片列表
-    """
-    if not text or chunk_size <= 0:
-        return []
+    # 占位符清洗
+    cleaned_content = clean_placeholder(content)
 
     chunks = []
-    start = 0
-    text_len = len(text)
-
-    while start < text_len:
-        end = min(start + chunk_size, text_len)
-        chunk = text[start:end].strip()
-
-        if chunk:
-            chunks.append(chunk)
-
-        # 滑动窗口
-        start += (chunk_size - overlap)
-
-    return chunks
-
-
-def chunk_faq(text: str) -> List[Dict[str, str]]:
-    """FAQ 专用切片（按制表符分隔的行切分）
-
-    文件格式：问题\t答案（共39行，无表头）
-
-    Returns:
-        [{'question': '...', 'answer': '...', 'text': 'Q: ...\nA: ...'}]
-    """
-    chunks = []
-    lines = text.strip().split('\n')
-
-    for line_num, line in enumerate(lines, 1):
-        parts = line.split('\t')
-
-        # 必须是 2 列：问题\t答案
-        if len(parts) != 2:
-            logger.warning(f"跳过格式不正确的行 {line_num}: 期望2列，实际{len(parts)}列")
+    for line_no, line in enumerate(cleaned_content.strip().split('\n'), 1):
+        if not line.strip():
             continue
 
-        question = parts[0].strip()
-        answer = parts[1].strip()
+        parts = line.split('\t')
+        if len(parts) < 2:
+            logger.warning(f"FAQ第{line_no}行格式不正确，跳过: {line[:50]}")
+            continue
 
-        if question and answer:
-            chunks.append({
+        # FAQ文件格式：问题\t答案（两列，无序号列）
+        question, answer = parts[0], parts[1]
+
+        chunk = {
+            'title': question[:100],  # 截断至100字
+            'question': question,
+            'answer': answer,
+            'text': question,  # FAQ用question做检索文本
+            'source_file': os.path.basename(file_path),
+            'knowledge_type': 'FAQ',
+            'collection_name': 'fin_faq_collection',
+            'metadata': {
                 'question': question,
                 'answer': answer,
-                'text': f"Q: {question}\nA: {answer}"
-            })
-        else:
-            logger.warning(f"跳过空内容行 {line_num}")
+                'source': os.path.basename(file_path),
+                'seq_no': str(line_no)
+            }
+        }
+        chunks.append(chunk)
 
-    logger.info(f"FAQ 切片完成：共 {len(chunks)} 条")
+    logger.info(f"FAQ文件切片完成，共{len(chunks)}条")
     return chunks
 
 
-def get_embedding(text: str) -> List[float]:
-    """调用 Ollama bge-m3 生成向量"""
-    try:
-        # 使用 get_embedding 方法（不是 embed）
-        embedding = ollama_client.get_embedding(text, model=EMBEDDING_MODEL)
-
-        if len(embedding) != EMBEDDING_DIM:
-            raise ValueError(f"向量维度不匹配：期望 {EMBEDDING_DIM}，实际 {len(embedding)}")
-
-        return embedding
-
-    except Exception as e:
-        logger.error(f"向量生成失败: {e}")
-        raise
-
-
-def upload_to_minio(file_path: str, object_name: str) -> str:
-    """上传文件到 MinIO（暂时跳过，返回本地路径）
-
-    Returns:
-        文件路径（暂时返回本地路径，MinIO 配置问题待解决）
+def process_product_file(file_path: str) -> List[Dict[str, Any]]:
     """
-    logger.warning(f"⚠ MinIO 上传跳过（端口配置问题待解决）: {file_path}")
-    return file_path  # 暂时返回本地路径
-
-    # try:
-    #     with open(file_path, 'rb') as f:
-    #         file_data = f.read()
-    #         file_size = len(file_data)
-    #
-    #     # 使用底层 client.put_object
-    #     minio_client.client.put_object(
-    #         bucket_name=MINIO_BUCKET,
-    #         object_name=object_name,
-    #         data=f,
-    #         length=file_size
-    #     )
-    #
-    #     minio_path = f"{MINIO_BUCKET}/{object_name}"
-    #     logger.info(f"文件已上传到 MinIO: {minio_path}")
-    #     return minio_path
-    #
-    # except Exception as e:
-    #     logger.error(f"MinIO 上传失败: {e}")
-    #     raise
-
-
-def insert_to_milvus(collection_name: str, chunks: List[Dict], knowledge_type: str, title: str = '') -> List[int]:
-    """批量插入 Milvus
-
-    Args:
-        collection_name: 集合名称
-        chunks: 切片列表，每个元素包含 text, embedding, metadata
-        knowledge_type: 知识类型（FAQ/产品说明书/政策法规）
-        title: 文档标题
-
-    Returns:
-        插入的主键列表
+    处理产品手册文件
+    切片粒度：按### 三级标题切分
+    Embedding对象：content（整段markdown）
     """
-    if not chunks:
-        return []
+    logger.info(f"开始处理产品文件: {file_path}")
 
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # 占位符清洗
+    cleaned_content = clean_placeholder(content)
+
+    chunks = []
+    lines = cleaned_content.split('\n')
+
+    current_chapter = ""  # ## 二级标题
+    current_section = ""  # ### 三级标题
+    current_content = []
+
+    for line in lines:
+        # 匹配 ## 二级标题
+        if line.startswith('## '):
+            current_chapter = line[3:].strip()
+            continue
+
+        # 匹配 ### 三级标题
+        if line.startswith('### '):
+            # 保存前一个section
+            if current_section and current_content:
+                chunk = {
+                    'title': current_section,
+                    'text': '\n'.join(current_content),
+                    'source_file': os.path.basename(file_path),
+                    'knowledge_type': '产品说明书',
+                    'collection_name': 'fin_product_collection',
+                    'metadata': {
+                        'title': current_section,
+                        'chapter': current_chapter,
+                        'source': os.path.basename(file_path),
+                    }
+                }
+                chunks.append(chunk)
+
+            # 开始新section
+            current_section = line[4:].strip()
+            current_content = []
+            continue
+
+        # 累积内容
+        if current_section:
+            current_content.append(line)
+
+    # 保存最后一个section
+    if current_section and current_content:
+        chunk = {
+            'title': current_section,
+            'text': '\n'.join(current_content),
+            'source_file': os.path.basename(file_path),
+            'knowledge_type': '产品说明书',
+            'collection_name': 'fin_product_collection',
+            'metadata': {
+                'title': current_section,
+                'chapter': current_chapter,
+                'source': os.path.basename(file_path),
+            }
+        }
+        chunks.append(chunk)
+
+    logger.info(f"产品文件切片完成，共{len(chunks)}条")
+    return chunks
+
+
+def process_policy_file(file_path: str) -> List[Dict[str, Any]]:
+    """
+    处理政策法规文件
+    切片粒度：按### 条切分（或规则RW-XXX）
+    Embedding对象：章/条前缀 + content
+    """
+    logger.info(f"开始处理政策文件: {file_path}")
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # 占位符清洗
+    cleaned_content = clean_placeholder(content)
+
+    chunks = []
+    lines = cleaned_content.split('\n')
+
+    current_chapter = ""  # ## 第X章
+    current_article = ""  # ### 第X条 或 规则RW-XXX
+    current_content = []
+
+    for line in lines:
+        # 匹配 ## 章标题
+        if line.startswith('## '):
+            current_chapter = line[3:].strip()
+            continue
+
+        # 匹配 ### 条标题 或 规则标题
+        if line.startswith('### '):
+            # 保存前一条
+            if current_article and current_content:
+                # 拼接前缀：【章标题】条标题
+                prefix = f"【{current_chapter}】{current_article}\n" if current_chapter else f"{current_article}\n"
+                full_content = prefix + '\n'.join(current_content)
+
+                chunk = {
+                    'title': current_article,
+                    'text': full_content,
+                    'source_file': os.path.basename(file_path),
+                    'knowledge_type': '政策法规',
+                    'collection_name': 'fin_policy_collection',
+                    'metadata': {
+                        'title': current_article,
+                        'chapter': current_chapter,
+                        'policy_source': os.path.basename(file_path),
+                        'source': os.path.basename(file_path),
+                    }
+                }
+                chunks.append(chunk)
+
+            # 开始新条
+            current_article = line[4:].strip()
+            current_content = []
+            continue
+
+        # 累积内容
+        if current_article:
+            current_content.append(line)
+
+    # 保存最后一条
+    if current_article and current_content:
+        prefix = f"【{current_chapter}】{current_article}\n" if current_chapter else f"{current_article}\n"
+        full_content = prefix + '\n'.join(current_content)
+
+        chunk = {
+            'title': current_article,
+            'text': full_content,
+            'source_file': os.path.basename(file_path),
+            'knowledge_type': '政策法规',
+            'collection_name': 'fin_policy_collection',
+            'metadata': {
+                'title': current_article,
+                'chapter': current_chapter,
+                'policy_source': os.path.basename(file_path),
+                'source': os.path.basename(file_path),
+            }
+        }
+        chunks.append(chunk)
+
+    logger.info(f"政策文件切片完成，共{len(chunks)}条")
+    return chunks
+
+
+def insert_chunk_to_db(chunk: Dict[str, Any], db: MySQLClient) -> Tuple[bool, str]:
+    """
+    将单个chunk写入Milvus + MySQL
+
+    流程（RAG切片入库策略.md §2④）：
+    1. 生成embedding
+    2. 写入MySQL fin_knowledge_meta，status='待入库'
+    3. 写入对应Milvus集合
+    4. 回填milvus_pk到MySQL，status='已上线'
+
+    返回：(成功标志, 错误信息)
+    """
     try:
-        # 根据知识类型准备不同格式的数据
-        data_list = []
+        # 1. 生成embedding
+        text_for_embedding = chunk.get('text', '')
+        if not text_for_embedding.strip():
+            return False, "文本为空，无法生成embedding"
 
-        if knowledge_type == 'FAQ':
-            # V2 Schema: id, text, metadata, embedding
-            for i, chunk in enumerate(chunks, 1):
-                chunk_metadata = chunk.get('metadata', {})
-                # 从 text 中提取 question 和 answer
-                text = chunk['text']
-                if '\nA:' in text:
-                    question = text.split('\nA:')[0].replace('Q: ', '').strip()
-                    answer = text.split('\nA:')[1].strip()
-                else:
-                    question = chunk.get('question', text[:200])
-                    answer = chunk.get('answer', '')
+        logger.info(f"正在为chunk生成embedding: {chunk['title'][:30]}...")
+        embedding = ollama_embedding(text_for_embedding)
 
-                # 构造metadata JSON
-                metadata_dict = {
-                    'question': question[:500],
-                    'answer': answer[:2000],
-                    'source': str(chunk_metadata.get('source', ''))[:200],
-                    'category': '公司信息',
-                    'updated_at': datetime.now().strftime('%Y-%m-%d')
-                }
-
-                data_list.append({
-                    'text': text,  # Q+A完整文本用于检索
-                    'metadata': json.dumps(metadata_dict, ensure_ascii=False),
-                    'embedding': chunk['embedding']
-                })
-
-        elif knowledge_type == '产品说明书':
-            # V2 Schema: id, text, metadata, embedding
-            for i, chunk in enumerate(chunks, 1):
-                chunk_metadata = chunk.get('metadata', {})
-                # 构造metadata JSON
-                metadata_dict = {
-                    'product_name': title[:200],
-                    'product_code': '',
-                    'product_type': '理财产品',
-                    'risk_level': 'R2',
-                    'source': str(chunk_metadata.get('source', ''))[:200],
-                    'updated_at': datetime.now().strftime('%Y-%m-%d'),
-                    'chunk_type': 'product_detail'
-                }
-                data_list.append({
-                    'text': chunk['text'][:65535],
-                    'metadata': json.dumps(metadata_dict, ensure_ascii=False),
-                    'embedding': chunk['embedding']
-                })
-
-        elif knowledge_type == '政策法规':
-            # V2 Schema: id, text, metadata, embedding
-            for i, chunk in enumerate(chunks, 1):
-                chunk_metadata = chunk.get('metadata', {})
-                # 构造metadata JSON
-                metadata_dict = {
-                    'policy_title': title[:500],
-                    'policy_code': '',
-                    'category': '监管政策',
-                    'issuer': '银保监会',
-                    'effective_date': '2024-01-01',
-                    'source': str(chunk_metadata.get('source', ''))[:200],
-                    'updated_at': datetime.now().strftime('%Y-%m-%d')
-                }
-                data_list.append({
-                    'text': chunk['text'][:65535],
-                    'metadata': json.dumps(metadata_dict, ensure_ascii=False),
-                    'embedding': chunk['embedding']
-                })
-
-        # 插入数据
-        result = milvus_client.insert(
-            collection_name=collection_name,
-            data=data_list
+        # 2. 写入MySQL（先占位）
+        meta_record = KnowledgeMetaModel(
+            knowledge_type=chunk['knowledge_type'],
+            collection_name=chunk['collection_name'],
+            title=chunk['title'],
+            source_file=chunk['source_file'],
+            status='待审核',  # 初始状态
+            uploaded_by=1,  # 系统管理员ID占位
+            milvus_collection=chunk['collection_name'],
         )
 
-        # 提取主键列表
-        pk_list = result.get('ids', []) if isinstance(result, dict) else []
+        # 保存到MySQL
+        meta_id = meta_record.save()
+        if not meta_id:
+            return False, "MySQL写入失败"
 
-        logger.info(f"Milvus 插入成功：{collection_name}，{len(pk_list)} 条")
-        return pk_list
+        logger.info(f"MySQL记录已创建，ID={meta_id}")
+
+        # 3. 根据collection_name写入对应Milvus集合
+        collection_name = chunk['collection_name']
+
+        if collection_name == 'fin_faq_collection':
+            # FAQ集合的metadata字段是str类型（JSON字符串）
+            metadata_str = json.dumps(chunk['metadata'], ensure_ascii=False)
+            model = FaqCollectionModelV2(
+                text=chunk['text'],
+                metadata=metadata_str,
+                embedding=embedding
+            )
+        elif collection_name == 'fin_product_collection':
+            # Product集合的metadata字段是dict类型
+            model = ProductCollectionModelV2(
+                text=chunk['text'],
+                metadata=chunk['metadata'],
+                embedding=embedding
+            )
+        elif collection_name == 'fin_policy_collection':
+            # Policy集合的metadata字段是dict类型
+            model = PolicyCollectionModelV2(
+                text=chunk['text'],
+                metadata=chunk['metadata'],
+                embedding=embedding
+            )
+        else:
+            return False, f"未知的collection_name: {collection_name}"
+
+        # 插入Milvus（insert是类方法，需要传入实例列表）
+        ModelClass = type(model)
+        result = ModelClass.insert([model])
+
+        if not result or not result.get('success') or result.get('insert_count', 0) == 0:
+            return False, "Milvus插入失败"
+
+        logger.info(f"Milvus插入成功，insert_count={result.get('insert_count')}")
+
+        # 4. 更新MySQL状态为已上线
+        # 注：MilvusClient的auto_id模式下不返回生成的主键ID
+        # 4天工期取向：milvus_pk留空，通过collection_name+source_file+title组合定位
+        update_sql = f"""
+            UPDATE {KnowledgeMetaModel.table_alias}
+            SET status = '已上线'
+            WHERE id = %s
+        """
+        db.execute_sync(update_sql, (meta_id,))
+
+        logger.info(f"✅ chunk入库成功: {chunk['title'][:30]} (MySQL ID={meta_id})")
+        return True, ""
 
     except Exception as e:
-        logger.error(f"Milvus 插入失败: {e}")
-        raise
+        logger.error(f"❌ chunk入库失败: {chunk['title'][:30]}, 错误: {str(e)}")
+        return False, str(e)
 
 
-# ============================================================
-# 主流程
-# ============================================================
-
-def process_document(
-    file_path: str,
-    knowledge_type: str,
-    collection_name: str,
-    placeholder_dict: Dict[str, str]
-) -> Tuple[int, int]:
-    """处理单个文档
-
-    Returns:
-        (meta_id, chunk_count)
+def check_existing_record(source_file: str, title: str, db: MySQLClient) -> bool:
     """
-    logger.info("=" * 80)
-    logger.info(f"处理文档: {file_path}")
-    logger.info(f"知识类型: {knowledge_type}")
-    logger.info("=" * 80)
+    幂等性检查：查询是否已存在相同的记录
+    返回True表示已存在且无需重新入库
+    """
+    sql = f"""
+        SELECT id, status FROM {KnowledgeMetaModel.table_alias}
+        WHERE source_file = %s AND title = %s AND status = '已上线'
+    """
+    result = db.execute_sync(sql, (source_file, title))
+    return len(result) > 0 if result else False
 
-    # 1. 读取文件内容并清洗占位符
-    content = read_file_content(file_path, placeholder_dict)
-    if not content:
-        logger.warning(f"文件内容为空，跳过: {file_path}")
-        return (0, 0)
 
-    # 2. 文本切片
-    strategy = CHUNK_STRATEGIES[knowledge_type]
+def clear_collection(collection_name: str):
+    """清空指定集合的所有数据"""
+    logger.info(f"开始清空集合: {collection_name}")
 
-    if knowledge_type == 'FAQ':
-        faq_chunks = chunk_faq(content)
-        chunks_text = [item['text'] for item in faq_chunks]
-    else:
-        chunks_text = chunk_text(content, strategy['size'], strategy['overlap'])
+    try:
+        if collection_name == 'fin_faq_collection':
+            FaqCollectionModelV2.delete_all()
+        elif collection_name == 'fin_product_collection':
+            ProductCollectionModelV2.delete_all()
+        elif collection_name == 'fin_policy_collection':
+            PolicyCollectionModelV2.delete_all()
 
-    if not chunks_text:
-        logger.warning(f"切片结果为空，跳过: {file_path}")
-        return (0, 0)
-
-    logger.info(f"切片完成：共 {len(chunks_text)} 片")
-
-    # 3. 生成向量
-    logger.info("生成向量...")
-    chunks_with_embedding = []
-
-    for i, text in enumerate(chunks_text, 1):
-        embedding = get_embedding(text)
-        chunks_with_embedding.append({
-            'text': text,
-            'embedding': embedding,
-            'metadata': {
-                'source': file_path,
-                'chunk_index': i,
-                'knowledge_type': knowledge_type
-            }
-        })
-
-        if i % 10 == 0:
-            logger.info(f"  已生成 {i}/{len(chunks_text)} 个向量...")
-
-    logger.info(f"向量生成完成：{len(chunks_with_embedding)} 个")
-
-    # 4. 上传原始文件到 MinIO
-    file_name = Path(file_path).name
-    file_hash = calculate_file_hash(file_path)
-    object_name = f"{knowledge_type}/{file_hash[:8]}_{file_name}"
-    minio_path = upload_to_minio(file_path, object_name)
-
-    # 5. 插入 Milvus
-    insert_to_milvus(collection_name, chunks_with_embedding, knowledge_type, title=Path(file_path).stem)
-
-    # 6. 写入 MySQL 元数据
-    meta = KnowledgeMetaModel(
-        knowledge_type=knowledge_type,
-        collection_name=collection_name,
-        title=Path(file_path).stem,
-        source=file_path,
-        version="1.0",
-        file_path=minio_path,
-        chunk_count=len(chunks_text),
-        status="已上线"
-    )
-
-    meta_id = meta.save()
-    logger.info(f"元数据已保存到 MySQL: id={meta_id}")
-
-    logger.info(f"✓ 文档处理完成: {file_path}")
-    logger.info(f"  - 切片数: {len(chunks_text)}")
-    logger.info(f"  - Meta ID: {meta_id}")
-    logger.info("")
-
-    return (meta_id, len(chunks_text))
+        logger.info(f"✅ 集合 {collection_name} 已清空")
+    except Exception as e:
+        logger.error(f"❌ 清空集合 {collection_name} 失败: {str(e)}")
 
 
 def main():
-    """主入口"""
-    logger.info("\n" + "=" * 80)
-    logger.info("RAG 知识库切片入库脚本")
-    logger.info("=" * 80 + "\n")
-
-    # 加载占位符字典
-    placeholder_dict_path = Path(__file__).parent / 'placeholder_dict.json'
-    with open(placeholder_dict_path, 'r', encoding='utf-8') as f:
-        placeholder_dict = json.load(f)
-    logger.info(f"✓ 占位符字典已加载: {len(placeholder_dict)} 条规则")
+    """主入库流程"""
+    logger.info("=" * 60)
+    logger.info("开始RAG知识库切片入库")
+    logger.info("=" * 60)
 
     # 初始化数据库连接
-    mysql_config = settings.mysql.model_dump()
-    db_connection = MySQLConnection(
-        host=mysql_config['host'],
-        user=mysql_config['user'],
-        password=mysql_config['password'],
-        database=mysql_config['name'],
-        port=mysql_config['port'],
-        charset=mysql_config['charset']
-    )
-    BaseDBModel.set_default_db_connection(db_connection)
-    logger.info("✓ 数据库连接已初始化")
+    db = MySQLClient()
+    db.connect()
 
-    # 检查 MinIO 桶（暂时注释掉，先不处理 MinIO 存储）
-    # MinIO 的 API 端口配置问题需要后续解决
-    logger.info(f"⚠ 跳过 MinIO 桶检查（端口配置问题待解决）")
-    # if not minio_client.client.bucket_exists(MINIO_BUCKET):
-    #     minio_client.client.make_bucket(MINIO_BUCKET)
-    #     logger.info(f"✓ MinIO 桶已创建: {MINIO_BUCKET}")
-    # else:
-    #     logger.info(f"✓ MinIO 桶已存在: {MINIO_BUCKET}")
+    # 统计信息
+    stats = {
+        'faq': {'total': 0, 'success': 0, 'skip': 0, 'fail': 0},
+        'product': {'total': 0, 'success': 0, 'skip': 0, 'fail': 0},
+        'policy': {'total': 0, 'success': 0, 'skip': 0, 'fail': 0},
+    }
 
-    # 处理所有文档
-    total_files = 0
-    total_chunks = 0
+    # 清空现有数据（按需求要求）
+    logger.info("\n" + "=" * 60)
+    logger.info("清空现有集合数据")
+    logger.info("=" * 60)
+    clear_collection('fin_faq_collection')
+    clear_collection('fin_product_collection')
+    clear_collection('fin_policy_collection')
 
-    for knowledge_type, file_list in SOURCE_DOCS.items():
-        collection_name = COLLECTION_MAPPING[knowledge_type]
+    # 1. 处理FAQ文件
+    logger.info("\n" + "=" * 60)
+    logger.info("步骤1: 处理FAQ文件")
+    logger.info("=" * 60)
 
-        for file_path in file_list:
-            if not os.path.exists(file_path):
-                logger.warning(f"文件不存在，跳过: {file_path}")
+    if os.path.exists(FAQ_FILE):
+        faq_chunks = process_faq_file(FAQ_FILE)
+        stats['faq']['total'] = len(faq_chunks)
+
+        for idx, chunk in enumerate(faq_chunks, 1):
+            logger.info(f"处理FAQ chunk {idx}/{len(faq_chunks)}")
+
+            # 幂等性检查
+            if check_existing_record(chunk['source_file'], chunk['title'], db):
+                logger.info(f"跳过已存在的chunk: {chunk['title'][:30]}")
+                stats['faq']['skip'] += 1
                 continue
 
-            try:
-                meta_id, chunk_count = process_document(
-                    file_path=file_path,
-                    knowledge_type=knowledge_type,
-                    collection_name=collection_name,
-                    placeholder_dict=placeholder_dict
-                )
+            success, error = insert_chunk_to_db(chunk, db)
+            if success:
+                stats['faq']['success'] += 1
+            else:
+                stats['faq']['fail'] += 1
+                logger.error(f"入库失败: {error}")
+    else:
+        logger.warning(f"FAQ文件不存在: {FAQ_FILE}")
 
-                if meta_id > 0:
-                    total_files += 1
-                    total_chunks += chunk_count
+    # 2. 处理产品文件
+    logger.info("\n" + "=" * 60)
+    logger.info("步骤2: 处理产品文件")
+    logger.info("=" * 60)
 
-            except Exception as e:
-                logger.error(f"处理文档失败: {file_path}, 错误: {e}", exc_info=True)
+    if os.path.exists(PRODUCT_FILE):
+        product_chunks = process_product_file(PRODUCT_FILE)
+        stats['product']['total'] = len(product_chunks)
 
-    # 汇总统计
-    logger.info("\n" + "=" * 80)
-    logger.info("入库完成")
-    logger.info("=" * 80)
-    logger.info(f"✓ 文档总数: {total_files}")
-    logger.info(f"✓ 切片总数: {total_chunks}")
-    logger.info("=" * 80 + "\n")
+        for idx, chunk in enumerate(product_chunks, 1):
+            logger.info(f"处理产品chunk {idx}/{len(product_chunks)}")
+
+            if check_existing_record(chunk['source_file'], chunk['title'], db):
+                logger.info(f"跳过已存在的chunk: {chunk['title'][:30]}")
+                stats['product']['skip'] += 1
+                continue
+
+            success, error = insert_chunk_to_db(chunk, db)
+            if success:
+                stats['product']['success'] += 1
+            else:
+                stats['product']['fail'] += 1
+                logger.error(f"入库失败: {error}")
+    else:
+        logger.warning(f"产品文件不存在: {PRODUCT_FILE}")
+
+    # 3. 处理政策法规文件
+    logger.info("\n" + "=" * 60)
+    logger.info("步骤3: 处理政策法规文件")
+    logger.info("=" * 60)
+
+    for policy_file in POLICY_FILES:
+        if not os.path.exists(policy_file):
+            logger.warning(f"政策文件不存在: {policy_file}")
+            continue
+
+        policy_chunks = process_policy_file(policy_file)
+        stats['policy']['total'] += len(policy_chunks)
+
+        for idx, chunk in enumerate(policy_chunks, 1):
+            logger.info(f"处理政策chunk {idx}/{len(policy_chunks)} from {os.path.basename(policy_file)}")
+
+            if check_existing_record(chunk['source_file'], chunk['title'], db):
+                logger.info(f"跳过已存在的chunk: {chunk['title'][:30]}")
+                stats['policy']['skip'] += 1
+                continue
+
+            success, error = insert_chunk_to_db(chunk, db)
+            if success:
+                stats['policy']['success'] += 1
+            else:
+                stats['policy']['fail'] += 1
+                logger.error(f"入库失败: {error}")
+
+    # 打印统计报告
+    logger.info("\n" + "=" * 60)
+    logger.info("入库统计报告")
+    logger.info("=" * 60)
+    logger.info(f"FAQ集合: 总计{stats['faq']['total']}条, 成功{stats['faq']['success']}条, 跳过{stats['faq']['skip']}条, 失败{stats['faq']['fail']}条")
+    logger.info(f"产品集合: 总计{stats['product']['total']}条, 成功{stats['product']['success']}条, 跳过{stats['product']['skip']}条, 失败{stats['product']['fail']}条")
+    logger.info(f"政策集合: 总计{stats['policy']['total']}条, 成功{stats['policy']['success']}条, 跳过{stats['policy']['skip']}条, 失败{stats['policy']['fail']}条")
+    logger.info("=" * 60)
+
+    # 关闭数据库连接
+    db.close()
+
+    logger.info("RAG知识库切片入库完成！")
 
 
 if __name__ == '__main__':

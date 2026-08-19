@@ -16,10 +16,14 @@ from app.Base.Service.authService import AuthService
 from app.WealthButler.Models.riskAlertModel import RiskAlertModel
 from app.WealthButler.Models.transactionModel import TransactionModel
 from app.Base.Models.userModel import UserModel
+from app.WealthButler.Models.baseUserExtModel import BaseUserExtModel
+from dataclasses import replace
+from app.WealthButler.Rules.ruleDefinitions import AML_RULES, RuleMeta
 
 
 router = APIRouter(prefix="/api/wealth/risk", tags=["风险预警"])
 security = HTTPBearer(auto_error=False)
+_RULE_OVERRIDES: dict[str, RuleMeta] = {}
 
 
 # ==================== 请求模型 ====================
@@ -28,6 +32,14 @@ class HandleAlertRequest(BaseModel):
     """处理风险预警请求"""
     action: str = Field(..., description="操作：process/confirm/mark_false/override_approve/override_reject")
     remark: Optional[str] = Field(None, description="处理备注")
+
+
+class RuleChangeRequest(BaseModel):
+    rule_id: Optional[str] = Field(None, min_length=3, max_length=32)
+    rule_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    risk_level: Optional[str] = Field(None, min_length=1, max_length=20)
+    priority: Optional[int] = Field(None, ge=1, le=5)
+    enabled: Optional[bool] = None
 
 
 # ==================== 辅助函数 ====================
@@ -50,17 +62,95 @@ def _check_risk_permission(user_id: int) -> tuple[bool, bool]:
     返回：(是否是风控专员, 是否是业务管理员)
     """
     permissions = AuthService.get_user_permissions(user_id)
+    business_user = BaseUserExtModel.get_by_id(user_id)
+    employee_role = getattr(business_user, "employee_role", None)
 
     # 检查是否有可疑交易上报权限（风控专员）
     is_risk_officer = "risk:suspicious_report" in permissions
 
     # 检查是否有风险裁决权限（业务管理员）
-    is_admin = "risk:override" in permissions
+    is_admin = "risk:override" in permissions or employee_role == "业务管理员"
 
     return is_risk_officer, is_admin
 
 
 # ==================== API接口 ====================
+
+@router.get("/rules")
+def get_risk_rules(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Return the active rule catalog for the risk workbench.
+
+    This is intentionally read-only: rule execution remains owned by the
+    rule engine until a separately audited persistence workflow is approved.
+    """
+    user = _get_current_user(credentials)
+    is_risk_officer, is_admin = _check_risk_permission(user.id)
+    if not is_risk_officer and not is_admin:
+        raise HTTPException(status_code=403, detail="您没有查看风控规则的权限")
+
+    rules = []
+    for rule_id, base_rule in AML_RULES.items():
+        rule = _RULE_OVERRIDES.get(rule_id, base_rule)
+        rules.append({
+            "rule_id": rule.rule_id,
+            "rule_name": rule.rule_name,
+            "trigger_scope": rule.trigger_scope,
+            "risk_level": rule.risk_level,
+            "priority": rule.priority,
+            "rule_version": rule.rule_version,
+            "enabled": rule.enabled,
+            "thresholds": {key: str(value) for key, value in rule.thresholds.items()},
+            "source_tables": list(rule.source_tables),
+            "source_fields": list(rule.source_fields),
+        })
+    return HttpResponse.ok(data={"rules": rules, "total": len(rules)}, msg="规则目录查询成功")
+
+
+def _require_rule_admin(credentials):
+    user = _get_current_user(credentials)
+    is_risk_officer, is_admin = _check_risk_permission(user.id)
+    if not is_risk_officer and not is_admin:
+        raise HTTPException(status_code=403, detail="您没有修改风控规则的权限")
+    return user
+
+
+@router.put("/rules/{rule_id}")
+def update_risk_rule(rule_id: str, request: RuleChangeRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    _require_rule_admin(credentials)
+    base = AML_RULES.get(rule_id)
+    if base is None:
+        raise HTTPException(status_code=404, detail="规则不存在")
+    current = _RULE_OVERRIDES.get(rule_id, base)
+    _RULE_OVERRIDES[rule_id] = replace(current, **request.model_dump(exclude_none=True))
+    return HttpResponse.ok(msg="规则已更新")
+
+
+@router.post("/rules")
+def add_risk_rule(request: RuleChangeRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    _require_rule_admin(credentials)
+    if not request.rule_id or not request.rule_name or request.priority is None or not request.risk_level:
+        raise HTTPException(status_code=400, detail="新增规则必须填写规则编号、名称、风险等级和优先级")
+    if request.rule_id in AML_RULES:
+        raise HTTPException(status_code=409, detail="规则编号已存在")
+    def _pending_rule_check(_customer_id, _context=None):
+        return None
+    AML_RULES[request.rule_id] = RuleMeta(
+        rule_id=request.rule_id, rule_name=request.rule_name, trigger_scope="daily",
+        risk_level=request.risk_level, weight_tier=0.1, priority=request.priority,
+        check_func=_pending_rule_check, thresholds={}, source_tables=(), source_fields=(),
+        rule_version="draft", enabled=request.enabled if request.enabled is not None else True,
+    )
+    return HttpResponse.ok(msg="规则已添加，当前为草稿规则，需配置规则检查逻辑后启用")
+
+
+@router.delete("/rules/{rule_id}")
+def disable_risk_rule(rule_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    _require_rule_admin(credentials)
+    base = AML_RULES.get(rule_id)
+    if base is None:
+        raise HTTPException(status_code=404, detail="规则不存在")
+    _RULE_OVERRIDES[rule_id] = replace(_RULE_OVERRIDES.get(rule_id, base), enabled=False)
+    return HttpResponse.ok(msg="规则已停用")
 
 @router.get("/alerts")
 def get_risk_alerts(
@@ -120,7 +210,7 @@ def get_risk_alerts(
     for alert in alerts:
         # 查询客户信息
         customer = UserModel.get_by_id(alert.customer_id)
-        customer_name = customer.username if customer else f"客户ID:{alert.customer_id}"
+        customer_name = customer.username if customer else "客户资料待补全"
 
         # 查询关联交易信息
         transaction_amount = None
@@ -312,7 +402,7 @@ def get_risk_alert_detail(
 
     # 查询客户信息
     customer = UserModel.get_by_id(alert.customer_id)
-    customer_name = customer.username if customer else f"客户ID:{alert.customer_id}"
+    customer_name = customer.username if customer else "客户资料待补全"
 
     # 查询关联交易信息
     transaction_info = None
@@ -483,7 +573,10 @@ def get_risk_trend(
             DATE(created_at) as date,
             COUNT(*) as total,
             SUM(CASE WHEN status IN ('处理中', '已确认', '误报') THEN 1 ELSE 0 END) as processed,
-            SUM(CASE WHEN status = '误报' THEN 1 ELSE 0 END) as false_positive
+            SUM(CASE WHEN status = '误报' THEN 1 ELSE 0 END) as false_positive,
+            SUM(CASE WHEN severity IN ('高', '严重') THEN 1 ELSE 0 END) as high,
+            SUM(CASE WHEN severity = '中' THEN 1 ELSE 0 END) as medium,
+            SUM(CASE WHEN severity = '低' THEN 1 ELSE 0 END) as low
         FROM {RiskAlertModel.table_alias}
         WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
         GROUP BY DATE(created_at)
@@ -499,6 +592,7 @@ def get_risk_trend(
             "total": row['total'],
             "processed": row['processed'],
             "false_positive": row['false_positive']
+            ,"high": row.get('high', 0), "medium": row.get('medium', 0), "low": row.get('low', 0)
         })
 
     return HttpResponse.ok(
@@ -507,6 +601,25 @@ def get_risk_trend(
         },
         msg="查询成功"
     )
+
+
+@router.get("/reports")
+def get_risk_reports(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    user = _get_current_user(credentials)
+    is_risk_officer, is_admin = _check_risk_permission(user.id)
+    if not is_risk_officer and not is_admin:
+        raise HTTPException(status_code=403, detail="您没有查看风险报表的权限")
+    db = RiskAlertModel.get_db_connection()
+    if not db:
+        raise HTTPException(status_code=500, detail="数据库连接失败")
+    rows = db.execute(f"SELECT severity, status, COUNT(*) AS cnt FROM {RiskAlertModel.table_alias} GROUP BY severity, status")
+    by_level, by_status = {}, {}
+    for row in rows:
+        raw_level = str(row['severity'] or '')
+        level = '高' if raw_level in {'高', '高风险', 'high', 'HIGH', '严重', 'critical'} else '中' if raw_level in {'中', '中风险', '中高风险', 'medium', 'MEDIUM'} else '低'
+        by_level[level] = by_level.get(level, 0) + int(row['cnt'])
+        by_status[row['status']] = by_status.get(row['status'], 0) + int(row['cnt'])
+    return HttpResponse.ok(data={"by_level": by_level, "by_status": by_status, "total": sum(by_level.values())}, msg="风险报表查询成功")
 
 
 def register_risk_api(app):

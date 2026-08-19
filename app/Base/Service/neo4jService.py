@@ -10,7 +10,7 @@ import logging
 import time
 from typing import List, Optional, Tuple
 
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Client.neo4jClient import Neo4jClient
 from app.Base.Models.graphModel import Entity, Relation, ExtractionResult
 
@@ -46,7 +46,7 @@ def parse_nl_2_graph(
 
     Args:
         text: 自然语言文本
-        llm: LLM 实例，默认使用 get_default_qwen_llm()
+        llm: LLM 实例，默认使用 get_default_deepseek_llm()
         schema: 可选的 schema 约束，格式 {"entity_types": [...], "rel_types": [...]}
 
     Returns:
@@ -57,7 +57,7 @@ def parse_nl_2_graph(
         ParseError: JSON 解析失败（重试一次后）
     """
     if llm is None:
-        llm = get_default_qwen_llm()
+        llm = get_default_deepseek_llm()
 
     prompt = _build_prompt(text, schema)
 

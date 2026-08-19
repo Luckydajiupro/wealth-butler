@@ -29,7 +29,7 @@ INTENT_ALLOWED_PARAMS = {
     "transfer": {"amount", "counterparty_account", "counterparty_name", "channel"},
     "reassess": {"answers"},
     "update_info": {"phone", "email"},
-    "product_query": {"product_id", "product_type", "risk_level", "status", "keyword", "page", "per_page"},
+    "product_query": {"product_id", "product_type", "risk_level", "status", "keyword", "product_name", "page", "per_page"},
     "suspicious_report": {"description", "severity", "related_transaction_id", "evidence_refs"},
     "workorder_create": {"order_type", "intent_summary"},
 }
@@ -100,7 +100,7 @@ class OperationInputPolicy:
             return cls._currency(value, field)
         if field == "shares":
             return cls._positive_decimal(value, field)
-        if field in {"counterparty_account", "counterparty_name", "channel", "phone", "email", "description", "intent_summary", "keyword"}:
+        if field in {"counterparty_account", "counterparty_name", "channel", "phone", "email", "description", "intent_summary", "keyword", "product_name"}:
             return cls._trimmed_string(value, field)
         if field == "answers":
             if not isinstance(value, list):

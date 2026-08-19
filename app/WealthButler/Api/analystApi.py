@@ -187,17 +187,22 @@ def get_statistics(
         trans_result = db.execute(transaction_sql, (today_start,), operation_type="query")
         total_transactions_today = trans_result[0]['total'] if trans_result else 0
 
-        # 统计待处理预警数
-        alert_sql = "SELECT COUNT(*) as total FROM fin_risk_alert WHERE status = '待处理'"
-        alert_result = db.execute(alert_sql, operation_type="query")
-        total_alerts_pending = alert_result[0]['total'] if alert_result else 0
+        alert_result = db.execute("SELECT COUNT(*) AS total, SUM(CASE WHEN status <> '待处理' THEN 1 ELSE 0 END) AS handled FROM fin_risk_alert", operation_type="query")
+        total_alerts = int(alert_result[0]['total'] or 0) if alert_result else 0
+        handled_alerts = int(alert_result[0]['handled'] or 0) if alert_result else 0
+        total_alerts_pending = total_alerts - handled_alerts
+        alert_processing_rate = round((handled_alerts / total_alerts) * 100, 1) if total_alerts else 0
 
         return HttpResponse.ok(
             data={
                 "total_customers": total_customers,
                 "total_aum": total_aum,
                 "total_transactions_today": total_transactions_today,
-                "total_alerts_pending": total_alerts_pending
+                "total_alerts_pending": total_alerts_pending,
+                "total_alerts": total_alerts,
+                "handled_alerts": handled_alerts,
+                "alert_processing_rate": alert_processing_rate,
+                "system_status": "正常"
             },
             msg="查询成功"
         )
@@ -205,6 +210,129 @@ def get_statistics(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"查询统计数据失败: {str(e)}")
+
+
+@router.get("/transactions/today")
+def get_today_transactions(
+    limit: int = Query(50, ge=1, le=100),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """返回业务管理员今日交易明细，用于统计卡片下钻。"""
+    _get_current_user(credentials)
+    db = TransactionModel.get_db_connection()
+    if not db:
+        raise HTTPException(status_code=500, detail="数据库连接失败")
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    rows = db.execute(
+        "SELECT t.id, t.transaction_type, t.amount, t.status, t.channel, "
+        "t.transaction_time, t.customer_id, c.username AS customer_name, "
+        "p.product_name, e.username AS employee_name "
+        "FROM fin_transaction t "
+        "LEFT JOIN base_user c ON c.id = t.customer_id "
+        "LEFT JOIN base_user e ON e.id = t.employee_id "
+        "LEFT JOIN fin_product p ON p.id = t.product_id "
+        "WHERE t.transaction_time >= %s "
+        "ORDER BY t.transaction_time DESC LIMIT %s",
+        (today_start, limit),
+        operation_type="query",
+    )
+    items = [{
+        "交易编号": row.get("id"),
+        "客户": row.get("customer_name") or f"客户{row.get('customer_id')}",
+        "交易类型": row.get("transaction_type"),
+        "产品": row.get("product_name") or "非产品交易",
+        "金额": float(row.get("amount") or 0),
+        "状态": row.get("status"),
+        "渠道": row.get("channel") or "未记录",
+        "办理员工": row.get("employee_name") or "系统",
+        "交易时间": str(row.get("transaction_time") or ""),
+    } for row in rows]
+    return HttpResponse.ok(data={"items": items, "total": len(items)}, msg="今日交易明细查询成功")
+
+
+@router.get("/customers/summary")
+def get_customer_summary(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """返回与客户总数卡片一致的客户结构统计。"""
+    _get_current_user(credentials)
+    db = CustomerProfileModel.get_db_connection()
+    if not db:
+        raise HTTPException(status_code=500, detail="数据库连接失败")
+    total_rows = db.execute("SELECT COUNT(*) AS total FROM base_user WHERE user_type = 'CUSTOMER'", operation_type="query")
+    active_rows = db.execute("SELECT COUNT(DISTINCT customer_id) AS total FROM fin_transaction WHERE transaction_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)", operation_type="query")
+    profile_rows = db.execute("SELECT COUNT(*) AS total FROM fin_customer_profile", operation_type="query")
+    risk_rows = db.execute("SELECT COALESCE(risk_level, '未评级') AS risk_level, COUNT(*) AS total FROM fin_customer_profile GROUP BY risk_level ORDER BY risk_level", operation_type="query")
+    total = int(total_rows[0].get("total") or 0) if total_rows else 0
+    active = int(active_rows[0].get("total") or 0) if active_rows else 0
+    profiled = int(profile_rows[0].get("total") or 0) if profile_rows else 0
+    items = [
+        {"指标": "客户总数", "数量": total, "口径": "所有 CUSTOMER 账户"},
+        {"指标": "近30日有交易客户", "数量": active, "口径": "近30日存在交易流水的去重客户"},
+        {"指标": "已建立客户画像", "数量": profiled, "口径": "存在客户画像记录"},
+        {"指标": "客户画像覆盖率", "数量": f"{round(profiled / total * 100, 1) if total else 0}%", "口径": "画像客户数 / 客户总数"},
+    ]
+    items.extend({"指标": f"风险等级 {row.get('risk_level')}", "数量": int(row.get("total") or 0), "口径": "客户画像风险等级"} for row in risk_rows)
+    return HttpResponse.ok(data={"items": items, "total": total}, msg="客户结构统计查询成功")
+
+
+@router.get("/reports/{report_type}")
+def get_admin_report(
+    report_type: str,
+    limit: int = Query(10, ge=1, le=50),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """业务管理员预置报表，提供稳定、可审计的常用分析结果。"""
+    _get_current_user(credentials)
+    db = TransactionModel.get_db_connection()
+    if not db:
+        raise HTTPException(status_code=500, detail="数据库连接失败")
+
+    if report_type == "monthly-new-customers":
+        rows = db.execute(
+            "SELECT DATE(created_at) AS report_date, COUNT(*) AS customer_count "
+            "FROM base_user WHERE user_type = 'CUSTOMER' "
+            "AND created_at >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') "
+            "GROUP BY DATE(created_at) ORDER BY report_date",
+            operation_type="query",
+        )
+        items = [{"日期": str(row.get("report_date")), "新增客户数": int(row.get("customer_count") or 0)} for row in rows]
+        return HttpResponse.ok(data={"items": items, "total": sum(item["新增客户数"] for item in items), "title": "本月新增客户"})
+
+    if report_type == "top-products":
+        rows = db.execute(
+            "SELECT COALESCE(p.product_name, '非产品交易') AS product_name, "
+            "COUNT(*) AS transaction_count, COALESCE(SUM(t.amount), 0) AS transaction_amount "
+            "FROM fin_transaction t LEFT JOIN fin_product p ON p.id = t.product_id "
+            "WHERE t.status = '成交' GROUP BY t.product_id, p.product_name "
+            "ORDER BY transaction_amount DESC LIMIT %s",
+            (limit,), operation_type="query",
+        )
+        items = [{"产品": row.get("product_name"), "成交笔数": int(row.get("transaction_count") or 0), "成交金额": float(row.get("transaction_amount") or 0)} for row in rows]
+        return HttpResponse.ok(data={"items": items, "total": len(items), "title": "交易金额最高的产品"})
+
+    if report_type == "risk-trend":
+        rows = db.execute(
+            "SELECT DATE(created_at) AS report_date, COUNT(*) AS alert_count, "
+            "SUM(CASE WHEN status = '待处理' THEN 1 ELSE 0 END) AS pending_count "
+            "FROM fin_risk_alert WHERE created_at >= DATE_SUB(CURRENT_DATE, INTERVAL 29 DAY) "
+            "GROUP BY DATE(created_at) ORDER BY report_date",
+            operation_type="query",
+        )
+        items = [{"日期": str(row.get("report_date")), "预警数量": int(row.get("alert_count") or 0), "待处理数量": int(row.get("pending_count") or 0)} for row in rows]
+        return HttpResponse.ok(data={"items": items, "total": sum(item["预警数量"] for item in items), "title": "近30日风险预警趋势"})
+
+    if report_type == "top-customers":
+        rows = db.execute(
+            "SELECT t.customer_id, COALESCE(c.username, CONCAT('客户', t.customer_id)) AS customer_name, "
+            "COUNT(*) AS transaction_count, COALESCE(SUM(t.amount), 0) AS transaction_amount "
+            "FROM fin_transaction t LEFT JOIN base_user c ON c.id = t.customer_id "
+            "WHERE t.status = '成交' GROUP BY t.customer_id, c.username "
+            "ORDER BY transaction_amount DESC LIMIT %s",
+            (limit,), operation_type="query",
+        )
+        items = [{"客户": row.get("customer_name"), "成交笔数": int(row.get("transaction_count") or 0), "累计成交金额": float(row.get("transaction_amount") or 0)} for row in rows]
+        return HttpResponse.ok(data={"items": items, "total": len(items), "title": "累计成交金额最高的客户"})
+
+    raise HTTPException(status_code=404, detail="不支持的管理员报表类型")
 
 
 @router.get("/history")

@@ -14,7 +14,6 @@ _intent_threshold = 0.5（矩阵最低值）：内部只读查询出错不造成
 
 from __future__ import annotations
 
-import time
 from typing import Any, List, Optional
 
 from app.Base.Ai.base.baseAgent import AgentResult, ReActAgent
@@ -36,6 +35,7 @@ class AnalystAgent(ReActAgent):
         **kwargs: Any,
     ):
         self.service = service
+        self._last_query_result = None
         base_prompt = system_prompt or (
             "你是智能财富管家系统的数据分析Agent，服务内部员工，"
             "将自然语言问题转换为只读 SQL 查询并解读结果。"
@@ -66,10 +66,13 @@ class AnalystAgent(ReActAgent):
 
     # ---- 固定单一路径的 ReAct 循环（不经 LLM 决策）----
     def _run_loop(self, messages, **kwargs):
-        """单一路径：直接执行 NL2SQL 全链路，返回 AgentResult。
+        """单一路径：直接执行 NL2SQL 全链路，返回字符串输出。
 
         与 nl2cypherAgent 的固定流程思路一致：核心链路是确定性编排，
         不交给 LLM 决策。LLM 只在两个环节参与：SQL 生成、结果解读。
+
+        注意：baseAgent.run() 期望 _run_loop 返回 str，而不是 AgentResult。
+        查询结果先暂存在实例上，再由本类 run() 合并到 AgentResult。
         """
         user_input = ""
         for msg in reversed(messages):
@@ -80,22 +83,31 @@ class AnalystAgent(ReActAgent):
         scope_token = kwargs.get("scope_token", self.service.scope_token)
         self.service.scope_token = scope_token
 
-        started = time.monotonic()
         result = self.service.answer_query(user_input)
+        self._last_query_result = result
 
-        return AgentResult(
-            success=result.error is None,
-            output=result.reply,
-            tool_calls=[{
-                "name": "Nl2sqlTool",
-                "parameters": {"query": user_input},
-                "result": result.query_result,
-            }],
-            iterations=1,
-            duration_ms=int((time.monotonic() - started) * 1000),
-            error_msg=result.error,
-            metadata=result.to_metadata(),
-        )
+        # 返回字符串输出（符合 baseAgent 的期望）
+        return result.reply if result.error is None else f"查询失败: {result.error}"
 
-    def _handle_nl2sql(self, message: str, **kwargs: Any) -> AgentResult:
+    def run(self, user_input: str, **kwargs: Any) -> AgentResult:
+        """执行查询，并把 SQL 审计元数据和业务失败状态带回调用方。"""
+        self._last_query_result = None
+        agent_result = super().run(user_input, **kwargs)
+        query_result = self._last_query_result
+        if query_result is None:
+            return agent_result
+
+        agent_result.metadata = query_result.to_metadata()
+        agent_result.tool_calls = [{
+            "name": "Nl2sqlTool",
+            "parameters": {"query": user_input},
+            "result": query_result.query_result,
+        }]
+        if query_result.error:
+            agent_result.success = False
+            agent_result.error_msg = query_result.error
+        return agent_result
+
+    def _handle_nl2sql(self, message: str, **kwargs: Any) -> str:
+        """处理 NL2SQL 请求，返回字符串输出。"""
         return self._run_loop([{"role": "user", "content": message}], **kwargs)

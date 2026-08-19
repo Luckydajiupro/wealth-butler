@@ -3,7 +3,7 @@ from typing import Optional, List
 from pydantic import Field
 
 from app.Base.Ai.base import UserMessages, AssistantMessages
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Repository.base.baseVDB import BaseVDBModel
 
 
@@ -86,7 +86,7 @@ class VdbLLMConversation(BaseVDBModel):
         使用混合搜索（密集向量 + 稀疏向量）
         可选择性地按 user_id 和 session_id 进行过滤
         """
-        llm = get_default_qwen_llm()
+        llm = get_default_deepseek_llm()
         dense_vectors = llm.embedding(text=question, dimensions=1024)
 
         # 构建过滤表达式

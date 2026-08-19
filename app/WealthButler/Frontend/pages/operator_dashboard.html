@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>客户经理工作台 - 智能财富管家系统</title>
-    <!-- 引入AI助手通用模块 -->
-    <script src="/static/js/aiAssistant.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- 移除不存在的aiAssistant.js -->
     <style>
         * {
             margin: 0;
@@ -288,6 +287,21 @@
             font-weight: 600;
         }
 
+        .workorder-category {
+            margin-left: auto;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+            background: #f3f4f6;
+        }
+
+        .workorder-category.unclaimed { color: #92400e; background: #fef3c7; }
+        .workorder-category.pending { color: #1d4ed8; background: #dbeafe; }
+        .workorder-category.completed { color: #166534; background: #dcfce7; }
+        .workorder-category.closed { color: #991b1b; background: #fee2e2; }
+
         .order-type-referral {
             background: #e3f2fd;
             color: #1976d2;
@@ -386,6 +400,15 @@
             transform: translateY(0);
         }
 
+        .action-btn.close-workorder-btn {
+            margin-right: 8px;
+            color: #b42318;
+            background: #fff;
+            border: 1px solid #fda29b;
+        }
+
+        .action-btn.close-workorder-btn:hover { background: #fff1f0; }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -430,10 +453,48 @@
             font-size: 20px;
         }
 
-        /* 最近服务客户列表 */
+        /* 客户管理 */
         .customer-list {
             max-height: 400px;
             overflow-y: auto;
+        }
+
+        .customer-management-layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) 1fr;
+            gap: 24px;
+        }
+
+        .customer-overview {
+            padding: 24px;
+            min-height: 420px;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .overview-metric {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            background: #fafafa;
+        }
+
+        .overview-metric span { display: block; color: #6b7280; font-size: 12px; margin-bottom: 6px; }
+        .overview-metric strong { color: #111827; font-size: 18px; }
+        .overview-section { margin-top: 22px; }
+        .overview-section h3 { font-size: 15px; color: #374151; margin-bottom: 10px; }
+        .overview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .overview-table th, .overview-table td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+        .overview-table th { color: #6b7280; font-weight: 500; }
+
+        @media (max-width: 900px) {
+            .customer-management-layout { grid-template-columns: 1fr; }
+            .overview-grid { grid-template-columns: 1fr; }
         }
 
         .customer-item {
@@ -479,7 +540,7 @@
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 360px;
+            width: min(440px, calc(100vw - 40px));
             background: white;
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
@@ -528,9 +589,65 @@
 
         .ai-body {
             padding: 20px;
-            max-height: 400px;
+            max-height: min(620px, calc(100vh - 140px));
             overflow-y: auto;
         }
+
+        .ai-context {
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            background: #f5f6ff;
+            color: #374151;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .ai-context strong { color: #111827; }
+        .ai-context[hidden] { display: none; }
+
+        .ai-customer-picker { margin-bottom: 12px; padding: 12px; border: 1px dashed #c7d2fe; border-radius: 8px; background: #eef2ff; }
+        .ai-customer-picker[hidden] { display: none; }
+        .ai-customer-picker button { min-height: 44px; padding: 9px 14px; border: 0; border-radius: 6px; background: #4f46e5; color: #fff; cursor: pointer; font-weight: 600; }
+
+        .ai-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 280px;
+            margin-bottom: 12px;
+            overflow-y: auto;
+        }
+
+        .ai-message {
+            max-width: 88%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .ai-message.assistant { align-self: flex-start; background: #f3f4f6; color: #1f2937; }
+        .ai-message.user { align-self: flex-end; background: #667eea; color: #fff; }
+        .ai-message.status { color: #6b7280; font-style: italic; }
+
+        .ai-confirmation {
+            align-self: stretch;
+            padding: 12px;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            background: #fffbeb;
+            color: #78350f;
+            font-size: 13px;
+        }
+
+        .ai-confirmation-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+        .ai-confirmation-actions button { border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+        .ai-confirmation-cancel { background: #e5e7eb; color: #374151; }
+        .ai-confirmation-confirm { background: #dc2626; color: #fff; }
 
         .ai-input-group {
             display: flex;
@@ -568,18 +685,27 @@
         }
 
         .ai-suggestions {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
         }
 
+        .ai-suggestions-label {
+            grid-column: 1 / -1;
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
         .ai-suggestion {
-            padding: 12px;
+            min-height: 44px;
+            padding: 9px 10px;
             border: 1px solid #e0e0e0;
-            border-radius: 8px;
+            border-radius: 6px;
             background: #f9fafb;
             cursor: pointer;
             font-size: 13px;
+            text-align: left;
             transition: all 0.2s;
         }
 
@@ -587,6 +713,10 @@
             border-color: #667eea;
             background: #f5f6fa;
         }
+
+        .ai-suggestion.funds { border-color: #c7d2fe; background: #eef2ff; color: #3730a3; }
+        .ai-suggestion.disabled,
+        .ai-suggestion:disabled { cursor: not-allowed; opacity: .55; background: #f3f4f6; border-color: #d1d5db; color: #6b7280; }
 
         /* 加载动画 */
         .spinner {
@@ -622,6 +752,45 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
+
+        .operator-modal-backdrop { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(15, 23, 42, .42); }
+        .operator-modal { display: flex; flex-direction: column; width: min(560px, 100%); max-height: 80vh; overflow: hidden; background: #fff; border-radius: 8px; box-shadow: 0 20px 60px rgba(15, 23, 42, .22); }
+        .operator-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid #e5e7eb; }
+        .operator-modal-header h3 { margin: 0; color: #111827; font-size: 18px; }
+        .operator-modal-close { border: 0; background: transparent; color: #6b7280; cursor: pointer; font-size: 22px; line-height: 1; }
+        .operator-modal-body { min-height: 0; overflow: auto; padding: 20px; color: #374151; line-height: 1.7; white-space: pre-wrap; }
+        .operator-modal-body dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px 16px; margin: 0; }
+        .operator-modal-body dt { color: #6b7280; }
+        .operator-modal-body dd { margin: 0; color: #111827; font-weight: 500; }
+        .profile-dl { display: grid; grid-template-columns: 112px 1fr; gap: 12px 16px; margin: 0; }
+        .profile-dl dt { color: #6b7280; }
+        .profile-dl dd { margin: 0; min-width: 0; }
+        .profile-allocation { display: grid; gap: 7px; }
+        .profile-allocation-row { display: grid; grid-template-columns: minmax(64px, 1fr) minmax(100px, 2fr) 48px; align-items: center; gap: 8px; font-size: 13px; }
+        .profile-bar { height: 7px; overflow: hidden; border-radius: 4px; background: #e5e7eb; }
+        .profile-bar span { display: block; height: 100%; border-radius: inherit; background: #667eea; }
+        .profile-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .profile-tag { display: inline-flex; padding: 3px 8px; border-radius: 12px; background: #eef2ff; color: #3730a3; font-size: 12px; }
+        .profile-muted { color: #9ca3af; font-weight: 400; }
+        .portrait-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
+        .portrait-dimension { min-width: 0; }
+        .portrait-dimension-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 13px; }
+        .portrait-dimension-head span { color: #4b5563; }
+        .portrait-dimension-head strong { color: #111827; }
+        .portrait-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; color: #6b7280; font-size: 13px; }
+        .portrait-meta strong { color: #374151; }
+        .advisor-plan-note { margin-bottom: 10px; color: #6b7280; font-size: 13px; line-height: 1.6; }
+        @media (max-width: 760px) { .portrait-grid { grid-template-columns: 1fr; } }
+        .operator-modal-actions { display: flex; flex: 0 0 auto; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #e5e7eb; background: #fff; }
+        .operator-modal-actions button { border: 0; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+        .operator-modal-primary { background: #2563eb; color: #fff; }
+        .operator-modal-secondary { background: #eef2f7; color: #374151; }
+        .close-workorder-form { display: grid; gap: 8px; white-space: normal; }
+        .close-workorder-form p { margin: 0 0 4px; }
+        .close-workorder-form label { margin-top: 4px; font-weight: 600; color: #374151; }
+        .close-workorder-form select,
+        .close-workorder-form textarea { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #111827; font: inherit; line-height: 1.4; }
+        .close-workorder-form textarea { min-height: 76px; resize: vertical; }
     </style>
 </head>
 <body>
@@ -633,9 +802,8 @@
                 <span>智能财富管家系统</span>
             </div>
             <div class="navbar-menu">
-                <div class="nav-item active">工作台</div>
-                <div class="nav-item">客户管理</div>
-                <div class="nav-item">工单中心</div>
+                <div class="nav-item active" data-page="workspace" onclick="showOperatorPage('workspace', this)">工作台</div>
+                <div class="nav-item" data-page="customers" onclick="showOperatorPage('customers', this)">客户管理</div>
             </div>
             <div class="navbar-user">
                 <span id="userName">刘经理</span>
@@ -651,44 +819,44 @@
     </nav>
 
     <!-- 主内容区域 -->
-    <div class="main-container">
+    <main class="main-container">
+      <section id="workspaceSection">
         <!-- 统计卡片区 -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">今日处理工单</div>
-                <div class="stat-value" id="todayCount">0</div>
-                <div class="stat-trend">⬆ 较昨日 +0</div>
+            <div class="stat-card" role="button" tabindex="0" onclick="focusWorkorders('all')" onkeydown="if(event.key==='Enter') focusWorkorders('all')">
+                <div class="stat-label">总工单</div>
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-trend">全部可见业务工单</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">待处理工单</div>
+            <div class="stat-card" role="button" tabindex="0" onclick="focusWorkorders('已完成')" onkeydown="if(event.key==='Enter') focusWorkorders('已完成')">
+                <div class="stat-label">已完成</div>
+                <div class="stat-value" id="completedCount">0</div>
+                <div class="stat-trend">已办结工单</div>
+            </div>
+            <div class="stat-card" role="button" tabindex="0" onclick="focusWorkorders('待处理')" onkeydown="if(event.key==='Enter') focusWorkorders('待处理')">
+                <div class="stat-label">待处理</div>
                 <div class="stat-value" id="pendingCount">0</div>
-                <div class="stat-trend">需要及时处理</div>
+                <div class="stat-trend">已领取，等待办理</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">本月服务客户</div>
-                <div class="stat-value" id="monthlyCustomers">0</div>
-                <div class="stat-trend">⬆ 较上月 +0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">平均处理时长</div>
-                <div class="stat-value" id="avgTime">0</div>
-                <div class="stat-trend">分钟</div>
+            <div class="stat-card" role="button" tabindex="0" onclick="focusWorkorders('待领取')" onkeydown="if(event.key==='Enter') focusWorkorders('待领取')">
+                <div class="stat-label">待领取</div>
+                <div class="stat-value" id="unclaimedCount">0</div>
+                <div class="stat-trend">公共事务池工单</div>
             </div>
         </div>
 
         <!-- 主要内容布局 -->
-        <div class="dashboard-layout">
-            <!-- 左侧：待办工单 -->
+        <div>
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">待办工单</h2>
+                    <h2 class="card-title" id="workorderPanelTitle">全部可办理工单</h2>
                     <span class="card-badge" id="totalWorkorders">0</span>
                 </div>
                 <div class="workorder-tabs">
-                    <button class="tab-btn active" onclick="filterWorkorders('all')">全部</button>
-                    <button class="tab-btn" onclick="filterWorkorders('客户转介')">客户转介</button>
-                    <button class="tab-btn" onclick="filterWorkorders('信息变更')">信息变更</button>
-                    <button class="tab-btn" onclick="filterWorkorders('转账审核')">转账审核</button>
+                    <button class="tab-btn active" data-filter="all" onclick="filterWorkorders('all', event)">全部</button>
+                    <button class="tab-btn" data-filter="已完成" onclick="filterWorkorders('已完成', event)">已完成</button>
+                    <button class="tab-btn" data-filter="待处理" onclick="filterWorkorders('待处理', event)">待处理</button>
+                    <button class="tab-btn" data-filter="待领取" onclick="filterWorkorders('待领取', event)">待领取</button>
                 </div>
                 <div class="workorder-list" id="workorderList">
                     <div class="empty-state">
@@ -697,81 +865,90 @@
                     </div>
                 </div>
             </div>
+        </div>
+      </section>
 
-            <!-- 右侧：快速操作 + 最近客户 -->
-            <div>
-                <!-- 快速操作面板 -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div class="card-header">
-                        <h2 class="card-title">快速操作</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="quick-actions">
-                            <button class="quick-btn" onclick="createWorkorder()">
-                                <span class="quick-btn-icon">➕</span>
-                                <span>创建工单</span>
-                            </button>
-                            <button class="quick-btn" onclick="queryCustomer()">
-                                <span class="quick-btn-icon">🔍</span>
-                                <span>客户查询</span>
-                            </button>
-                            <button class="quick-btn" onclick="transferAudit()">
-                                <span class="quick-btn-icon">💰</span>
-                                <span>转账审核</span>
-                            </button>
-                            <button class="quick-btn" onclick="reportSuspicious()">
-                                <span class="quick-btn-icon">⚠️</span>
-                                <span>可疑交易</span>
-                            </button>
-                        </div>
-                    </div>
+      <section id="customerSection" hidden>
+        <div class="customer-management-layout">
+            <div class="card">
+                <div class="card-header"><h2 class="card-title">我的客户</h2><span class="card-badge" id="managedCustomerCount">0</span></div>
+                <div class="customer-list" id="customerList">
+                    <div class="empty-state"><div class="empty-icon">👥</div><div>暂无可办理客户</div></div>
                 </div>
-
-                <!-- 最近服务客户 -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">最近服务客户</h2>
-                    </div>
-                    <div class="customer-list" id="customerList">
-                        <div class="empty-state">
-                            <div class="empty-icon">👥</div>
-                            <div>暂无数据</div>
-                        </div>
-                    </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2 class="card-title" id="customerOverviewTitle">客户业务概览</h2></div>
+                <div class="customer-overview" id="customerOverview">
+                    <div class="empty-state"><div class="empty-icon">👤</div><div>请选择客户查看资料、账户、持仓和交易记录</div></div>
                 </div>
             </div>
         </div>
-    </div>
+      </section>
+    </main>
 
     <!-- AI助手浮动气泡 -->
-    <div class="ai-assistant" id="aiAssistant">
+    <div class="ai-assistant minimized" id="aiAssistant">
         <div class="ai-header" onclick="toggleAI()">
             <h3 class="ai-title">业务助手 💼</h3>
             <button class="ai-toggle" id="aiToggle">−</button>
         </div>
         <div class="ai-body">
+            <div class="ai-context" id="aiContext" hidden></div>
+            <div class="ai-customer-picker" id="aiCustomerPicker">
+                <strong>尚未选择客户</strong><br><span>查询在售产品无需选择客户；办理客户业务前请先选择客户。</span>
+                <div style="margin-top:8px"><button type="button" onclick="openCustomerPicker('选择客户','selectAssistantCustomer')">选择客户</button></div>
+            </div>
+            <div class="ai-messages" id="aiMessages" aria-live="polite">
+                <div class="ai-message assistant">可直接查询在售产品；办理客户业务前请选择客户。资金类操作会发送给客户本人二次确认。</div>
+            </div>
             <div class="ai-suggestions">
-                <div class="ai-suggestion" onclick="sendAIMessage('帮我查询待处理的转账工单')">
-                    查询待处理转账工单
-                </div>
-                <div class="ai-suggestion" onclick="sendAIMessage('显示今天需要审核的客户信息变更')">
-                    显示今日信息变更审核
-                </div>
-                <div class="ai-suggestion" onclick="sendAIMessage('帮我创建一个客户转介工单')">
-                    创建客户转介工单
-                </div>
+                <div class="ai-suggestions-label">常用业务</div>
+                <button type="button" class="ai-suggestion" onclick="sendAIMessage('查询在售理财产品')">查询产品</button>
+                <button type="button" class="ai-suggestion" onclick="sendAIMessage('为当前客户变更联系方式')">变更联系方式</button>
+                <button type="button" class="ai-suggestion funds" onclick="sendAIMessage('为当前客户办理申购')">办理申购</button>
+                <button type="button" class="ai-suggestion funds" onclick="sendAIMessage('为当前客户办理赎回')">办理赎回</button>
+                <button type="button" class="ai-suggestion funds disabled" disabled title="真实转入账户接入后开放">办理转账（暂未开放）</button>
             </div>
             <div class="ai-input-group">
                 <input type="text" class="ai-input" id="aiInput" placeholder="输入您的需求..." onkeypress="handleAIKeyPress(event)">
-                <button class="ai-send-btn" onclick="sendAIMessage()">发送</button>
+                <button class="ai-send-btn" id="aiSendBtn" onclick="sendAIMessage()">发送</button>
             </div>
         </div>
     </div>
+
+    <div id="operatorModalRoot" hidden></div>
 
     <script>
         const API_BASE = window.location.origin;
         let currentFilter = 'all';
         let allWorkorders = [];
+        let operatorNotificationPollTimer = null;
+        let operatorNotificationBaselineReady = false;
+        let activeWorkorderId = null;
+        let managedCustomers = [];
+        let selectedCustomerId = null;
+        let selectedCustomerName = '';
+        let selectedCustomerSummary = null;
+        let lastAnnouncedCustomerId = null;
+        let pendingConfirmToken = null;
+        let confirmationStatusPollTimer = null;
+
+        function getOperatorSessionId(customerId) {
+            const userId = parseInt(localStorage.getItem('user_id')) || 0;
+            const storageKey = 'operator_chat_session';
+            try {
+                const current = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+                if (current && current.userId === userId && current.customerId === customerId && current.id) {
+                    return current.id;
+                }
+            } catch (error) {
+                console.warn('业务助手会话状态无效，已重新建立', error);
+            }
+            const suffix = window.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+            const id = `operator_dashboard_${userId}_${customerId}_${suffix}`;
+            sessionStorage.setItem(storageKey, JSON.stringify({userId, customerId, id}));
+            return id;
+        }
 
         // 页面加载时初始化
         window.addEventListener('DOMContentLoaded', function() {
@@ -780,7 +957,32 @@
             loadStatistics();
             loadWorkorders();
             loadRecentCustomers();
+            startOperatorNotificationPolling();
+            const aiAssistant = document.getElementById('aiAssistant');
+            const aiToggle = document.getElementById('aiToggle');
+            if (aiAssistant?.classList.contains('minimized') && aiToggle) aiToggle.textContent = '+';
         });
+
+        function currentOperatorId() {
+            return parseInt(localStorage.getItem('user_id'), 10) || 0;
+        }
+
+        function workorderHandlerId(order) {
+            return Number(order?.handled_by || order?.handler_id) || 0;
+        }
+
+        function workorderCategory(order) {
+            const scope = order?.assignment_scope;
+            if (scope === 'unclaimed') return '待领取';
+            if (scope === 'owned' && ['处理中', '待审核'].includes(order.status)) return '待处理';
+            if (scope === 'owned' && order.status === '已完成') return '已完成';
+            if (scope === 'owned' && ['已关闭', '已驳回'].includes(order.status)) return order.status;
+            return '其他';
+        }
+
+        function filterOrdersByCategory(orders, category) {
+            return category === 'all' ? orders : orders.filter(order => workorderCategory(order) === category);
+        }
 
         // 权限检查
         function checkAuth() {
@@ -810,8 +1012,8 @@
             const token = localStorage.getItem('access_token');
 
             try {
-                // 调用业务助手统计API
-                const response = await fetch(`${API_BASE}/api/wealth/operator/stats`, {
+                // 客户经理统计直接从其可见工单计算，避免误用投顾专属接口。
+                const response = await fetch(`${API_BASE}/api/wealth/workorder/list?limit=100`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -819,11 +1021,13 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.code === 0 && result.data) {
-                        document.getElementById('todayCount').textContent = result.data.today_count || 0;
-                        document.getElementById('pendingCount').textContent = result.data.pending_count || 0;
-                        document.getElementById('monthlyCustomers').textContent = result.data.monthly_customers || 0;
-                        document.getElementById('avgTime').textContent = result.data.avg_time || 0;
+                    if (result.status_code === 200 && result.data) {
+                        const orders = result.data.workorders || [];
+                        const visible = orders.filter(order => workorderCategory(order) !== '其他');
+                        document.getElementById('totalCount').textContent = visible.length;
+                        document.getElementById('completedCount').textContent = filterOrdersByCategory(visible, '已完成').length;
+                        document.getElementById('pendingCount').textContent = filterOrdersByCategory(visible, '待处理').length;
+                        document.getElementById('unclaimedCount').textContent = filterOrdersByCategory(visible, '待领取').length;
                     }
                 } else {
                     console.error('加载统计数据失败:', response.statusText);
@@ -841,7 +1045,7 @@
             workorderList.innerHTML = '<div class="empty-state"><div class="spinner"></div><div>加载中...</div></div>';
 
             try {
-                const response = await fetch(`${API_BASE}/api/wealth/workorder/list?status=待处理`, {
+                const response = await fetch(`${API_BASE}/api/wealth/workorder/list?limit=100`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -853,13 +1057,10 @@
 
                 const result = await response.json();
 
-                if (result.code === 0 && result.data) {
-                    allWorkorders = result.data.workorders || [];
-
-                    document.getElementById('totalWorkorders').textContent = allWorkorders.length;
-                    document.getElementById('pendingCount').textContent = allWorkorders.length;
-
-                    renderWorkorders(allWorkorders);
+                if (result.status_code === 200 && result.data) {
+                    allWorkorders = (result.data.workorders || []).filter(order => workorderCategory(order) !== '其他');
+                    filterWorkorders(currentFilter);
+                    await loadStatistics();
                 } else {
                     workorderList.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>暂无待办工单</div></div>';
                 }
@@ -884,12 +1085,24 @@
                 const urgentTag = order.urgent ? '<span class="urgent-tag">紧急</span>' : '';
                 const levelClass = getCustomerLevelClass(order.customer_level);
                 const summary = extractBusinessSummary(order.intent_summary);
+                const category = workorderCategory(order);
+                const isTerminal = ['已完成', '已关闭', '已驳回'].includes(category);
+                const canClose = category === '待处理' && ['申购', '追加申购', '赎回'].includes(order.business_subtype);
+                const categoryClass = category === '待领取' ? 'unclaimed' : (category === '待处理' ? 'pending' : (category === '已完成' ? 'completed' : 'closed'));
+                const actionLabel = category === '待领取' ? '领取处理' : (isTerminal ? '查看详情' : (order.status === '待审核' ? '查看进度' : '继续处理'));
+                const actionHandler = category === '待领取'
+                    ? `claimWorkorder('${escapeHtml(order.id)}', event)`
+                    : (isTerminal ? `event.stopPropagation(); viewWorkorder('${escapeHtml(order.id)}')` : `serviceWorkorder('${escapeHtml(order.id)}', event)`);
+                const closeAction = canClose
+                    ? `<button class="action-btn close-workorder-btn" onclick="openCloseWorkorder('${escapeHtml(order.id)}', event)">关闭工单</button>`
+                    : '';
 
                 html += `
                     <div class="workorder-card" onclick="viewWorkorder('${escapeHtml(order.id)}')">
                         <div class="workorder-header">
-                            <span class="order-type-tag ${typeClass}">${escapeHtml(order.order_type || '客户转介')}</span>
+                            <span class="order-type-tag ${typeClass}">${escapeHtml(formatWorkorderType(order))}</span>
                             ${urgentTag}
+                            <span class="workorder-category ${categoryClass}">${escapeHtml(category)}</span>
                         </div>
                         <div class="customer-info">
                             <span class="customer-name">${escapeHtml(order.customer_name || '未知客户')}</span>
@@ -898,7 +1111,7 @@
                         <div class="workorder-summary">${escapeHtml(summary)}</div>
                         <div class="workorder-footer">
                             <span class="workorder-time">${formatTime(order.created_at)}</span>
-                            <button class="action-btn" onclick="claimWorkorder('${escapeHtml(order.id)}', event)">领取处理</button>
+                            <span>${closeAction}<button class="action-btn" onclick="${actionHandler}">${actionLabel}</button></span>
                         </div>
                     </div>
                 `;
@@ -914,6 +1127,12 @@
             if (type.includes('变更')) return 'order-type-change';
             if (type.includes('转账')) return 'order-type-transfer';
             return 'order-type-referral';
+        }
+
+        function formatWorkorderType(order) {
+            const orderType = order?.order_type || '客户转介';
+            const subtype = order?.business_subtype;
+            return subtype && orderType === '客户转介' ? `${orderType} · ${subtype}` : orderType;
         }
 
         // 获取客户等级样式
@@ -958,35 +1177,40 @@
         }
 
         // 筛选工单
-        function filterWorkorders(type) {
+        function filterWorkorders(type, sourceEvent) {
             currentFilter = type;
 
             // 更新Tab样式
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            const target = sourceEvent?.currentTarget || document.querySelector(`.tab-btn[data-filter="${type}"]`);
+            if (target) target.classList.add('active');
 
             // 筛选工单
-            let filtered = allWorkorders;
-            if (type !== 'all') {
-                filtered = allWorkorders.filter(order => {
-                    if (type === '客户转介') {
-                        return order.order_type === '客户转介';
-                    }
-                    if (type === '信息变更') {
-                        const summary = order.intent_summary || '';
-                        return summary.includes('信息') || summary.includes('更新');
-                    }
-                    if (type === '转账审核') {
-                        const summary = order.intent_summary || '';
-                        return summary.includes('转账');
-                    }
-                    return true;
-                });
-            }
+            const filtered = filterOrdersByCategory(allWorkorders, type);
+
+            const labels = {all: '全部可见工单', '已完成': '已完成工单', '待处理': '我的待处理工单', '待领取': '待领取工单'};
+            document.getElementById('workorderPanelTitle').textContent = labels[type] || '工单列表';
+            document.getElementById('totalWorkorders').textContent = filtered.length;
 
             renderWorkorders(filtered);
+        }
+
+        function focusWorkorders(status) {
+            showOperatorPage('workspace');
+            filterWorkorders(status);
+            document.getElementById('workorderList').focus({preventScroll: true});
+        }
+
+        function showOperatorPage(page, navItem) {
+            const workspace = document.getElementById('workspaceSection');
+            const customers = document.getElementById('customerSection');
+            const isCustomers = page === 'customers';
+            workspace.hidden = isCustomers;
+            customers.hidden = !isCustomers;
+            document.querySelectorAll('.nav-item[data-page]').forEach(item => item.classList.toggle('active', item === navItem || item.dataset.page === page));
+            if (isCustomers && selectedCustomerId) loadCustomerOverview(selectedCustomerId);
         }
 
         // 领取工单
@@ -994,7 +1218,6 @@
             event.stopPropagation();
 
             const token = localStorage.getItem('access_token');
-            const userId = localStorage.getItem('user_id');
 
             try {
                 const response = await fetch(`${API_BASE}/api/wealth/workorder/${orderId}`, {
@@ -1003,29 +1226,150 @@
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        status: '处理中',
-                        handler_id: userId
-                    })
+                    body: JSON.stringify({action: 'claim'})
                 });
 
                 if (!response.ok) {
                     throw new Error('领取工单失败');
                 }
 
-                alert('工单领取成功！');
-                loadWorkorders();
-                loadStatistics();
+                showOperatorModal('领取成功', '工单已进入您的办理队列，可点击“继续处理”进入该客户的业务助手。', '<button class="operator-modal-primary" onclick="closeOperatorModal()">知道了</button>');
+                await Promise.all([loadWorkorders(), loadStatistics(), loadRecentCustomers()]);
             } catch (error) {
                 console.error('领取工单失败:', error);
                 alert('领取工单失败，请重试');
             }
         }
 
+        function parseWorkorderAmount(order) {
+            const summary = String(order?.intent_summary || order?.title || '');
+            const match = summary.match(/(?:金额|约|申购|追加申购)\s*([0-9][0-9,]*(?:\.\d+)?)/);
+            if (!match) return null;
+            const amount = Number(String(match[1]).replace(/,/g, ''));
+            return Number.isFinite(amount) && amount > 0 ? amount : null;
+        }
+
+        async function autoCloseInsufficientBalance(order) {
+            const subtype = String(order?.business_subtype || '');
+            if (!['申购', '追加申购'].includes(subtype)) return false;
+            const amount = parseWorkorderAmount(order);
+            const available = Number(selectedCustomerSummary?.availableBalance);
+            if (amount == null || !Number.isFinite(available) || amount <= available) return false;
+            const reason = `自动校验失败：申购金额${amount.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}元，可用余额${available.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}元，余额不足`;
+            const response = await fetch(`${API_BASE}/api/wealth/workorder/${encodeURIComponent(order.id)}`, {
+                method: 'PUT',
+                headers: {'Authorization': `Bearer ${localStorage.getItem('access_token')}`, 'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'close', remark: reason})
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.detail || result.msg || '自动关闭余额不足工单失败');
+            appendAIMessage('assistant', `已自动关闭工单：客户可用余额不足。\n申购金额：¥${amount.toLocaleString('zh-CN', {minimumFractionDigits: 2})}\n可用余额：¥${available.toLocaleString('zh-CN', {minimumFractionDigits: 2})}\n系统已将关闭原因反馈给客户，未发起双录或交易。`);
+            activeWorkorderId = null;
+            await Promise.all([loadWorkorders(), loadStatistics(), loadRecentCustomers()]);
+            return true;
+        }
+
+        async function serviceWorkorder(orderId, event) {
+            event?.stopPropagation();
+            const order = allWorkorders.find(item => String(item.id) === String(orderId));
+            if (!order || !order.customer_id) {
+                showOperatorModal('处理工单', '工单缺少客户信息，无法建立服务上下文。');
+                return;
+            }
+            selectCustomerContext(order.customer_id, order.customer_name || `客户 ${order.customer_id}`);
+            activeWorkorderId = Number(order.id);
+            const assistant = document.getElementById('aiAssistant');
+            if (assistant.classList.contains('minimized')) toggleAI();
+            closeOperatorModal();
+            updateAIContext(order);
+            appendAIMessage('assistant', `已进入 ${order.customer_name || `客户 ${order.customer_id}`} 的服务会话。\n当前事项：${order.intent_summary || '暂无摘要'}\n请核对业务要素后发起办理。`);
+            try {
+                await loadCustomerOverview(order.customer_id);
+                if (await autoCloseInsufficientBalance(order)) return;
+            } catch (error) {
+                appendAIMessage('assistant', `无法完成余额预检：${error.message || '请稍后重试'}。本次未发起交易。`);
+                return;
+            }
+            document.getElementById('aiInput').focus();
+        }
+
+        function openCloseWorkorder(orderId, event) {
+            event?.stopPropagation();
+            const order = allWorkorders.find(item => String(item.id) === String(orderId));
+            if (!order || workorderCategory(order) !== '待处理') {
+                showOperatorModal('关闭工单', '该工单状态已经变化，请刷新后重试。');
+                return;
+            }
+            showOperatorModal(
+                '关闭不符合条件的工单',
+                `<div class="close-workorder-form"><p><strong>${escapeHtml(order.customer_name || `客户 ${order.customer_id}`)}</strong> · ${escapeHtml(formatWorkorderType(order))}</p>
+                <p class="profile-muted">关闭后客户会收到工单状态、经办客户经理和关闭原因。该操作不会执行交易。</p>
+                <label for="closeReasonType">关闭原因</label>
+                <select id="closeReasonType" onchange="syncCloseReasonDetail()">
+                    <option value="">请选择原因</option>
+                    <option value="申购金额不满足产品起投要求">申购金额不满足产品起投要求</option>
+                    <option value="客户风险等级与产品风险等级不匹配">客户风险等级与产品风险等级不匹配</option>
+                    <option value="可用余额或可赎回份额不足">可用余额或可赎回份额不足</option>
+                    <option value="产品当前不可申购或不可赎回">产品当前不可申购或不可赎回</option>
+                    <option value="其他">其他</option>
+                </select>
+                <label for="closeReasonDetail">反馈给客户的具体说明</label>
+                <textarea id="closeReasonDetail" maxlength="200" rows="4" placeholder="请说明不符合办理条件的具体原因"></textarea>
+                <div id="closeReasonError" class="error-text" aria-live="polite"></div></div>`,
+                `<button type="button" onclick="closeOperatorModal()">取消</button><button type="button" class="operator-modal-primary" id="confirmCloseWorkorderBtn" onclick="submitCloseWorkorder('${escapeHtml(order.id)}')">确认关闭并通知客户</button>`
+            );
+        }
+
+        function syncCloseReasonDetail() {
+            const type = document.getElementById('closeReasonType')?.value || '';
+            const detail = document.getElementById('closeReasonDetail');
+            if (detail && type && type !== '其他') detail.value = type;
+            if (detail && type === '其他') detail.value = '';
+        }
+
+        async function submitCloseWorkorder(orderId) {
+            const reason = document.getElementById('closeReasonDetail')?.value.trim() || '';
+            const error = document.getElementById('closeReasonError');
+            if (!reason) {
+                if (error) error.textContent = '请填写反馈给客户的关闭原因。';
+                return;
+            }
+            const button = document.getElementById('confirmCloseWorkorderBtn');
+            if (button) button.disabled = true;
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/workorder/${encodeURIComponent(orderId)}`, {
+                    method: 'PUT',
+                    headers: {'Authorization': `Bearer ${localStorage.getItem('access_token')}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({action: 'close', remark: reason})
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.detail || result.msg || '关闭工单失败');
+                activeWorkorderId = null;
+                closeOperatorModal();
+                appendAIMessage('assistant', `工单已关闭并通知客户。关闭原因：${reason}`);
+                await Promise.all([loadWorkorders(), loadStatistics(), loadRecentCustomers()]);
+            } catch (requestError) {
+                if (error) error.textContent = requestError.message || '关闭工单失败，请重试。';
+                if (button) button.disabled = false;
+            }
+        }
+
         // 查看工单详情
         function viewWorkorder(orderId) {
-            // 跳转到工单详情页面或打开弹窗
-            window.location.href = `/workorder/${orderId}`;
+            const order = allWorkorders.find(item => String(item.id) === String(orderId));
+            if (!order) {
+                showOperatorModal('工单详情', '工单数据已刷新，请重新打开列表。');
+                return;
+            }
+            const summary = order.intent_summary || order.description || order.title || '暂无业务摘要';
+            showOperatorModal('工单详情', `<dl>
+                <dt>工单编号</dt><dd>${escapeHtml(order.order_no || order.id)}</dd>
+                <dt>客户</dt><dd>${escapeHtml(order.customer_name || `客户 ${order.customer_id || '-'}`)}</dd>
+                <dt>业务类型</dt><dd>${escapeHtml(formatWorkorderType(order))}</dd>
+                <dt>状态</dt><dd>${escapeHtml(order.status || '-')}</dd>
+                <dt>优先级</dt><dd>${escapeHtml(order.priority || '-')}</dd>
+                <dt>业务摘要</dt><dd>${escapeHtml(summary)}</dd>
+            </dl>`, '<button class="operator-modal-primary" onclick="closeOperatorModal()">知道了</button>');
         }
 
         // 加载最近服务客户
@@ -1034,8 +1378,8 @@
             const customerList = document.getElementById('customerList');
 
             try {
-                // 调用业务助手客户列表API
-                const response = await fetch(`${API_BASE}/api/wealth/operator/clients?limit=10`, {
+                // 客户经理客户范围来自可见工单，而不是理财顾问客户接口。
+                const response = await fetch(`${API_BASE}/api/wealth/workorder/list?limit=100`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1043,8 +1387,20 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.code === 0 && result.data && result.data.clients.length > 0) {
-                        const customers = result.data.clients;
+                    if (result.status_code === 200 && result.data && result.data.workorders.length > 0) {
+                        const seen = new Set();
+                        const customers = result.data.workorders
+                            .filter(order => order.assignment_scope === 'owned')
+                            .filter(order => ['处理中', '待审核', '已完成', '已关闭', '已驳回'].includes(order.status))
+                            .filter(order => order.customer_id && !seen.has(order.customer_id) && seen.add(order.customer_id))
+                            .map(order => ({
+                                id: order.customer_id,
+                                name: order.customer_name || `客户 ${order.customer_id}`,
+                                action: order.intent_summary || order.title || order.order_type,
+                                time: formatTime(order.created_at),
+                            }));
+                        managedCustomers = customers;
+                        document.getElementById('managedCustomerCount').textContent = customers.length;
                         let html = '';
                         customers.forEach(customer => {
                             html += `
@@ -1053,38 +1409,567 @@
                                         <div class="customer-name">${escapeHtml(customer.name)}</div>
                                         <div class="customer-action">${escapeHtml(customer.action)} · ${escapeHtml(customer.time)}</div>
                                     </div>
-                                    <a href="/customer/${escapeHtml(customer.id)}" class="view-link">查看详情</a>
+                                    <button class="view-link"
+                                        data-customer-id="${escapeHtml(customer.id)}"
+                                        data-customer-name="${escapeHtml(customer.name)}"
+                                        onclick="selectCustomer(this)">选择客户</button>
                                 </div>
                             `;
                         });
                         customerList.innerHTML = html;
+                        if (selectedCustomerId && !customers.some(customer => String(customer.id) === String(selectedCustomerId))) {
+                            selectedCustomerId = null;
+                            selectedCustomerName = '';
+                            localStorage.removeItem('customer_id');
+                            localStorage.removeItem('customer_name');
+                        }
                     } else {
+                        selectedCustomerId = null;
+                        selectedCustomerName = '';
+                        managedCustomers = [];
+                        document.getElementById('managedCustomerCount').textContent = '0';
+                        localStorage.removeItem('customer_id');
+                        localStorage.removeItem('customer_name');
                         customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div>暂无数据</div></div>';
                     }
                 } else {
+                    document.getElementById('managedCustomerCount').textContent = '0';
                     customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div>暂无数据</div></div>';
                 }
             } catch (error) {
                 console.error('加载客户列表失败:', error);
+                document.getElementById('managedCustomerCount').textContent = '0';
                 customerList.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><div>加载失败</div></div>';
             }
         }
 
         // 快速操作功能
-        function createWorkorder() {
-            alert('创建工单功能开发中');
+        async function createWorkorder() {
+            const customerId = Number(selectedCustomerId || localStorage.getItem('customer_id')) || 0;
+            if (!customerId) {
+                openCustomerPicker('创建工单', 'createWorkorder');
+                return;
+            }
+            showOperatorModal('创建工单', `<label for="newWorkorderSubtype">具体业务类型</label><select id="newWorkorderSubtype" style="width:100%;margin:8px 0 12px;padding:10px;border:1px solid #d1d5db;border-radius:6px"><option value="申购">申购</option><option value="追加申购">追加申购</option><option value="赎回">赎回</option><option value="转账">转账</option><option value="资料变更">资料变更</option><option value="产品配置">产品配置</option><option value="风险预警">风险预警</option></select><label for="newWorkorderSummary">业务摘要</label><textarea id="newWorkorderSummary" rows="4" style="width:100%;margin-top:8px;padding:10px;border:1px solid #d1d5db;border-radius:6px" placeholder="例如：客户申请追加申购，需要核对金额和风险揭示"></textarea>`, '<button class="operator-modal-secondary" onclick="closeOperatorModal()">取消</button><button class="operator-modal-primary" onclick="submitWorkorder()">提交工单</button>');
+        }
+
+        async function submitWorkorder() {
+            const customerId = parseInt(localStorage.getItem('customer_id')) || 0;
+            const summaryField = document.getElementById('newWorkorderSummary');
+            const summary = summaryField ? summaryField.value.trim() : '';
+            const subtypeField = document.getElementById('newWorkorderSubtype');
+            const businessSubtype = subtypeField ? subtypeField.value : '';
+            if (!summary) {
+                if (summaryField) summaryField.focus();
+                return;
+            }
+            const token = localStorage.getItem('access_token');
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/workorder`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({order_type: '客户转介', business_subtype: businessSubtype, customer_id: customerId, intent_summary: summary.trim(), priority: '普通'})
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || result.msg || '创建工单失败');
+                showOperatorModal('工单已创建', `客户 ${customerId} 的业务工单已进入事务池。`, '<button class="operator-modal-primary" onclick="closeOperatorModal(); loadWorkorders(); loadRecentCustomers();">完成</button>');
+            } catch (error) {
+                showOperatorModal('创建工单失败', error.message || '请稍后重试');
+            }
+        }
+
+        const profileFieldLabels = {
+            bond: '债券', cash: '现金', stock: '股票', fund: '基金', insurance: '保险',
+            fixed_income: '固收类', equity: '权益类', alternative: '另类资产', liquidity: '流动性资产',
+            risk_appetite: '风险偏好', preferred_types: '偏好产品', investment_horizon: '投资期限',
+            preferred_product_types: '偏好产品', liquidity_preference: '流动性偏好',
+            investment_goal: '投资目标', expected_return: '预期收益', max_drawdown: '可承受回撤',
+            industry_preference: '行业偏好'
+        };
+        const assetAllocationKeys = new Set([
+            'bond', 'cash', 'stock', 'fund', 'insurance',
+            'fixed_income', 'equity', 'alternative', 'liquidity'
+        ]);
+
+        function profileLabel(key) {
+            return profileFieldLabels[key] || String(key).replace(/_/g, ' ');
+        }
+
+        function profileDisplayValue(value) {
+            if (Array.isArray(value)) return value.filter(item => item != null && item !== '').map(item => String(item));
+            if (value && typeof value === 'object') return Object.entries(value).map(([key, item]) => `${profileLabel(key)}：${item}`).join('；');
+            return value == null || value === '' ? '' : String(value);
+        }
+
+        function renderAssetAllocation(allocation) {
+            const allocationEntries = allocation && typeof allocation === 'object'
+                ? Object.entries(allocation).filter(([key]) => assetAllocationKeys.has(key))
+                : [];
+            if (!allocationEntries.length) {
+                return '<span class="profile-muted">暂无资产配置数据</span>';
+            }
+            return `<div class="profile-allocation">${allocationEntries.map(([key, rawValue]) => {
+                const numeric = Number(rawValue);
+                const ratio = Number.isFinite(numeric) ? (numeric <= 1 ? numeric * 100 : numeric) : 0;
+                const width = Math.max(0, Math.min(100, ratio));
+                const display = Number.isFinite(numeric) ? `${ratio.toFixed(2).replace(/\.00$/, '')}%` : escapeHtml(String(rawValue));
+                return `<div class="profile-allocation-row"><span>${escapeHtml(profileLabel(key))}</span><div class="profile-bar"><span style="width:${width}%"></span></div><strong>${display}</strong></div>`;
+            }).join('')}</div>`;
+        }
+
+        function renderProfilePreference(preference) {
+            if (!preference || typeof preference !== 'object' || !Object.keys(preference).length) {
+                return '<span class="profile-muted">暂无产品偏好数据</span>';
+            }
+            return Object.entries(preference).map(([key, value]) => {
+                const display = profileDisplayValue(value);
+                const content = Array.isArray(display)
+                    ? `<div class="profile-tags">${display.map(item => `<span class="profile-tag">${escapeHtml(item)}</span>`).join('')}</div>`
+                    : escapeHtml(display || '未设置');
+                return `<div style="margin-bottom:8px"><span style="color:#6b7280">${escapeHtml(profileLabel(key))}：</span>${content}</div>`;
+            }).join('');
+        }
+
+        function renderPortraitDimension(label, rawScore, maximum) {
+            const score = Number(rawScore);
+            const available = Number.isFinite(score);
+            const bounded = available ? Math.max(0, Math.min(score, maximum)) : 0;
+            const width = maximum ? bounded / maximum * 100 : 0;
+            return `<div class="portrait-dimension">
+                <div class="portrait-dimension-head"><span>${escapeHtml(label)}</span><strong>${available ? score.toFixed(1) : '--'} / ${maximum}</strong></div>
+                <div class="profile-bar" role="img" aria-label="${escapeHtml(label)} ${available ? score.toFixed(1) : '暂无评分'}，满分 ${maximum}"><span style="width:${width.toFixed(1)}%"></span></div>
+            </div>`;
+        }
+
+        function renderCustomerPortrait(profile) {
+            const hasDimensions = [1, 2, 3, 4].some(index => Number.isFinite(Number(profile[`dimension${index}_score`])));
+            if (!hasDimensions && !profile.product_preference && profile.confidence_score == null) {
+                return '<span class="profile-muted">该客户尚未形成结构化客户画像</span>';
+            }
+            const confidence = Number(profile.confidence_score);
+            const flags = Array.isArray(profile.fm_flags) ? profile.fm_flags : [];
+            return `${hasDimensions ? `<div class="portrait-grid">
+                ${renderPortraitDimension('基础属性', profile.dimension1_score, 25)}
+                ${renderPortraitDimension('投资经验', profile.dimension2_score, 25)}
+                ${renderPortraitDimension('风险偏好', profile.dimension3_score, 30)}
+                ${renderPortraitDimension('行为表现与异常', profile.dimension4_score, 20)}
+            </div>` : '<span class="profile-muted">暂无四维画像评分</span>'}
+            <div class="portrait-meta">
+                <span>画像置信度：<strong>${Number.isFinite(confidence) ? `${(confidence * 100).toFixed(1)}%` : '暂无'}</strong></span>
+                <span>更新原因：<strong>${escapeHtml(profile.updated_reason || '暂无')}</strong></span>
+                <span>更新时间：<strong>${escapeHtml(profile.updated_at ? String(profile.updated_at).replace('T', ' ').slice(0, 19) : '暂无')}</strong></span>
+            </div>
+            ${flags.length ? `<div class="profile-tags" style="margin-top:10px">${flags.map(flag => `<span class="profile-tag">${escapeHtml(flag)}</span>`).join('')}</div>` : ''}
+            <div style="margin-top:14px">${renderProfilePreference(profile.product_preference)}</div>`;
+        }
+
+        function renderAdvisorPlan(plan) {
+            if (!plan || !Array.isArray(plan.products) || !plan.products.length) {
+                return '<span class="profile-muted">暂无理财顾问已保存的配置方案。顾问生成方案后会在此处同步展示。</span>';
+            }
+            const rows = plan.products.map(product => `<tr>
+                <td>${escapeHtml(`${Number(product.allocation_percent || 0).toFixed(1)}%`)}</td>
+                <td>${escapeHtml(product.product_name || '-')}</td>
+                <td>${escapeHtml(product.product_type || '-')}</td>
+                <td>${escapeHtml(product.risk_level || '-')}</td>
+                <td>${escapeHtml(product.recommendation_reason || '-')}</td>
+            </tr>`).join('');
+            return `<div class="advisor-plan-note">顾问：${escapeHtml(plan.advisor_name || `员工 ${plan.advisor_id}`)} · 方案风险基准：${escapeHtml(plan.risk_level || '暂无')} · 生成时间：${escapeHtml(plan.created_at ? String(plan.created_at).replace('T', ' ').slice(0, 19) : '暂无')}<br>${escapeHtml(plan.disclaimer || '方案仅供业务沟通，不会自动创建交易。')}</div>
+                <table class="overview-table"><thead><tr><th>建议比例</th><th>产品</th><th>类型</th><th>风险</th><th>配置理由</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+
+        function renderCustomerOverview(data) {
+            const customer = data.customer || {};
+            const profile = data.profile || {};
+            const account = data.account || {};
+            const holdings = data.holdings || [];
+            const transactions = data.transactions || [];
+            const advisorPlan = data.advisor_plan || null;
+            selectedCustomerSummary = {
+                customerLevel: customer.customer_level || '普通',
+                riskLevel: profile.risk_level || '未测评',
+                availableBalance: account.available_balance,
+            };
+            document.getElementById('aiCustomerPicker')?.setAttribute('hidden', '');
+            updateAIContext();
+            if (String(lastAnnouncedCustomerId) !== String(customer.id)) {
+                lastAnnouncedCustomerId = customer.id;
+                appendAIMessage('assistant', `当前客户：${selectedCustomerName || customer.name}\n客户等级：${customer.customer_level || '普通'}\n风险等级：${profile.risk_level || '未测评'}\n可用余额：${account.available_balance == null ? '暂无' : formatMoney(account.available_balance)}\n已加载客户资料、持仓和交易概览。`);
+            }
+            const holdingRows = holdings.length ? holdings.map(item => `<tr><td>${escapeHtml(item.product_name || '-')}</td><td>${escapeHtml(String(item.shares ?? '-'))}</td><td>${escapeHtml(formatMoney(item.current_value))}</td><td>${escapeHtml(formatMoney(item.profit_loss))}</td></tr>`).join('') : '<tr><td colspan="4" class="profile-muted">暂无持仓</td></tr>';
+            const transactionRows = transactions.length ? transactions.slice(0, 8).map(item => `<tr><td>${escapeHtml(item.transaction_type || '-')}</td><td>${escapeHtml(item.product_name || '-')}</td><td>${escapeHtml(formatMoney(item.amount))}</td><td>${escapeHtml(item.status || '-')}</td></tr>`).join('') : '<tr><td colspan="4" class="profile-muted">暂无交易记录</td></tr>';
+            document.getElementById('customerOverviewTitle').textContent = `${customer.name || selectedCustomerName || '客户'} · 业务概览`;
+            document.getElementById('customerOverview').innerHTML = `
+                <div class="overview-grid">
+                    <div class="overview-metric"><span>客户等级</span><strong>${escapeHtml(customer.customer_level || '普通')}</strong></div>
+                    <div class="overview-metric"><span>风险等级</span><strong>${escapeHtml(profile.risk_level || '未测评')}</strong></div>
+                <div class="overview-metric"><span>可用余额${account.balance_is_simulated ? '（模拟）' : ''}</span><strong>${account.available_balance == null ? '暂无' : escapeHtml(formatMoney(account.available_balance))}</strong></div>
+                </div>
+                <dl class="profile-dl"><dt>手机号</dt><dd>${escapeHtml(customer.phone || '暂无')}</dd><dt>邮箱</dt><dd>${escapeHtml(customer.email || '暂无')}</dd><dt>风评有效期</dt><dd>${escapeHtml(profile.valid_until ? String(profile.valid_until).replace('T', ' ').slice(0, 19) : '暂无')}</dd></dl>
+                <div class="overview-section"><h3>当前资产配置画像</h3>${renderAssetAllocation(profile.asset_allocation)}</div>
+                <div class="overview-section"><h3>客户画像</h3>${renderCustomerPortrait(profile)}</div>
+                <div class="overview-section"><h3>最新顾问配置方案</h3>${renderAdvisorPlan(advisorPlan)}</div>
+                <div class="overview-section"><h3>当前持仓</h3><table class="overview-table"><thead><tr><th>产品</th><th>份额</th><th>市值</th><th>浮动盈亏</th></tr></thead><tbody>${holdingRows}</tbody></table></div>
+                <div class="overview-section"><h3>最近交易</h3><table class="overview-table"><thead><tr><th>类型</th><th>产品</th><th>金额</th><th>状态</th></tr></thead><tbody>${transactionRows}</tbody></table></div>
+                <div style="margin-top:20px"><button class="operator-modal-primary" style="border:0;border-radius:6px;padding:9px 16px;cursor:pointer" onclick="selectCustomerContext('${escapeHtml(customer.id)}','${escapeHtml(customer.name || selectedCustomerName)}'); toggleAI()">打开业务助手</button></div>`;
+        }
+
+        function formatMoney(value) {
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? `¥${numeric.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '暂无';
+        }
+
+        async function loadCustomerOverview(customerId) {
+            const token = localStorage.getItem('access_token');
+            const target = document.getElementById('customerOverview');
+            if (!target || !customerId) return;
+            target.innerHTML = '<div class="empty-state"><div class="spinner"></div><div>加载客户业务数据...</div></div>';
+            try {
+                const response = await fetch(`${API_BASE}/api/operation/customers/${customerId}/overview`, {headers: {'Authorization': `Bearer ${token}`}});
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || result.msg || '客户概览加载失败');
+                renderCustomerOverview(result.data || {});
+            } catch (error) {
+                target.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><div>${escapeHtml(error.message || '客户概览加载失败')}</div></div>`;
+            }
         }
 
         function queryCustomer() {
-            alert('客户查询功能开发中');
+            const customerId = Number(selectedCustomerId || localStorage.getItem('customer_id')) || 0;
+            if (!customerId) {
+                openCustomerPicker('客户查询', 'queryCustomer');
+                return;
+            }
+            showOperatorPage('customers');
+            loadCustomerOverview(customerId);
+        }
+
+        function openCustomerPicker(title, nextAction) {
+            if (!managedCustomers.length) {
+                showOperatorModal(title, '当前没有可办理的客户。请先在待办工单中领取客户业务，领取后即可从这里直接选择。', '<button class="operator-modal-primary" onclick="closeOperatorModal(); scrollToSection(\'workorderList\')">查看待办工单</button>');
+                return;
+            }
+            const options = managedCustomers.map(customer => `
+                <button type="button" class="operator-customer-option" data-customer-id="${escapeHtml(customer.id)}" data-customer-name="${escapeHtml(customer.name)}" data-next-action="${escapeHtml(nextAction)}" style="display:flex;width:100%;align-items:center;justify-content:space-between;margin:8px 0;padding:12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;text-align:left">
+                    <span><strong>${escapeHtml(customer.name)}</strong><small style="display:block;color:#6b7280;margin-top:3px">${escapeHtml(customer.action || '客户服务')}</small></span><span style="color:#2563eb">选择</span>
+                </button>`).join('');
+            showOperatorModal(title, `<div>请选择本次操作对应的客户：</div>${options}`, '<button class="operator-modal-secondary" onclick="closeOperatorModal()">取消</button>');
+            document.querySelectorAll('#operatorModalRoot .operator-customer-option').forEach(button => {
+                button.addEventListener('click', () => pickCustomerAndContinue(
+                    button.dataset.customerId,
+                    button.dataset.customerName,
+                    button.dataset.nextAction,
+                ));
+            });
+        }
+
+        function pickCustomerAndContinue(customerId, customerName, nextAction) {
+            selectCustomerContext(customerId, customerName);
+            closeOperatorModal();
+            if (nextAction === 'createWorkorder') createWorkorder();
+            if (nextAction === 'queryCustomer') queryCustomer();
+            if (nextAction === 'selectAssistantCustomer') {
+                const assistant = document.getElementById('aiAssistant');
+                if (assistant?.classList.contains('minimized')) toggleAI();
+            }
         }
 
         function transferAudit() {
-            alert('转账审核功能开发中');
+            currentFilter = '转账审核';
+            const filtered = allWorkorders.filter(order => (order.intent_summary || order.description || '').includes('转账'));
+            renderWorkorders(filtered);
+            document.getElementById('workorderList').scrollIntoView({behavior: 'smooth', block: 'center'});
+            if (!filtered.length) {
+                showOperatorModal('转账审核', '当前没有待处理或由您办理中的转账工单。', '<button class="operator-modal-primary" onclick="closeOperatorModal()">知道了</button>');
+            }
         }
 
         function reportSuspicious() {
-            alert('可疑交易上报功能开发中');
+            showOperatorModal('可疑交易', '可疑交易由风控专员负责调查和上报。请将相关客户与交易信息转交风控工作台。', '<button class="operator-modal-secondary" onclick="closeOperatorModal()">关闭</button><button class="operator-modal-primary" onclick="window.location.href=\'/chat/risk\'">打开风控工作台</button>');
+        }
+
+        function scrollToSection(id) {
+            const target = document.getElementById(id);
+            if (target) target.scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
+
+        function showOperatorModal(title, body, actions) {
+            const root = document.getElementById('operatorModalRoot');
+            root.hidden = false;
+            root.innerHTML = `<div class="operator-modal-backdrop" onclick="if(event.target===this) closeOperatorModal()">
+                <section class="operator-modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+                    <header class="operator-modal-header"><h3>${escapeHtml(title)}</h3><button class="operator-modal-close" aria-label="关闭" onclick="closeOperatorModal()">×</button></header>
+                    <div class="operator-modal-body">${body}</div>
+                    ${actions ? `<div class="operator-modal-actions">${actions}</div>` : ''}
+                </section>
+            </div>`;
+        }
+
+        function closeOperatorModal() {
+            const root = document.getElementById('operatorModalRoot');
+            root.hidden = true;
+            root.innerHTML = '';
+        }
+
+        function selectCustomer(button) {
+            const customerId = button.dataset.customerId;
+            const customerName = button.dataset.customerName;
+            selectCustomerContext(customerId, customerName);
+            showOperatorPage('customers', document.querySelector('.nav-item[data-page="customers"]'));
+            loadCustomerOverview(customerId);
+            document.querySelectorAll('#customerList .view-link').forEach(item => {
+                item.textContent = item === button ? '已选择' : '选择客户';
+                item.disabled = item === button;
+            });
+        }
+
+        function selectCustomerContext(customerId, customerName) {
+            const previousCustomerId = selectedCustomerId;
+            const customerChanged = previousCustomerId != null && String(previousCustomerId) !== String(customerId);
+            activeWorkorderId = null;
+            selectedCustomerId = customerId;
+            selectedCustomerName = customerName;
+            selectedCustomerSummary = null;
+            localStorage.setItem('customer_id', customerId);
+            localStorage.setItem('customer_name', customerName);
+            document.getElementById('aiInput').placeholder = `正在服务：${customerName}`;
+            loadCustomerOverview(customerId);
+            document.getElementById('aiCustomerPicker')?.setAttribute('hidden', '');
+            if (customerChanged) resetOperatorAssistant(customerName);
+            else if (previousCustomerId == null) {
+                document.getElementById('aiMessages')?.replaceChildren();
+                appendAIMessage('assistant', `已选择 ${customerName}，正在加载客户基本信息...`);
+            }
+            updateAIContext();
+        }
+
+        function resetOperatorAssistant(customerName) {
+            pendingConfirmToken = null;
+            stopConfirmationStatusPolling();
+            document.getElementById('aiConfirmationCard')?.remove();
+            document.getElementById('simulatedDoubleRecordCard')?.remove();
+            const messages = document.getElementById('aiMessages');
+            if (!messages) return;
+            messages.replaceChildren();
+            appendAIMessage('assistant', `已切换至 ${customerName || '当前客户'}。上一客户的助手消息已清除，请从当前工单继续办理。`);
+        }
+
+        function updateAIContext(order = null) {
+            const context = document.getElementById('aiContext');
+            if (!context) return;
+            if (!selectedCustomerId) {
+                context.hidden = true;
+                context.innerHTML = '';
+                return;
+            }
+            const workorder = order || allWorkorders.find(item => String(item.id) === String(activeWorkorderId));
+            const matter = workorder?.intent_summary || workorder?.title || '一般客户服务';
+            context.hidden = false;
+            const summary = selectedCustomerSummary || {};
+            const basics = [
+                summary.customerLevel && `客户等级：${summary.customerLevel}`,
+                summary.riskLevel && `风险等级：${summary.riskLevel}`,
+                summary.availableBalance != null && `可用余额：${formatMoney(summary.availableBalance)}`,
+            ].filter(Boolean).join(' · ');
+            context.innerHTML = `<strong>当前客户：</strong>${escapeHtml(selectedCustomerName || `客户 ${selectedCustomerId}`)}${basics ? `<br><span>${escapeHtml(basics)}</span>` : '<br><span>正在加载客户基本信息...</span>'}<br><strong>关联工单：</strong>${escapeHtml(workorder?.order_no || workorder?.id || '未关联')}<br><strong>业务事项：</strong>${escapeHtml(matter)}`;
+        }
+
+        function appendAIMessage(role, content, elementId = '') {
+            const messages = document.getElementById('aiMessages');
+            if (!messages) return null;
+            const item = document.createElement('div');
+            item.className = `ai-message ${role}`;
+            if (elementId) item.id = elementId;
+            item.textContent = content;
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+            return item;
+        }
+
+        function explainOperatorMessage(message) {
+            const text = String(message || '');
+            if (text.includes('double_record_completed')) {
+                return '当前申购尚未执行：还缺少双录合规记录。请先完成客户适当性核验、风险揭示和双录登记，并由有权限的人员将合规证据入库；完成后再重新发起申购。此时不会扣款，也不会改变客户持仓。';
+            }
+            if (text.includes('risk_disclosure_signed')) {
+                return '当前申购尚未执行：还缺少风险揭示确认。请先完成风险揭示并留存确认记录，再重新发起申购。';
+            }
+            if (text.includes('MANUAL_REVIEW_REQUIRED') || text.includes('需要人工审核')) {
+                return '当前申购需要人工适当性复核，尚未执行交易。请先完成复核并补齐合规记录，再继续办理。';
+            }
+            return text;
+        }
+
+        function appendSimulatedDoubleRecordAction() {
+            const messages = document.getElementById('aiMessages');
+            if (!messages || document.getElementById('simulatedDoubleRecordCard')) return;
+            const card = document.createElement('div');
+            card.className = 'ai-confirmation';
+            card.id = 'simulatedDoubleRecordCard';
+            card.innerHTML = '<strong>测试双录流程</strong><br>仅用于本地联调：生成带客户、产品、经办人和时间审计信息的模拟证据，并写入 MinIO 与合规证据表。<div class="ai-confirmation-actions"><button class="ai-confirmation-cancel" onclick="document.getElementById(\'simulatedDoubleRecordCard\')?.remove()">暂不发起</button><button class="ai-confirmation-confirm" onclick="startSimulatedDoubleRecord()">发起测试双录</button></div>';
+            messages.appendChild(card);
+            messages.scrollTop = messages.scrollHeight;
+            startConfirmationStatusPolling(pendingConfirmToken);
+        }
+
+        function stopConfirmationStatusPolling() {
+            if (confirmationStatusPollTimer) window.clearInterval(confirmationStatusPollTimer);
+            confirmationStatusPollTimer = null;
+        }
+
+        function startConfirmationStatusPolling(confirmToken) {
+            stopConfirmationStatusPolling();
+            if (!confirmToken) return;
+            const check = async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/api/chat/operator/confirmations/${encodeURIComponent(confirmToken)}`, {
+                        headers: {'Authorization': `Bearer ${localStorage.getItem('access_token')}`}
+                    });
+                    if (!response.ok) return;
+                    const payload = await response.json();
+                    const confirmation = payload.data || {};
+                    if (['待确认', '已确认'].includes(confirmation.status)) return;
+                    stopConfirmationStatusPolling();
+                    pendingConfirmToken = null;
+                    document.getElementById('aiConfirmationCard')?.remove();
+                    if (confirmation.status === '已取消') {
+                        appendAIMessage('assistant', '客户已取消本次业务申请，未执行交易。');
+                        return;
+                    }
+                    const operationResult = confirmation.result || {};
+                    appendAIMessage('assistant', `客户已完成二次确认：${operationResult.message || '操作已处理'}`);
+                    const transactionId = Number(operationResult.data?.transaction_id) || 0;
+                    if (operationResult.success && transactionId && activeWorkorderId) {
+                        await completeActiveWorkorder(transactionId, operationResult.data?.transaction_type || '交易');
+                    }
+                    await Promise.all([loadWorkorders(), loadStatistics()]);
+                } catch (error) {
+                    console.debug('客户确认状态暂时不可用:', error);
+                }
+            };
+            check();
+            confirmationStatusPollTimer = window.setInterval(check, 3000);
+        }
+
+        function operatorNotificationSeenKey() {
+            return `operator_seen_confirmation_notifications_${currentOperatorId()}`;
+        }
+
+        function readSeenOperatorNotifications() {
+            try {
+                return new Set(JSON.parse(sessionStorage.getItem(operatorNotificationSeenKey()) || '[]'));
+            } catch (error) {
+                return new Set();
+            }
+        }
+
+        function saveSeenOperatorNotifications(seen) {
+            sessionStorage.setItem(operatorNotificationSeenKey(), JSON.stringify(Array.from(seen).slice(-200)));
+        }
+
+        async function pollOperatorNotifications() {
+            const token = localStorage.getItem('access_token');
+            if (!token || !currentOperatorId()) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/chat/operator/notifications?limit=50`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                if (!response.ok) return;
+                const payload = await response.json();
+                const notifications = payload.data?.items || [];
+                const seen = readSeenOperatorNotifications();
+                if (!operatorNotificationBaselineReady) {
+                    notifications.forEach(item => item.id && seen.add(item.id));
+                    saveSeenOperatorNotifications(seen);
+                    operatorNotificationBaselineReady = true;
+                    return;
+                }
+                const fresh = notifications.filter(item => item.id && !seen.has(item.id)).reverse();
+                for (const notification of fresh) {
+                    seen.add(notification.id);
+                    stopConfirmationStatusPolling();
+                    pendingConfirmToken = null;
+                    document.getElementById('aiConfirmationCard')?.remove();
+                    const assistant = document.getElementById('aiAssistant');
+                    if (assistant?.classList.contains('minimized')) toggleAI();
+                    const customerLabel = notification.customer_name || `客户 ${notification.customer_id}`;
+                    const operationResult = notification.result || {};
+                    if (notification.action === 'cancel') {
+                        appendAIMessage('assistant', `${customerLabel} 已取消本次交易，交易未执行。`);
+                    } else {
+                        appendAIMessage('assistant', `${customerLabel} 已确认本次交易：${operationResult.message || '操作已处理'}`);
+                        const transactionId = Number(operationResult.data?.transaction_id) || 0;
+                        if (operationResult.success && transactionId && activeWorkorderId) {
+                            await completeActiveWorkorder(transactionId, operationResult.data?.transaction_type || '交易');
+                        }
+                    }
+                    if (String(selectedCustomerId || '') === String(notification.customer_id || '')) {
+                        await loadCustomerOverview(notification.customer_id);
+                    }
+                }
+                if (fresh.length) {
+                    saveSeenOperatorNotifications(seen);
+                    await Promise.all([loadWorkorders(), loadStatistics(), loadRecentCustomers()]);
+                }
+            } catch (error) {
+                console.debug('客户确认结果通知暂时不可用:', error);
+            }
+        }
+
+        function stopOperatorNotificationPolling() {
+            if (operatorNotificationPollTimer) window.clearInterval(operatorNotificationPollTimer);
+            operatorNotificationPollTimer = null;
+        }
+
+        function startOperatorNotificationPolling() {
+            stopOperatorNotificationPolling();
+            operatorNotificationBaselineReady = false;
+            pollOperatorNotifications();
+            operatorNotificationPollTimer = window.setInterval(pollOperatorNotifications, 3000);
+        }
+
+        async function startSimulatedDoubleRecord() {
+            const customerId = parseInt(localStorage.getItem('customer_id')) || 0;
+            const token = localStorage.getItem('access_token');
+            const workorder = allWorkorders.find(item => String(item.id) === String(activeWorkorderId));
+            if (!customerId || !token) return appendAIMessage('assistant', '请先选择客户并保持登录状态。');
+            const card = document.getElementById('simulatedDoubleRecordCard');
+            try {
+                const response = await fetch(`${API_BASE}/api/compliance/test/double-record`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({customer_id: customerId, product_id: 3, workorder_id: workorder?.id || null})
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(payload.detail || '测试双录发起失败');
+                card?.remove();
+                appendAIMessage('assistant', '测试双录已完成并归档，正式合规 Loader 已可读取。请重新发起申购，系统仍会要求客户页二次确认。');
+            } catch (error) {
+                appendAIMessage('assistant', `测试双录未完成：${error.message}`);
+            }
+        }
+
+        function showAIConfirmation() {
+            const messages = document.getElementById('aiMessages');
+            const card = document.createElement('div');
+            card.className = 'ai-confirmation';
+            card.id = 'aiConfirmationCard';
+            card.innerHTML = `<strong>等待客户二次确认</strong><br>业务草稿已发送到客户页面。客户确认前不会执行交易，也不会改变账户、持仓或交易记录。
+                <div class="ai-confirmation-actions">
+                    <button class="ai-confirmation-cancel" onclick="resolvePendingOperatorAction('cancel')">撤回申请</button>
+                </div>`;
+            messages.appendChild(card);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function resolvePendingOperatorAction(action) {
+            if (!pendingConfirmToken) return;
+            const token = pendingConfirmToken;
+            pendingConfirmToken = null;
+            const card = document.getElementById('aiConfirmationCard');
+            if (card) card.remove();
+            stopConfirmationStatusPolling();
+            await confirmOperatorAction(token, action);
         }
 
         // 用户下拉菜单
@@ -1094,11 +1979,11 @@
         }
 
         function viewProfile() {
-            alert('个人信息功能开发中');
+            showOperatorModal('个人信息', `<dl><dt>登录账号</dt><dd>${escapeHtml(localStorage.getItem('username') || '当前账号')}</dd><dt>业务角色</dt><dd>客户经理 / 运营</dd></dl>`, '<button class="operator-modal-primary" onclick="closeOperatorModal()">关闭</button>');
         }
 
         function viewSettings() {
-            alert('系统设置功能开发中');
+            showOperatorModal('系统设置', '当前工作台使用数据库实时工单、客户范围授权和模拟交易账户。系统设置由业务管理员统一维护。', '<button class="operator-modal-primary" onclick="closeOperatorModal()">关闭</button>');
         }
 
         function logout() {
@@ -1130,38 +2015,209 @@
             }
         }
 
+        async function consumeSse(response, onContent) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            function consumeEvent(rawEvent) {
+                const payloadLines = [];
+                let dataStarted = false;
+                rawEvent.replace(/\r/g, '').split('\n').forEach(line => {
+                    if (line.startsWith('data:')) {
+                        dataStarted = true;
+                        payloadLines.push(line.slice(5).replace(/^ /, ''));
+                    } else if (dataStarted && line && !line.startsWith(':')) {
+                        // 兼容服务端历史帧中未逐行添加 data: 前缀的多行内容。
+                        payloadLines.push(line);
+                    }
+                });
+                if (!dataStarted && rawEvent.trim() && !rawEvent.trim().startsWith(':')) {
+                    // 兼容旧服务端把正文空行误当成 SSE 事件分隔符的情况。
+                    payloadLines.push(rawEvent.replace(/\r/g, ''));
+                }
+
+                const payload = payloadLines.join('\n');
+                if (!payload || payload.trim() === '[EOF]') return;
+
+                try {
+                    const structured = JSON.parse(payload);
+                    if (structured.type === 'error' || (structured.code != null && structured.code !== 0)) {
+                        throw new Error(structured.content || structured.message || '服务处理失败');
+                    }
+                    onContent(structured.content || payload);
+                } catch (error) {
+                    if (error instanceof SyntaxError) {
+                        onContent(payload);
+                        return;
+                    }
+                    throw error;
+                }
+            }
+
+            while (true) {
+                const {done, value} = await reader.read();
+                buffer += decoder.decode(value || new Uint8Array(), {stream: !done});
+                const events = buffer.split(/\r?\n\r?\n/);
+                buffer = events.pop() || '';
+                events.forEach(consumeEvent);
+                if (done) break;
+            }
+            if (buffer.trim()) consumeEvent(buffer);
+        }
+
         async function sendAIMessage(message) {
             const input = document.getElementById('aiInput');
             const query = message || input.value.trim();
 
             if (!query) return;
 
-            console.log('AI助手查询:', query);
-
-            // 使用通用AI助手模块
-            if (!window.operatorAI) {
-                window.operatorAI = new AIAssistant({
-                    agentType: 'operator',
-                    conversationId: 'operator_dashboard',
-                    customerId: null, // 根据当前工单设置
-                    onMessage: (chunk) => {
-                        // 实时显示AI回复（可以在页面上显示，或者弹出对话框）
-                        console.log('AI回复:', chunk);
-                    },
-                    onError: (error) => {
-                        alert('AI助手错误：' + error);
-                    },
-                    onComplete: () => {
-                        console.log('AI助手回复完成');
-                    }
-                });
-            }
-
-            // 发送消息
-            await window.operatorAI.sendMessage(query);
+            // 将当前已领取工单的原始事项交给 NL2API，帮助模型识别工单中的产品名、金额和份额。
+            // 产品 ID 仍由服务端产品库解析，前端不直接提交或生成交易参数。
+            const activeOrder = allWorkorders.find(item => String(item.id) === String(activeWorkorderId));
+            const operationQuery = activeOrder && /申购|赎回|转账|资料变更/.test(query)
+                ? `${query}\n当前已领取工单事项：${activeOrder.intent_summary || activeOrder.title || ''}`
+                : query;
 
             input.value = '';
+            appendAIMessage('user', query);
+            const token = localStorage.getItem('access_token');
+            const userId = parseInt(localStorage.getItem('user_id')) || 1;
+            const storedCustomerId = parseInt(localStorage.getItem('customer_id')) || 0;
+            const customerId = Number(selectedCustomerId) || storedCustomerId || null;
+
+            const isProductQuery = /查询.*(产品|理财|基金)|在售.*(产品|理财|基金)|(产品|理财|基金).*查询/.test(query);
+            if (!customerId && !isProductQuery) {
+                appendAIMessage('assistant', '请先选择客户，再进行查询或业务办理。');
+                openCustomerPicker('选择客户', 'selectAssistantCustomer');
+                return;
+            }
+
+            const sendButton = document.getElementById('aiSendBtn');
+            input.disabled = true;
+            sendButton.disabled = true;
+            const loading = appendAIMessage('status', '业务助手正在处理...', 'aiLoadingMessage');
+            try {
+                const response = await fetch(`${API_BASE}/api/chat/operator`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: operationQuery,
+                        session_id: customerId ? getOperatorSessionId(customerId) : `operator_product_query_${userId}`,
+                        user_id: userId,
+                        customer_id: customerId || null,
+                        is_stream: true
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('业务助手请求失败:', response.status, errorText);
+                    appendAIMessage('assistant', '业务助手暂时不可用，请稍后重试。');
+                    return;
+                }
+
+                let fullResponse = '';
+                await consumeSse(response, content => {
+                    fullResponse += content;
+                });
+
+                if (fullResponse) {
+                    const tokenMatch = fullResponse.match(/确认令牌:\s*([^\s]+)/);
+                    const displayResponse = explainOperatorMessage(fullResponse.replace(/\n?确认令牌:\s*[^\s]+/g, '').trim());
+                    appendAIMessage('assistant', displayResponse || '业务要素已核对，请进行二次确认。');
+                    if (fullResponse.includes('double_record_completed')) appendSimulatedDoubleRecordAction();
+                    if (tokenMatch) {
+                        pendingConfirmToken = tokenMatch[1];
+                        document.getElementById('aiConfirmationCard')?.remove();
+                        showAIConfirmation();
+                    }
+                } else {
+                    appendAIMessage('assistant', '业务助手未返回内容，请稍后重试。');
+                }
+
+            } catch (error) {
+                console.error('AI助手错误:', error);
+                appendAIMessage('assistant', `业务助手失败：${error.message || '请稍后重试'}`);
+            } finally {
+                loading?.remove();
+                input.disabled = false;
+                sendButton.disabled = false;
+                input.focus();
+            }
         }
+
+        async function confirmOperatorAction(confirmToken, action) {
+            try {
+                const response = await fetch(`${API_BASE}/api/chat/operator/confirm`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({confirm_token: confirmToken, action: action})
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200) {
+                    throw new Error(result.detail?.message || result.detail || result.msg || '未知错误');
+                }
+                const fallback = '申请已撤回';
+                appendAIMessage('assistant', '客户确认申请：' + (result.data?.message || fallback));
+                const operationResult = result.data || {};
+                const transactionId = Number(operationResult.data?.transaction_id) || 0;
+                if (action === 'confirm' && transactionId && activeWorkorderId &&
+                    String(operationResult.code || '').startsWith('TRANSACTION_SUCCEEDED')) {
+                    try {
+                        await completeActiveWorkorder(transactionId, operationResult.data?.transaction_type || '交易');
+                    } catch (workorderError) {
+                        showOperatorModal(
+                            '交易已成交，工单待核查',
+                            workorderError.message || '关联工单完成失败，请人工核查。'
+                        );
+                    }
+                }
+                loadWorkorders();
+                loadStatistics();
+            } catch (error) {
+                appendAIMessage('assistant', `二次确认失败：${error.message || '网络异常'}`);
+            }
+        }
+
+        async function completeActiveWorkorder(transactionId, transactionType) {
+            const orderId = activeWorkorderId;
+            const response = await fetch(`${API_BASE}/api/wealth/workorder/${orderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'complete',
+                    remark: `${transactionType}已成交，交易流水 #${transactionId}`,
+                    related_entity_type: 'transaction',
+                    related_entity_id: transactionId
+                })
+            });
+            if (!response.ok) {
+                const detail = await response.json().catch(() => ({}));
+                throw new Error(detail.detail || '交易已成交，但关联工单完成失败，请人工核查');
+            }
+            activeWorkorderId = null;
+            updateAIContext();
+        }
+
+        // 页面由内嵌脚本加载时显式挂载事件入口，保证按钮不会因脚本作用域而失效。
+        Object.assign(window, {
+            toggleUserDropdown, viewProfile, viewSettings, logout,
+            filterWorkorders, claimWorkorder, serviceWorkorder, viewWorkorder,
+            createWorkorder, submitWorkorder, queryCustomer, openCustomerPicker, pickCustomerAndContinue, transferAudit, reportSuspicious,
+            scrollToSection, closeOperatorModal, selectCustomer,
+            toggleAI, sendAIMessage, confirmOperatorAction, resolvePendingOperatorAction, focusWorkorders,
+            openCloseWorkorder, syncCloseReasonDetail, submitCloseWorkorder,
+        });
 
         // 点击外部关闭下拉菜单
         document.addEventListener('click', function(event) {

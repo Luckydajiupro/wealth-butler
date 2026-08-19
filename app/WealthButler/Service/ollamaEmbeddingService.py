@@ -3,7 +3,6 @@ import json
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
-
 from app.Base.Config.setting import settings
 
 
@@ -15,10 +14,11 @@ class OllamaEmbeddingService:
         if not text.strip():
             raise ValueError("嵌入文本不能为空")
 
-        configured_url = urlsplit(settings.ollama.base_url)
+        ollama = settings.ollama
+        configured_url = urlsplit(getattr(ollama, "base_url"))
         endpoint = f"{configured_url.scheme}://{configured_url.netloc}/api/embed"
         payload = json.dumps({
-            "model": settings.ollama.embedding_model,
+            "model": getattr(ollama, "embedding_model"),
             "input": text,
         }).encode("utf-8")
         request = Request(

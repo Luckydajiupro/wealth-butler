@@ -1,8 +1,7 @@
 """业务操作 API 的可注入运行时。
 
-阶段 5 通过此层把 API 身份上下文、阶段 4 的结构化候选和既有
-``OperatorAgent`` 连接起来。运行时不访问真实基础设施，最终联调时只需
-替换各 Gateway 的 Fake 实现，不改变 API、Agent 或确定性业务编排。
+此层把 API 身份上下文、结构化候选和既有 ``OperatorAgent`` 连接起来。
+正式入口必须显式注入真实 Adapter；Fake Runtime 仅供离线测试使用。
 """
 
 from datetime import date, datetime
@@ -63,16 +62,20 @@ class OperatorApiRuntime:
         # 结构化候选只属于离线 Fake 验收；真实 Runtime 一律从自然语言解析。
         raw_candidate = candidate if self.runtime_mode == "fake" and isinstance(candidate, dict) else {}
         trace_prefix = str(session_id or "operator").strip() or "operator"
+        session_key = trace_prefix[:128]
         safe_context = {
             "intent": raw_candidate.get("intent"),
             "confidence": raw_candidate.get("confidence", 0.0),
             "extracted_params": raw_candidate.get("extracted_params", {}),
             # API 请求可携带的 trace_id 不具备可信性，不参与幂等或审计边界。
-            "trace_id": f"operator:{trace_prefix}:{uuid4()}",
+            "trace_id": f"operator:{uuid4()}",
+            # 会话名只用于 employee+customer 命名空间内的短期草稿，不能提供身份或业务 ID。
+            "session_key": session_key,
+            "trusted_customer_id": customer_id,
         }
         return self.agent.handle_natural_language(
             employee_id=employee_id,
-            customer_id=customer_id,
+            customer_id=customer_id or 0,
             user_input=user_input,
             context=safe_context,
         )
@@ -120,8 +123,8 @@ def to_json_safe_result(result: Dict[str, Any]) -> Dict[str, Any]:
 class OperatorApiRuntimeFactory:
     """业务操作 Runtime 装配工厂。
 
-    Fake Runtime 继续服务于阶段 1-7 的离线回归；最终联调仅需以真实
-    Adapter 构造 OperationService 后调用 create_real，不改变 API 或 Agent。
+    Fake Runtime 只服务于离线回归；正式联调需以真实 Adapter 构造
+    OperationService 后调用 create_real，不改变 API 或 Agent。
     """
 
     @staticmethod

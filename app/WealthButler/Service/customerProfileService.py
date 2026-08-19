@@ -171,9 +171,18 @@ class CustomerProfileService:
             # 3. 亏损承受能力调整
             if assessment:
                 # 从问卷answers中读取第9题（亏损承受能力）
-                answers = assessment.answers if isinstance(assessment.answers, dict) else {}
-                loss_tolerance_option = answers.get(9, 2)  # 默认中等
-                loss_adjustment = [−5, -2, 0, 3, 5][min(loss_tolerance_option, 4)]
+                answers = assessment.answers
+                if isinstance(answers, dict):
+                    loss_tolerance_option = answers.get(9, answers.get("9", 2))
+                elif isinstance(answers, list):
+                    answer = next(
+                        (item for item in answers if item.get("question_no") == 9),
+                        {},
+                    )
+                    loss_tolerance_option = answer.get("option_index", 2)
+                else:
+                    loss_tolerance_option = 2
+                loss_adjustment = [-5, -2, 0, 3, 5][min(loss_tolerance_option, 4)]
                 score += Decimal(str(loss_adjustment))
 
             # 限制在0-30范围
@@ -262,6 +271,9 @@ class CustomerProfileService:
 
             if profile:
                 # 更新现有记录
+                old_risk_level = profile.risk_level
+                old_risk_score = profile.risk_score
+
                 profile.risk_level = risk_level
                 profile.risk_score = risk_score
                 profile.dimension1_score = dim1
@@ -274,6 +286,55 @@ class CustomerProfileService:
                 profile.updated_reason = updated_reason
                 profile.confidence_score = Decimal("0.80")  # 默认置信度
                 profile.update()
+
+                # 发布画像更新事件到EventBus
+                try:
+                    from app.WealthButler.EventBus.eventBus import EventBus
+                    from uuid import uuid4
+
+                    # 构建更新字段
+                    updated_fields = {}
+                    if old_risk_level != risk_level:
+                        updated_fields["risk_level"] = risk_level
+                    if old_risk_score != risk_score:
+                        updated_fields["risk_score"] = float(risk_score)
+                    updated_fields["dimension1_score"] = float(dim1)
+                    updated_fields["dimension2_score"] = float(dim2)
+                    updated_fields["dimension3_score"] = float(dim3)
+                    updated_fields["dimension4_score"] = float(dim4)
+
+                    # 映射更新原因到update_reason
+                    reason_mapping = {
+                        "定期": "behavior_change",
+                        "事件": "risk_reassessment",
+                        "行为": "behavior_change",
+                        "市场": "behavior_change",
+                        "人工触发": "manual"
+                    }
+                    update_reason_code = reason_mapping.get(updated_reason, "behavior_change")
+
+                    payload = {
+                        "customer_id": customer_id,
+                        "updated_fields": updated_fields,
+                        "update_reason": update_reason_code
+                    }
+
+                    trace_id = str(uuid4())
+                    EventBus.publish(
+                        stream_key="stream:profile_updated",
+                        event_type="profile_updated",
+                        payload=payload,
+                        source_agent="advisor_agent",
+                        trace_id=trace_id
+                    )
+
+                    logger.info(
+                        f"[CustomerProfileService] 画像更新事件已发布: customer_id={customer_id}, "
+                        f"updated_fields={list(updated_fields.keys())}, trace_id={trace_id}"
+                    )
+                except Exception as e:
+                    logger.error(f"[CustomerProfileService] 发布画像更新事件失败: {e}", exc_info=True)
+                    # 事件发布失败不影响主流程
             else:
                 # 创建新记录
                 profile = CustomerProfileModel(
@@ -290,7 +351,8 @@ class CustomerProfileService:
                     updated_reason=updated_reason,
                     confidence_score=Decimal("0.80")
                 )
-                profile.insert()
+                if profile.save() <= 0:
+                    raise RuntimeError(f"客户{customer_id}画像写入失败")
 
             # 更新Redis缓存
             cls._update_cache(customer_id, profile)

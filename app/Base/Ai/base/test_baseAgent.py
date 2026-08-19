@@ -13,7 +13,7 @@ from app.Base.Ai.base.baseAgent import (
     InMemoryMemory, AgentResult,
 )
 from app.Base.Ai.base.baseEnum import AgentParadigmEnum
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ def test_react_agent():
     print("测试 2: ReAct Agent")
     print("=" * 60)
 
-    llm = get_default_qwen_llm()
+    llm = get_default_deepseek_llm()
     agent = ReActAgent(
         llm=llm,
         name="测试助手",
@@ -111,7 +111,7 @@ def test_cot_agent():
     print("测试 3: CoT Agent")
     print("=" * 60)
 
-    llm = get_default_qwen_llm()
+    llm = get_default_deepseek_llm()
     agent = CoTAgent(
         llm=llm,
         name="推理助手",
@@ -133,7 +133,7 @@ def test_plan_execute_agent():
     print("测试 4: PlanAndExecute Agent")
     print("=" * 60)
 
-    llm = get_default_qwen_llm()
+    llm = get_default_deepseek_llm()
     agent = PlanAndExecuteAgent(
         llm=llm,
         name="规划助手",
@@ -159,7 +159,7 @@ def test_memory():
     print("测试 5: 记忆功能")
     print("=" * 60)
 
-    llm = get_default_qwen_llm()
+    llm = get_default_deepseek_llm()
     agent = ReActAgent(
         llm=llm,
         name="记忆助手",

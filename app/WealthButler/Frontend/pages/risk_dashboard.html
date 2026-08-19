@@ -152,6 +152,14 @@
             gap: 20px;
             margin-bottom: 30px;
         }
+        .report-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+        .report-grid > div { padding:16px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; display:flex; flex-direction:column; gap:8px; }
+        .report-grid strong { color:#64748b; font-size:13px; }
+        .report-grid b { color:#0f172a; font-size:24px; }
+        .report-grid > div { cursor:pointer; transition:box-shadow .15s, transform .15s; }
+        .report-grid > div:hover { box-shadow:0 4px 14px rgba(15,23,42,.12); transform:translateY(-1px); }
+        .report-grid span { color:#64748b; font-size:12px; }
+        .report-status { color:#475569; padding:12px 0; }
 
         .stat-card {
             background: white;
@@ -606,6 +614,7 @@
             .stats-grid {
                 grid-template-columns: 1fr;
             }
+            .report-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 
             .alert-info-grid {
                 grid-template-columns: 1fr;
@@ -636,9 +645,9 @@
             </div>
 
             <ul class="navbar-menu">
-                <li><a href="#" class="active">预警中心</a></li>
-                <li><a href="#">规则配置</a></li>
-                <li><a href="#">数据报表</a></li>
+                <li><a href="#alertCenter" class="active">预警中心</a></li>
+                <li><a href="#ruleConfig">规则配置</a></li>
+                <li><a href="#dataReports">数据报表</a></li>
             </ul>
 
             <div class="navbar-user">
@@ -657,57 +666,16 @@
 
     <!-- 主容器 -->
     <div class="main-container">
-        <!-- 统计卡片区 -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div class="stat-card-title">今日预警总数</div>
-                    <div class="stat-card-icon">📊</div>
-                </div>
-                <div class="stat-card-value" id="statTotalAlerts">-</div>
-                <div class="stat-card-change">较昨日 <span id="statTotalChange">-</span></div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div class="stat-card-title">待处理预警</div>
-                    <div class="stat-card-icon">⏳</div>
-                </div>
-                <div class="stat-card-value" id="statPendingAlerts">-</div>
-                <div class="stat-card-change">需及时处理</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div class="stat-card-title">误报率</div>
-                    <div class="stat-card-icon">📈</div>
-                </div>
-                <div class="stat-card-value" id="statFalsePositiveRate">-</div>
-                <div class="stat-card-change">较昨日 <span id="statFPRChange">-</span></div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-card-header">
-                    <div class="stat-card-title">已上报数量</div>
-                    <div class="stat-card-icon">📝</div>
-                </div>
-                <div class="stat-card-value" id="statReportedCount">-</div>
-                <div class="stat-card-change">本月累计</div>
-            </div>
-        </div>
-
-        <!-- 风险趋势图 -->
-        <div class="content-section">
+        <div class="content-section" id="ruleConfig" data-risk-section="ruleConfig">
             <div class="section-header">
-                <h2 class="section-title">本周风险预警趋势</h2>
+                <h2 class="section-title">规则配置</h2>
+                <span class="muted">可新增、修改、停用规则；草稿规则需配置检查逻辑后启用</span>
+                <button class="btn btn-primary" onclick="addRiskRule()">添加规则</button>
             </div>
-            <div class="chart-container">
-                <canvas id="riskTrendChart"></canvas>
-            </div>
+            <div id="rulesContainer"><div class="loading">加载规则目录中...</div></div>
         </div>
 
-        <!-- 实时风险预警面板 -->
-        <div class="content-section">
+        <div class="content-section" id="alertCenter" data-risk-section="alertCenter">
             <div class="section-header">
                 <h2 class="section-title">实时风险预警</h2>
                 <div class="filter-tabs">
@@ -725,12 +693,43 @@
                 </div>
             </div>
         </div>
+
+        <div class="content-section" id="dataReports" data-risk-section="dataReports">
+            <div class="section-header"><h2 class="section-title">数据报表</h2></div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-card-header"><div class="stat-card-title">今日预警总数</div><div class="stat-card-icon">📊</div></div><div class="stat-card-value" id="statTotalAlerts">-</div><div class="stat-card-change">较昨日 <span id="statTotalChange">-</span></div></div>
+                <div class="stat-card"><div class="stat-card-header"><div class="stat-card-title">待处理预警</div><div class="stat-card-icon">⏳</div></div><div class="stat-card-value" id="statPendingAlerts">-</div><div class="stat-card-change">需及时处理</div></div>
+                <div class="stat-card"><div class="stat-card-header"><div class="stat-card-title">误报率</div><div class="stat-card-icon">📈</div></div><div class="stat-card-value" id="statFalsePositiveRate">-</div><div class="stat-card-change">较昨日 <span id="statFPRChange">-</span></div></div>
+                <div class="stat-card"><div class="stat-card-header"><div class="stat-card-title">已上报数量</div><div class="stat-card-icon">📝</div></div><div class="stat-card-value" id="statReportedCount">-</div><div class="stat-card-change">本月累计</div></div>
+            </div>
+            <div class="stats-grid" id="reportSummary">
+                <div class="empty-state-text" id="reportSummaryContent">正在加载风险报表...</div>
+            </div>
+            <div class="content-section"><div class="section-header"><h2 class="section-title">本周风险预警趋势</h2></div><div class="chart-container"><canvas id="riskTrendChart"></canvas></div></div>
+        </div>
     </div>
 
     <!-- AI助手浮动气泡 -->
-    <div class="ai-assistant-bubble" onclick="openAIAssistant()" title="风控监测助手">
+    <div class="ai-assistant-bubble" onclick="openAIAssistant()" title="打开风险 Agent 运行面板">
         <div class="pulse"></div>
         <span>🤖</span>
+    </div>
+
+    <div class="modal-overlay" id="riskAgentModal">
+        <div class="modal" style="max-width:760px">
+            <div class="modal-title">风险 Agent 运行面板</div>
+            <div class="modal-body">
+                <p>风险 Agent 按事件和批处理链路运行，不提供普通聊天入口。</p>
+                <div class="report-grid">
+                    <div><strong>实时大额交易事件</strong><b>已接入</b><span>RiskAgent.on_large_transaction_event</span></div>
+                    <div><strong>可疑意图事件</strong><b>已接入</b><span>RiskAgent.on_suspicious_intent_event</span></div>
+                    <div><strong>日批规则扫描</strong><b>已接入</b><span>RiskAgent.scan_daily_rules</span></div>
+                    <div><strong>周批规则扫描</strong><b>已接入</b><span>RiskAgent.scan_weekly_rules</span></div>
+                </div>
+                <div id="riskAgentStatus" class="empty-state-text">正在读取最近预警运行状态...</div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeRiskAgent()">关闭</button><button class="btn btn-primary" onclick="refreshRiskAgentStatus()">刷新状态</button></div>
+        </div>
     </div>
 
     <!-- 确认弹窗 -->
@@ -743,6 +742,17 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal()">取消</button>
                 <button class="btn btn-danger" id="modalConfirmBtn" onclick="confirmModalAction()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 预警详情弹窗：查看详情必须展示后端真实数据，不使用占位 alert。 -->
+    <div class="modal-overlay" id="alertDetailModal">
+        <div class="modal" style="max-width:760px;max-height:80vh;overflow:auto">
+            <div class="modal-title">风险预警详情</div>
+            <div class="modal-body" id="alertDetailBody">正在加载详情...</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAlertDetail()">关闭</button>
             </div>
         </div>
     </div>
@@ -762,7 +772,101 @@
             checkAuth();
             loadDashboardData();
             initRiskTrendChart();
+            loadRules();
+            loadRiskReports();
+            showRiskSection(window.location.hash || '#alertCenter');
+            window.addEventListener('hashchange', () => showRiskSection(window.location.hash || '#alertCenter'));
         });
+
+        function showRiskSection(hash) {
+            const target = String(hash || '#alertCenter').replace('#', '') || 'alertCenter';
+            document.querySelectorAll('[data-risk-section]').forEach(section => {
+                section.style.display = section.dataset.riskSection === target ? '' : 'none';
+            });
+            document.querySelectorAll('.navbar-menu a').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href') === `#${target}`);
+            });
+        }
+
+        async function loadRules() {
+            const container = document.getElementById('rulesContainer');
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_BASE}/api/wealth/risk/rules`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200 || !result.data) throw new Error(result.detail || result.msg || '规则目录加载失败');
+                const rules = result.data.rules || [];
+                if (!rules.length) {
+                    container.innerHTML = '<div class="empty-state-text">暂无可用风控规则。</div>';
+                    return;
+                }
+                container.innerHTML = `<div class="alert-table-wrapper"><table class="alert-table"><thead><tr><th>规则编号</th><th>规则名称</th><th>触发范围</th><th>风险等级</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody>${rules.map(rule => `<tr><td>${escapeHtml(String(rule.rule_id || '-'))}</td><td>${escapeHtml(rule.rule_name || '-')}</td><td>${escapeHtml(rule.trigger_scope || '-')}</td><td>${escapeHtml(rule.risk_level || '-')}</td><td>${escapeHtml(String(rule.priority ?? '-'))}</td><td>${rule.enabled ? '启用' : '停用'}</td><td><button class="btn btn-secondary" onclick="editRiskRule('${escapeHtml(rule.rule_id)}','${escapeHtml(rule.rule_name || '')}',${Number(rule.priority || 3)})">修改</button><button class="btn btn-danger" onclick="disableRiskRule('${escapeHtml(rule.rule_id)}')">停用</button></td></tr>`).join('')}</tbody></table></div>`;
+            } catch (error) {
+                container.innerHTML = `<div class="empty-state-text">${escapeHtml(error.message || '规则目录加载失败')}</div>`;
+            }
+        }
+
+        async function editRiskRule(ruleId, currentName, currentPriority) {
+            const name = prompt('规则名称', currentName);
+            if (name === null) return;
+            const priority = prompt('优先级（1-5）', String(currentPriority));
+            if (priority === null) return;
+            try { await fetchJson(`${API_BASE}/api/wealth/risk/rules/${encodeURIComponent(ruleId)}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({rule_name:name, priority:Number(priority)})}); await loadRules(); }
+            catch (error) { alert(`规则修改失败：${error.message}`); }
+        }
+
+        async function addRiskRule() {
+            const ruleId = prompt('规则编号（如 CUSTOM-001）'); if (!ruleId) return;
+            const name = prompt('规则名称'); if (!name) return;
+            const risk = prompt('风险等级（低/中/中高/高）', '中'); if (!risk) return;
+            const priority = prompt('优先级（1-5）', '3'); if (!priority) return;
+            try { await fetchJson(`${API_BASE}/api/wealth/risk/rules`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({rule_id:ruleId, rule_name:name, risk_level:risk, priority:Number(priority), enabled:true})}); await loadRules(); }
+            catch (error) { alert(`规则添加失败：${error.message}`); }
+        }
+
+        async function disableRiskRule(ruleId) {
+            if (!confirm(`确定停用规则 ${ruleId}？`)) return;
+            try { await fetchJson(`${API_BASE}/api/wealth/risk/rules/${encodeURIComponent(ruleId)}`, {method:'DELETE'}); await loadRules(); }
+            catch (error) { alert(`规则停用失败：${error.message}`); }
+        }
+
+        async function loadRiskReports() {
+            const el = document.getElementById('reportSummaryContent');
+            try {
+                const result = await fetchJson(`${API_BASE}/api/wealth/risk/reports`);
+                const d=result.data||{}; const levels=d.by_level||{}; const statuses=d.by_status||{};
+                const cards = [
+                    ['全部预警', Number(d.total||0), 'all', '全部风险预警'],
+                    ['高风险', Number(levels['高']||levels['严重']||levels['high']||0), 'high', '高风险预警'],
+                    ['中风险', Number(levels['中']||levels['medium']||0), 'medium', '中风险预警'],
+                    ['低风险', Number(levels['低']||levels['low']||0), 'low', '低风险预警'],
+                    ...Object.entries(statuses).map(([key,value]) => [key, Number(value), `status:${key}`, `${key}预警`])
+                ];
+                el.innerHTML = `<div class="report-grid">${cards.map(([label,value,filter,desc]) => `<div role="button" tabindex="0" onclick="openReportAlerts('${escapeHtml(filter)}')" onkeydown="if(event.key==='Enter')openReportAlerts('${escapeHtml(filter)}')"><strong>${escapeHtml(label)}</strong><b>${value}</b><span>点击查看${escapeHtml(desc)}</span></div>`).join('')}</div><div class="report-status">处理状态：${Object.entries(statuses).map(([key,value]) => `${escapeHtml(key)} ${Number(value)}`).join(' · ') || '暂无记录'}</div>`;
+            }
+            catch (error) { el.textContent = `风险报表加载失败：${error.message}`; }
+        }
+
+        function openReportAlerts(filter) {
+            window.location.hash = '#alertCenter';
+            if (filter.startsWith('status:')) {
+                currentFilter = filter;
+                document.querySelectorAll('.filter-tab').forEach(btn => btn.classList.remove('active'));
+            } else {
+                filterAlerts(filter);
+            }
+            renderAlerts();
+            document.getElementById('alertsContainer')?.scrollIntoView({behavior:'smooth', block:'start'});
+        }
+
+        async function fetchJson(url, options = {}) {
+            const token = localStorage.getItem('access_token');
+            const headers = Object.assign({'Authorization': `Bearer ${token}`}, options.headers || {});
+            const response = await fetch(url, Object.assign({}, options, {headers}));
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.status_code >= 400) throw new Error(result.detail || result.msg || '请求失败');
+            return result;
+        }
 
         // 检查认证
         function checkAuth() {
@@ -895,7 +999,7 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.code === 0 && result.data) {
+                    if (result.status_code === 200 && result.data) {
                         updateRiskTrendChart(result.data);
                         return;
                     }
@@ -904,31 +1008,7 @@
                 console.error('加载趋势数据失败:', error);
             }
 
-            // 使用模拟数据
-            const mockData = generateMockTrendData();
-            updateRiskTrendChart(mockData);
-        }
-
-        // 生成模拟趋势数据
-        function generateMockTrendData() {
-            const today = new Date();
-            const labels = [];
-            const highRisk = [];
-            const mediumRisk = [];
-            const lowRisk = [];
-
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-                labels.push(`${date.getMonth() + 1}/${date.getDate()}`);
-
-                // 模拟数据：高风险逐渐增加，中低风险波动
-                highRisk.push(Math.floor(Math.random() * 5) + i + 2);
-                mediumRisk.push(Math.floor(Math.random() * 8) + 8);
-                lowRisk.push(Math.floor(Math.random() * 6) + 3);
-            }
-
-            return { labels, high_risk: highRisk, medium_risk: mediumRisk, low_risk: lowRisk };
+            updateRiskTrendChart({ labels: [], high_risk: [], medium_risk: [], low_risk: [] });
         }
 
         // 更新趋势图数据
@@ -977,7 +1057,7 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.code === 0) {
+                    if (result.status_code === 200) {
                         const stats = result.data;
                         document.getElementById('statTotalAlerts').textContent = stats.today_total || 0;
                         document.getElementById('statPendingAlerts').textContent = stats.pending_count || 0;
@@ -995,20 +1075,19 @@
                 console.error('加载统计数据失败:', error);
             }
 
-            // 使用模拟数据
-            document.getElementById('statTotalAlerts').textContent = '23';
-            document.getElementById('statPendingAlerts').textContent = '12';
-            document.getElementById('statFalsePositiveRate').textContent = '8.5%';
-            document.getElementById('statReportedCount').textContent = '156';
-            document.getElementById('statTotalChange').textContent = '+5';
-            document.getElementById('statFPRChange').textContent = '-1.2%';
+            document.getElementById('statTotalAlerts').textContent = '--';
+            document.getElementById('statPendingAlerts').textContent = '--';
+            document.getElementById('statFalsePositiveRate').textContent = '--';
+            document.getElementById('statReportedCount').textContent = '--';
+            document.getElementById('statTotalChange').textContent = '暂无数据';
+            document.getElementById('statFPRChange').textContent = '暂无数据';
         }
 
         // 加载预警列表
         async function loadAlerts() {
             try {
                 const token = localStorage.getItem('access_token');
-                const response = await fetch(`${API_BASE}/api/wealth/risk/alerts?status=待处理&limit=20`, {
+                const response = await fetch(`${API_BASE}/api/wealth/risk/alerts?limit=100`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1016,13 +1095,13 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.code === 0 && result.data) {
+                    if (result.status_code === 200 && result.data) {
                         // 将后端返回的数据转换为前端需要的格式
                         alertsData = (result.data.alerts || []).map(alert => ({
                             id: alert.id,
                             rule_id: alert.alert_type,
                             rule_name: alert.alert_name,
-                            risk_level: alert.alert_level === '高' ? 'high' : alert.alert_level === '中' ? 'medium' : 'low',
+                            risk_level: ['高', '高风险', 'high', 'HIGH', '严重', 'critical'].includes(String(alert.alert_level || '')) ? 'high' : ['中', '中风险', '中高风险', 'medium', 'MEDIUM'].includes(String(alert.alert_level || '')) ? 'medium' : 'low',
                             customer_name: alert.customer_name,
                             amount: alert.transaction_amount || 0,
                             condition: alert.trigger_reason || '未知',
@@ -1037,50 +1116,8 @@
                 console.error('加载预警数据失败:', error);
             }
 
-            // 使用模拟数据
-            alertsData = generateMockAlerts();
+            alertsData = [];
             renderAlerts();
-        }
-
-        // 生成模拟预警数据
-        function generateMockAlerts() {
-            const riskLevels = ['high', 'medium', 'low'];
-            const statuses = ['待处理', '处理中', '已确认', '误报'];
-            const rules = [
-                { id: 'RW-001', name: '大额现金交易', condition: '单笔交易≥5万元' },
-                { id: 'RW-002', name: '频繁小额交易', condition: '24小时内交易≥20笔' },
-                { id: 'RW-003', name: '异常时段交易', condition: '凌晨2-5点交易' },
-                { id: 'RW-005', name: '跨境资金转移', condition: '境外账户转账' },
-                { id: 'RW-007', name: '快速进出资金', condition: '入账后1小时内转出' },
-                { id: 'RW-010', name: '多账户关联交易', condition: '关联账户≥5个' },
-                { id: 'RW-012', name: '高风险地区交易', condition: '交易地为高风险区' },
-                { id: 'RW-015', name: '可疑理财产品', condition: '承诺年化收益≥30%' }
-            ];
-            const customers = ['张先生', '李女士', '王总', '刘经理', '陈女士', '赵先生', '孙总', '周女士'];
-
-            const alerts = [];
-            for (let i = 0; i < 12; i++) {
-                const rule = rules[Math.floor(Math.random() * rules.length)];
-                const level = riskLevels[Math.floor(Math.random() * riskLevels.length)];
-                const status = i < 8 ? '待处理' : statuses[Math.floor(Math.random() * statuses.length)];
-                const customer = customers[Math.floor(Math.random() * customers.length)];
-                const amount = (Math.random() * 500000 + 10000).toFixed(2);
-                const hoursAgo = Math.floor(Math.random() * 24);
-
-                alerts.push({
-                    id: `ALERT-${Date.now()}-${i}`,
-                    rule_id: rule.id,
-                    rule_name: rule.name,
-                    risk_level: level,
-                    customer_name: customer,
-                    amount: amount,
-                    condition: rule.condition,
-                    status: status,
-                    triggered_at: new Date(Date.now() - hoursAgo * 3600000).toLocaleString('zh-CN')
-                });
-            }
-
-            return alerts;
         }
 
         // 渲染预警列表
@@ -1090,7 +1127,9 @@
             // 筛选数据
             let filteredAlerts = alertsData;
             if (currentFilter !== 'all') {
-                filteredAlerts = alertsData.filter(alert => alert.risk_level === currentFilter);
+                filteredAlerts = currentFilter.startsWith('status:')
+                    ? alertsData.filter(alert => alert.status === currentFilter.slice(7))
+                    : alertsData.filter(alert => alert.risk_level === currentFilter);
             }
 
             if (filteredAlerts.length === 0) {
@@ -1109,7 +1148,7 @@
                     medium: { text: '中风险', class: 'medium', emoji: '🟡' },
                     low: { text: '低风险', class: 'low', emoji: '🔵' }
                 };
-                const level = levelMap[alert.risk_level];
+                const level = levelMap[alert.risk_level] || levelMap.low;
 
                 const statusMap = {
                     '待处理': 'pending',
@@ -1179,12 +1218,42 @@
             renderAlerts();
         }
 
-        // 查看详情
-        function viewAlertDetail(alertId) {
-            const alert = alertsData.find(a => a.id === alertId);
-            if (alert) {
-                alert(`预警详情：\n规则：${alert.rule_name}\n客户：${alert.customer_name}\n金额：¥${Number(alert.amount).toLocaleString()}\n\n实际项目中这里会打开详情页面或弹窗`);
+        // 查看详情：从风控详情接口加载真实数据并打开弹窗。
+        async function viewAlertDetail(alertId) {
+            const modal = document.getElementById('alertDetailModal');
+            const body = document.getElementById('alertDetailBody');
+            modal.classList.add('show');
+            body.textContent = '正在加载详情...';
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_BASE}/api/wealth/risk/alert/${encodeURIComponent(alertId)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200 || !result.data) {
+                    throw new Error(result.detail || result.msg || '详情加载失败');
+                }
+                const detail = result.data;
+                const transaction = detail.related_transaction;
+                body.innerHTML = `<dl class="detail-list">
+                    <dt>预警编号</dt><dd>${escapeHtml(String(detail.id ?? '-'))}</dd>
+                    <dt>规则</dt><dd>${escapeHtml(detail.alert_name || detail.alert_type || '-')}</dd>
+                    <dt>风险等级</dt><dd>${escapeHtml(detail.alert_level || '-')}</dd>
+                    <dt>客户</dt><dd>${escapeHtml(detail.customer_name || `客户 ${detail.customer_id || '-'}`)}</dd>
+                    <dt>触发原因</dt><dd>${escapeHtml(detail.trigger_reason || '-')}</dd>
+                    <dt>状态</dt><dd>${escapeHtml(detail.status || '-')}</dd>
+                    <dt>处理人</dt><dd>${escapeHtml(detail.handler_name || '-')}</dd>
+                    <dt>触发时间</dt><dd>${escapeHtml(detail.triggered_at || '-')}</dd>
+                    <dt>关联交易</dt><dd>${transaction ? escapeHtml(`${transaction.transaction_type || '-'} / ¥${Number(transaction.amount || 0).toLocaleString()} / ${transaction.status || '-'}`) : '无'}</dd>
+                    <dt>规则明细</dt><dd><pre>${escapeHtml(JSON.stringify(detail.trigger_details || {}, null, 2))}</pre></dd>
+                </dl>`;
+            } catch (error) {
+                body.innerHTML = `<div class="empty-state-text">${escapeHtml(error.message || '详情加载失败')}</div>`;
             }
+        }
+
+        function closeAlertDetail() {
+            document.getElementById('alertDetailModal').classList.remove('show');
         }
 
         // 标记为处理中
@@ -1228,7 +1297,7 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    if (result.code === 0) {
+                if (result.status_code === 200) {
                         // 成功
                         const alert = alertsData.find(a => a.id === alertId);
                         if (alert) {
@@ -1243,19 +1312,20 @@
                 console.error('更新状态失败:', error);
             }
 
-            // 模拟更新
-            const alert = alertsData.find(a => a.id === alertId);
-            if (alert) {
-                alert.status = status;
-                renderAlerts();
-                loadStatistics();
-            }
+            showModal('操作未完成', '风险预警服务暂时不可用，页面未修改任何预警状态。请稍后重试。', closeModal);
         }
 
-        // 打开AI助手
         function openAIAssistant() {
-            // 实际项目中这里会打开AI助手对话窗口
-            alert('风控监测助手 🛡️\n\nagent_type: risk_monitor\n\n您可以通过自然语言查询：\n• 今日高风险预警有哪些？\n• RW-001规则触发了几次？\n• 本周误报率趋势如何？\n• 帮我分析张先生的交易风险\n\n实际项目中会接入对话界面');
+            document.getElementById('riskAgentModal').classList.add('show');
+            refreshRiskAgentStatus();
+        }
+
+        function closeRiskAgent() { document.getElementById('riskAgentModal').classList.remove('show'); }
+
+        function refreshRiskAgentStatus() {
+            const status = document.getElementById('riskAgentStatus');
+            const pending = alertsData.filter(a => a.status === '待处理').length;
+            status.innerHTML = `最近一次页面同步：${new Date().toLocaleString()}<br>当前已加载预警：${alertsData.length} 条，其中待处理 ${pending} 条。<br>规则命中后由风险 Agent 创建预警，风控专员在预警中心领取、调查并提交处置结论。`;
         }
 
         // 显示确认弹窗

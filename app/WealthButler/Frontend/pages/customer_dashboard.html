@@ -192,6 +192,264 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
         }
 
+        .asset-card-button {
+            width: 100%;
+            border: 0;
+            color: inherit;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .asset-card-button:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+        }
+
+        .stat-label-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .risk-status-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            border: 1px solid #f0b429;
+            border-left: 4px solid #b7791f;
+            border-radius: 6px;
+            background: #fffaf0;
+            color: #5f370e;
+        }
+
+        .risk-status-banner.valid {
+            border-color: #79c8a4;
+            border-left-color: #18794e;
+            background: #f0fff7;
+            color: #14532d;
+        }
+
+        .risk-status-copy strong,
+        .risk-status-copy span {
+            display: block;
+        }
+
+        .risk-status-copy span {
+            margin-top: 4px;
+            font-size: 13px;
+        }
+
+        .risk-dialog-body {
+            padding: 20px 24px 0;
+        }
+
+        .risk-question {
+            padding: 18px 0;
+            border-bottom: 1px solid #e8eaf0;
+        }
+
+        .risk-question legend {
+            margin-bottom: 12px;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .risk-options {
+            display: grid;
+            gap: 8px;
+        }
+
+        .risk-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            border: 1px solid #d8dce5;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .risk-option:has(input:checked) {
+            border-color: #4f63c7;
+            background: #f3f5ff;
+        }
+
+        .risk-actions {
+            position: sticky;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 24px;
+            border-top: 1px solid #e8eaf0;
+            background: white;
+        }
+
+        .risk-actions span {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .asset-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: rgba(20, 24, 33, 0.52);
+        }
+
+        .asset-modal[hidden] {
+            display: none;
+        }
+
+        .asset-dialog {
+            width: min(760px, 100%);
+            max-height: min(720px, calc(100vh - 48px));
+            overflow: auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
+        }
+
+        .asset-dialog-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e8eaf0;
+        }
+
+        .asset-dialog-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .product-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px 24px;
+            padding: 22px 24px;
+        }
+
+        .product-detail-item span {
+            display: block;
+            color: #6b7280;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .product-detail-item strong {
+            display: block;
+            color: #1f2937;
+            font-size: 15px;
+        }
+
+        .product-detail-note {
+            margin: 0 24px 18px;
+            padding: 12px 14px;
+            border-left: 3px solid #4f63c7;
+            background: #f5f7ff;
+            color: #374151;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .product-detail-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 24px;
+            border-top: 1px solid #e8eaf0;
+        }
+
+        @media (max-width: 560px) {
+            .product-detail-grid { grid-template-columns: 1fr; }
+        }
+
+        .asset-dialog-close {
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #5f6673;
+            font-size: 26px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .asset-dialog-close:hover {
+            background: #f1f3f7;
+        }
+
+        .asset-allocation-content {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr);
+            gap: 28px;
+            padding: 24px;
+        }
+
+        .allocation-chart-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .allocation-chart {
+            width: 180px;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+        }
+
+        .allocation-chart::after {
+            content: '';
+            width: 108px;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        .allocation-legend {
+            width: 100%;
+            display: grid;
+            gap: 10px;
+        }
+
+        .allocation-legend-row {
+            display: grid;
+            grid-template-columns: 12px minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .allocation-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .allocation-table-wrap {
+            min-width: 0;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 720px) {
+            .asset-allocation-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .stat-label {
             font-size: 14px;
             color: #666;
@@ -335,6 +593,7 @@
         }
 
         .chat-toggle {
+            position: relative;
             width: 60px;
             height: 60px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -348,6 +607,23 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .chat-unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border: 2px solid white;
+            border-radius: 11px;
+            background: #d92d20;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 18px;
+            text-align: center;
         }
 
         .chat-toggle:hover {
@@ -439,6 +715,8 @@
             border-radius: 12px;
             font-size: 14px;
             line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
         .chat-message.bot .message-content {
@@ -450,6 +728,16 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
+
+        .operation-confirmation-card > div:last-child { min-width: 0; flex: 1; }
+        .operation-confirmation-card .message-content { max-width: 100%; border: 1px solid #f59e0b; background: #fffbeb; }
+        .operation-confirmation-status { min-height: 20px; margin-top: 8px; color: #92400e; font-size: 13px; font-weight: 600; }
+        .operation-confirmation-status.error-text { color: #b91c1c; }
+        .operation-confirmation-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+        .operation-confirmation-actions button { min-height: 44px; padding: 8px 14px; border: 0; border-radius: 6px; cursor: pointer; }
+        .operation-confirmation-actions button[data-action="cancel"] { background: #e5e7eb; color: #374151; }
+        .operation-confirmation-actions button[data-action="confirm"] { background: #b91c1c; color: #fff; }
+        .operation-confirmation-actions button:disabled { cursor: wait; opacity: .65; }
 
         .chat-input-area {
             padding: 16px 20px;
@@ -512,9 +800,9 @@
             </div>
 
             <div class="navbar-menu">
-                <a href="#holdings" class="active">我的持仓</a>
-                <a href="#transactions">交易记录</a>
-                <a href="#products">产品中心</a>
+                <a href="#holdings" class="active" data-view="holdings">我的持仓</a>
+                <a href="#transactions" data-view="transactions">交易记录</a>
+                <a href="#products" data-view="products">产品中心</a>
             </div>
 
             <div class="navbar-user">
@@ -522,14 +810,14 @@
                     <div class="user-avatar" id="userAvatar">客</div>
                     <div class="user-info">
                         <div class="user-name" id="userName">加载中...</div>
-                        <div class="user-level" id="userLevel">普通客户</div>
+                        <div class="user-level" id="userLevel">客户</div>
                     </div>
                 </div>
                 <div class="user-dropdown" id="userDropdown">
                     <a href="#profile">个人资料</a>
                     <a href="#settings">账户设置</a>
                     <div class="divider"></div>
-                    <a href="#logout" id="logoutBtn">退出登录</a>
+                    <a href="/?switch=employee" id="logoutBtn" onclick="localStorage.clear()">切换员工账号</a>
                 </div>
             </div>
         </div>
@@ -537,12 +825,20 @@
 
     <!-- 主内容区域 -->
     <div class="main-container">
+        <div class="risk-status-banner" id="riskStatusBanner" hidden>
+            <div class="risk-status-copy">
+                <strong id="riskStatusTitle">请完成风险测评</strong>
+                <span id="riskStatusDescription">完成后才能查看适配产品和办理投资交易。</span>
+            </div>
+            <button type="button" class="refresh-btn" id="openRiskAssessmentBtn" onclick="openRiskAssessment(false)">开始风险测评</button>
+        </div>
+
         <!-- 数据卡片区 -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">总资产</div>
+            <button type="button" class="stat-card asset-card-button" id="totalAssetsCard" aria-haspopup="dialog" aria-controls="assetAllocationModal">
+                <div class="stat-label stat-label-row"><span>总资产</span><span aria-hidden="true">›</span></div>
                 <div class="stat-value" id="totalAssets">¥0.00</div>
-            </div>
+            </button>
 
             <div class="stat-card">
                 <div class="stat-label">今日收益</div>
@@ -557,7 +853,7 @@
         </div>
 
         <!-- 我的持仓表格 -->
-        <div class="holdings-section">
+        <div class="holdings-section content-section" data-section="holdings">
             <div class="section-header">
                 <span>我的持仓</span>
                 <button class="refresh-btn" id="refreshBtn">刷新数据</button>
@@ -570,11 +866,79 @@
                 </div>
             </div>
         </div>
+
+        <div class="holdings-section content-section" data-section="transactions" hidden>
+            <div class="section-header">
+                <span>交易记录</span>
+                <button class="refresh-btn" id="refreshTransactionsBtn">刷新数据</button>
+            </div>
+            <div id="transactionsTableContainer">
+                <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+        </div>
+
+        <div class="holdings-section content-section" data-section="products" hidden>
+            <div class="section-header">
+                <span>适合我的在售产品</span>
+                <button class="refresh-btn" id="refreshProductsBtn">刷新数据</button>
+            </div>
+            <div id="productsTableContainer">
+                <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="asset-modal" id="assetAllocationModal" hidden>
+        <div class="asset-dialog" role="dialog" aria-modal="true" aria-labelledby="assetAllocationTitle">
+            <div class="asset-dialog-header">
+                <h2 id="assetAllocationTitle">资产配置结构</h2>
+                <button type="button" class="asset-dialog-close" id="assetAllocationClose" aria-label="关闭">×</button>
+            </div>
+            <div class="asset-allocation-content" id="assetAllocationContent"></div>
+        </div>
+    </div>
+
+    <div class="asset-modal" id="productDetailModal" hidden>
+        <div class="asset-dialog" role="dialog" aria-modal="true" aria-labelledby="productDetailTitle">
+            <div class="asset-dialog-header">
+                <h2 id="productDetailTitle">产品详情</h2>
+                <button type="button" class="asset-dialog-close" id="productDetailClose" aria-label="关闭">×</button>
+            </div>
+            <div class="product-detail-grid" id="productDetailGrid"></div>
+            <p class="product-detail-note">申购申请仅提交给人工理财顾问进行金额确认、适当性核验和风险揭示，不会直接执行交易。</p>
+            <div class="product-detail-actions">
+                <button type="button" class="refresh-btn" id="productDetailApply">提交申购申请</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="asset-modal" id="riskAssessmentModal" hidden>
+        <div class="asset-dialog" role="dialog" aria-modal="true" aria-labelledby="riskAssessmentTitle">
+            <div class="asset-dialog-header">
+                <div>
+                    <h2 id="riskAssessmentTitle">客户风险承受能力测评</h2>
+                    <p style="margin-top:6px;color:#6b7280;font-size:13px;">共16题，结果有效期为一年</p>
+                </div>
+                <button type="button" class="asset-dialog-close" id="riskAssessmentClose" aria-label="关闭">×</button>
+            </div>
+            <form id="riskAssessmentForm">
+                <div class="risk-dialog-body" id="riskQuestionsContainer">
+                    <div class="loading-state"><div class="spinner"></div></div>
+                </div>
+                <div class="risk-actions">
+                    <span id="riskAssessmentProgress">请完成全部16题</span>
+                    <button type="submit" class="refresh-btn" id="submitRiskAssessmentBtn">提交测评</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- AI聊天气泡 -->
     <div class="chat-bubble">
-        <button class="chat-toggle" id="chatToggle">💬</button>
+        <button class="chat-toggle" id="chatToggle" type="button" aria-label="打开智能客服">
+            💬
+            <span class="chat-unread-badge" id="chatUnreadBadge" hidden>0</span>
+        </button>
 
         <div class="chat-window" id="chatWindow">
             <div class="chat-header">
@@ -608,6 +972,15 @@
     <script>
         const API_BASE = window.location.origin;
         let chatSessionId = generateSessionId();
+        let notificationBaselineReady = false;
+        let latestHoldings = [];
+        let latestProducts = [];
+        let selectedProduct = null;
+        let notificationPollTimer = null;
+        let notificationPollInFlight = false;
+        let unreadNotificationCount = 0;
+        let riskAssessmentRequired = false;
+        let riskQuestionsLoaded = false;
 
         // 生成会话ID
         function generateSessionId() {
@@ -623,10 +996,10 @@
         }
 
         // 格式化百分比
-        function formatPercent(value) {
+        function formatPercent(value, digits = 2) {
             const num = parseFloat(value);
             const sign = num >= 0 ? '+' : '';
-            return sign + num.toFixed(2) + '%';
+            return sign + num.toFixed(digits) + '%';
         }
 
         // 格式化时间
@@ -646,7 +1019,7 @@
             const token = getToken();
             if (!token) {
                 alert('请先登录');
-                window.location.href = '/login.html';
+                window.location.href = '/';
                 return false;
             }
             return true;
@@ -654,14 +1027,34 @@
 
         // 加载用户信息
         async function loadUserInfo() {
-            const username = localStorage.getItem('username') || '客户';
-            const userId = localStorage.getItem('user_id') || '';
+            let username = localStorage.getItem('username') || '客户';
+            let displayName = localStorage.getItem('display_name') || username;
+            let customerLevel = localStorage.getItem('customer_level');
 
-            document.getElementById('userName').textContent = username;
-            document.getElementById('userAvatar').textContent = username.charAt(0);
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                const result = await response.json();
+                if (response.ok && result?.data) {
+                    const user = result.data;
+                    username = user.username || username;
+                    displayName = user.display_name || username;
+                    customerLevel = user.customer_level || '';
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('display_name', displayName);
+                    localStorage.setItem('user_type', user.user_type || '');
+                    localStorage.setItem('employee_role', user.employee_role || '');
+                    localStorage.setItem('advisor_level', user.advisor_level || '');
+                    localStorage.setItem('customer_level', customerLevel);
+                }
+            } catch (error) {
+                console.warn('User identity refresh failed:', error);
+            }
 
-            // TODO: 从API获取客户等级
-            document.getElementById('userLevel').textContent = '普通客户';
+            document.getElementById('userName').textContent = displayName;
+            document.getElementById('userAvatar').textContent = displayName.charAt(0);
+            document.getElementById('userLevel').textContent = customerLevel ? `${customerLevel}客户` : '客户';
         }
 
         // 加载持仓数据
@@ -679,56 +1072,36 @@
 
                 if (response.status === 401) {
                     alert('登录已过期，请重新登录');
-                    window.location.href = '/login.html';
+                    window.location.href = '/';
                     return;
                 }
 
                 const result = await response.json();
 
-                if (response.ok && result.code === 0) {
-                    const holdings = result.data || [];
+                if (response.ok && result.status_code === 200) {
+                    const holdings = result.data?.holdings || [];
+                    latestHoldings = holdings;
                     renderHoldings(holdings);
-                    updateStats(holdings);
+                    updateStats(holdings, result.data || {});
                 } else {
-                    // API返回错误，使用模拟数据
-                    console.warn('API返回错误，使用模拟数据:', result.msg);
-                    useMockData();
+                    showHoldingsError(result.msg || '持仓数据加载失败');
                 }
 
             } catch (error) {
                 console.error('加载持仓数据失败:', error);
-                // 网络错误，使用模拟数据
-                useMockData();
+                showHoldingsError('无法连接持仓服务，请稍后重试');
             }
         }
 
-        // 使用模拟数据
-        function useMockData() {
-            const mockHoldings = [
-                {
-                    product_name: '稳健增长基金A',
-                    shares: 10000.00,
-                    current_nav: 1.2345,
-                    market_value: 12345.00,
-                    profit_rate: 5.67
-                },
-                {
-                    product_name: '智选债券基金B',
-                    shares: 5000.00,
-                    current_nav: 1.1234,
-                    market_value: 5617.00,
-                    profit_rate: 3.21
-                },
-                {
-                    product_name: '平衡配置基金C',
-                    shares: 8000.00,
-                    current_nav: 0.9876,
-                    market_value: 7900.80,
-                    profit_rate: -2.45
-                }
-            ];
-            renderHoldings(mockHoldings);
-            updateStats(mockHoldings);
+        function showHoldingsError(message) {
+            const container = document.getElementById('holdingsTableContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">!</div>
+                    <p>${escapeHtml(message)}</p>
+                    <button class="refresh-btn" onclick="loadHoldings()">重新加载</button>
+                </div>
+            `;
         }
 
         // 渲染持仓表格
@@ -754,46 +1127,288 @@
                             <th>当前净值</th>
                             <th>持仓市值</th>
                             <th>收益率</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
             holdings.forEach(holding => {
-                const profitClass = holding.profit_rate >= 0 ? 'positive' : 'negative';
+                const profitRatio = Number(holding.profit_ratio || 0);
+                const currentValue = Number(holding.current_value || 0);
+                const currentNav = Number(holding.current_nav) ||
+                    (Number(holding.shares) ? currentValue / Number(holding.shares) : 0);
+                const profitClass = profitRatio >= 0 ? 'positive' : 'negative';
                 tableHTML += `
                     <tr>
                         <td>${escapeHtml(holding.product_name)}</td>
                         <td>${parseFloat(holding.shares).toLocaleString('zh-CN', {minimumFractionDigits: 2})}</td>
-                        <td>${formatCurrency(holding.current_nav)}</td>
-                        <td>${formatCurrency(holding.market_value)}</td>
-                        <td class="profit-rate ${profitClass}">${formatPercent(holding.profit_rate)}</td>
+                        <td>${formatCurrency(currentNav)}</td>
+                        <td>${formatCurrency(currentValue)}</td>
+                        <td class="profit-rate ${profitClass}">${formatPercent(profitRatio * 100)}</td>
+                        <td class="holding-actions">
+                            <button type="button" class="refresh-btn holding-operation-btn" data-action="purchase" data-product-name="${escapeHtml(holding.product_name)}">追加申购</button>
+                            <button type="button" class="refresh-btn holding-operation-btn" data-action="redeem" data-product-name="${escapeHtml(holding.product_name)}" data-shares="${escapeHtml(holding.shares)}">赎回</button>
+                        </td>
                     </tr>
                 `;
             });
 
             tableHTML += '</tbody></table>';
             container.innerHTML = tableHTML;
+            container.querySelectorAll('.holding-operation-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const productName = button.dataset.productName;
+                    if (button.dataset.action === 'redeem') {
+                        requestHoldingOperation(`我要赎回${productName}`);
+                    } else {
+                        requestHoldingOperation(`我要追加申购${productName}`);
+                    }
+                });
+            });
+        }
+
+        function requestHoldingOperation(message) {
+            if (!chatWindow.classList.contains('show')) chatWindow.classList.add('show');
+            localStorage.setItem('chatWindowOpen', 'true');
+            chatInput.value = message;
+            sendMessage();
         }
 
         // 更新统计数据
-        function updateStats(holdings) {
-            // 计算总资产
-            const totalAssets = holdings.reduce((sum, h) => sum + parseFloat(h.market_value), 0);
+        function updateStats(holdings, summary) {
+            const totalAssets = Number(summary.total_value) ||
+                holdings.reduce((sum, holding) => sum + Number(holding.current_value || 0), 0);
             document.getElementById('totalAssets').textContent = formatCurrency(totalAssets);
-
-            // 计算今日收益（模拟数据）
-            const todayProfit = totalAssets * 0.0123; // 假设今日收益率1.23%
-            const todayProfitRate = 1.23;
-            const profitClass = todayProfit >= 0 ? 'positive' : 'negative';
-
-            document.getElementById('todayProfit').textContent = formatCurrency(todayProfit);
-            const profitRateEl = document.getElementById('todayProfitRate');
-            profitRateEl.textContent = formatPercent(todayProfitRate);
-            profitRateEl.className = 'stat-change ' + profitClass;
 
             // 持仓数量
             document.getElementById('holdingsCount').textContent = holdings.length;
+            loadTodayProfit();
+        }
+
+        function renderAssetAllocation() {
+            const content = document.getElementById('assetAllocationContent');
+            const total = latestHoldings.reduce((sum, item) => sum + Number(item.current_value || 0), 0);
+            if (!latestHoldings.length || total <= 0) {
+                content.innerHTML = '<div class="empty-state"><p>暂无可展示的资产配置</p></div>';
+                return;
+            }
+
+            const palette = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0891b2'];
+            const categories = new Map();
+            latestHoldings.forEach(item => {
+                const type = item.product_type || '其他';
+                categories.set(type, (categories.get(type) || 0) + Number(item.current_value || 0));
+            });
+            const groups = Array.from(categories, ([name, value], index) => ({
+                name, value, color: palette[index % palette.length], percentage: value / total * 100
+            }));
+            let cursor = 0;
+            const gradient = groups.map(group => {
+                const start = cursor;
+                cursor += group.percentage;
+                return `${group.color} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+            }).join(', ');
+            const legend = groups.map(group => `
+                <div class="allocation-legend-row">
+                    <span class="allocation-swatch" style="background:${group.color}"></span>
+                    <span>${escapeHtml(group.name)}</span>
+                    <strong>${group.percentage.toFixed(2)}%</strong>
+                </div>`).join('');
+            const rows = latestHoldings.map(item => {
+                const value = Number(item.current_value || 0);
+                return `<tr>
+                    <td>${escapeHtml(item.product_name)}</td>
+                    <td>${escapeHtml(item.product_type || '其他')}</td>
+                    <td>${formatCurrency(value)}</td>
+                    <td>${(value / total * 100).toFixed(2)}%</td>
+                </tr>`;
+            }).join('');
+            content.innerHTML = `
+                <div class="allocation-chart-wrap">
+                    <div class="allocation-chart" style="background:conic-gradient(${gradient})" aria-label="资产配置占比图"></div>
+                    <div class="allocation-legend">${legend}</div>
+                </div>
+                <div class="allocation-table-wrap">
+                    <table class="holdings-table">
+                        <thead><tr><th>持仓产品</th><th>资产类型</th><th>市值</th><th>占比</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>`;
+        }
+
+        function openAssetAllocation() {
+            renderAssetAllocation();
+            document.getElementById('assetAllocationModal').hidden = false;
+            document.getElementById('assetAllocationClose').focus();
+        }
+
+        function closeAssetAllocation() {
+            document.getElementById('assetAllocationModal').hidden = true;
+            document.getElementById('totalAssetsCard').focus();
+        }
+
+        async function loadTodayProfit() {
+            const profitEl = document.getElementById('todayProfit');
+            const rateEl = document.getElementById('todayProfitRate');
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/holdings/profit-today`, {
+                    headers: {'Authorization': `Bearer ${getToken()}`}
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200) {
+                    throw new Error(result.detail?.message || result.detail || result.msg || '今日收益加载失败');
+                }
+                const data = result.data || {};
+                const profit = Number(data.today_profit || 0);
+                const rate = Number(data.today_profit_rate || 0);
+                profitEl.textContent = formatCurrency(profit);
+                const isSimulated = data.calculation_source === 'simulated';
+                rateEl.textContent = isSimulated ? `模拟 ${formatPercent(rate)}` : formatPercent(rate);
+                rateEl.title = isSimulated ? '净值数据未齐，按产品风险生成的当日模拟收益' : '根据今日与上一交易日净值计算';
+                rateEl.className = 'stat-change ' + (profit >= 0 ? 'positive' : 'negative');
+            } catch (error) {
+                console.error('加载今日收益失败:', error);
+                profitEl.textContent = '--';
+                rateEl.textContent = '实时数据不可用';
+                rateEl.className = 'stat-change';
+            }
+        }
+
+        async function loadTransactions() {
+            const container = document.getElementById('transactionsTableContainer');
+            container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/customer/transactions?limit=50`, {
+                    headers: {'Authorization': `Bearer ${getToken()}`}
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200) {
+                    throw new Error(result.detail || result.msg || '交易记录加载失败');
+                }
+                renderTransactions(result.data?.items || []);
+            } catch (error) {
+                console.error('加载交易记录失败:', error);
+                container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">!</div><p>${escapeHtml(error.message)}</p></div>`;
+            }
+        }
+
+        function renderTransactions(transactions) {
+            const container = document.getElementById('transactionsTableContainer');
+            if (!transactions.length) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>暂无交易记录</p></div>';
+                return;
+            }
+            container.innerHTML = `
+                <table class="holdings-table">
+                    <thead><tr><th>交易时间</th><th>类型</th><th>产品</th><th>金额</th><th>手续费</th><th>经办客户经理</th><th>状态</th></tr></thead>
+                    <tbody>${transactions.map(item => `
+                        <tr>
+                            <td>${escapeHtml(item.transaction_time)}</td>
+                            <td>${escapeHtml(item.transaction_type)}</td>
+                            <td>${escapeHtml(item.product_name)}</td>
+                            <td>${formatCurrency(item.amount)}</td>
+                            <td>${formatCurrency(item.fee)}</td>
+                            <td>${escapeHtml(item.employee_name ? `${item.employee_name}${item.employee_id ? `（工号 ${item.employee_id}）` : ''}` : (item.employee_id ? `工号 ${item.employee_id}` : '未记录'))}</td>
+                            <td>${escapeHtml(item.status)}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        async function loadProducts() {
+            const container = document.getElementById('productsTableContainer');
+            container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/customer/products?limit=50`, {
+                    headers: {'Authorization': `Bearer ${getToken()}`}
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200) {
+                    throw new Error(result.detail || result.msg || '产品列表加载失败');
+                }
+                latestProducts = result.data?.items || [];
+                renderProducts(latestProducts, result.data?.customer_risk_level || '');
+            } catch (error) {
+                console.error('加载产品列表失败:', error);
+                container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">!</div><p>${escapeHtml(error.message)}</p></div>`;
+            }
+        }
+
+        function renderProducts(products, customerRiskLevel) {
+            const container = document.getElementById('productsTableContainer');
+            if (!products.length) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>暂无匹配的在售产品</p></div>';
+                return;
+            }
+            container.innerHTML = `
+                <table class="holdings-table">
+                    <thead><tr><th>产品名称</th><th>类型</th><th>风险等级</th><th>最新净值</th><th>净值日期</th><th>起投金额</th><th>操作</th></tr></thead>
+                    <tbody>${products.map(item => `
+                        <tr>
+                            <td>${escapeHtml(item.product_name)}</td>
+                            <td>${escapeHtml(item.product_type)}</td>
+                            <td>${escapeHtml(item.risk_level)} / 客户${escapeHtml(customerRiskLevel)}</td>
+                            <td>${item.nav == null ? '--' : Number(item.nav).toFixed(4)}</td>
+                            <td>${escapeHtml(item.nav_date || '--')}</td>
+                            <td>${item.min_investment == null ? '--' : formatCurrency(item.min_investment)}</td>
+                            <td><button type="button" class="refresh-btn product-detail-btn" data-product-id="${Number(item.id)}" onclick="openProductDetail(${Number(item.id)})">查看详情</button></td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>`;
+            // 产品表会按客户风险等级动态重绘，统一在容器上委托点击，避免重绘后丢失事件。
+            container.onclick = function(event) {
+                const button = event.target.closest('.product-detail-btn');
+                if (button) openProductDetail(Number(button.dataset.productId));
+            };
+        }
+
+        function openProductDetail(productId) {
+            selectedProduct = latestProducts.find(item => Number(item.id) === productId);
+            if (!selectedProduct) return;
+            const product = selectedProduct;
+            document.getElementById('productDetailTitle').textContent = product.product_name || '产品详情';
+            document.getElementById('productDetailGrid').innerHTML = [
+                ['产品代码', product.product_code || '--'],
+                ['产品类型', product.product_type || '--'],
+                ['风险等级', product.risk_level || '--'],
+                ['最新净值', product.nav == null ? '--' : Number(product.nav).toFixed(4)],
+                ['净值日期', product.nav_date || '--'],
+                ['起投金额', product.min_investment == null ? '--' : formatCurrency(product.min_investment)],
+                ['赎回到账周期', product.redemption_period_days == null ? '--' : `${product.redemption_period_days}天`],
+                ['状态', product.status || '在售'],
+            ].map(([label, value]) => `<div class="product-detail-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('');
+            document.getElementById('productDetailModal').hidden = false;
+            document.getElementById('productDetailApply').focus();
+        }
+        window.openProductDetail = openProductDetail;
+
+        function closeProductDetail() {
+            document.getElementById('productDetailModal').hidden = true;
+            selectedProduct = null;
+        }
+
+        async function submitProductApplication() {
+            if (!selectedProduct) return;
+            const productName = selectedProduct.product_name;
+            closeProductDetail();
+            if (!chatWindow.classList.contains('show')) chatWindow.classList.add('show');
+            localStorage.setItem('chatWindowOpen', 'true');
+            // 客户入口只表达申购意向；金额、适当性核验和风险揭示由客服后续追问并告知。
+            chatInput.value = `我想申购${productName}`;
+            await sendMessage();
+        }
+
+        function showDashboardView(view) {
+            const selected = ['holdings', 'transactions', 'products'].includes(view) ? view : 'holdings';
+            document.querySelectorAll('[data-section]').forEach(section => {
+                section.hidden = section.dataset.section !== selected;
+            });
+            document.querySelectorAll('.navbar-menu [data-view]').forEach(link => {
+                link.classList.toggle('active', link.dataset.view === selected);
+            });
+            if (selected === 'transactions') loadTransactions();
+            if (selected === 'products') loadProducts();
         }
 
         // 用户下拉菜单
@@ -811,11 +1426,41 @@
             e.preventDefault();
             localStorage.clear();
             alert('已退出登录');
-            window.location.href = '/login.html';
+            window.location.href = '/';
         });
 
         // 刷新按钮
         document.getElementById('refreshBtn').addEventListener('click', loadHoldings);
+        document.getElementById('refreshTransactionsBtn').addEventListener('click', loadTransactions);
+        document.getElementById('refreshProductsBtn').addEventListener('click', loadProducts);
+        document.getElementById('totalAssetsCard').addEventListener('click', openAssetAllocation);
+        document.getElementById('assetAllocationClose').addEventListener('click', closeAssetAllocation);
+        document.getElementById('productDetailClose').addEventListener('click', closeProductDetail);
+        document.getElementById('productDetailApply').addEventListener('click', submitProductApplication);
+        document.getElementById('productDetailModal').addEventListener('click', function(event) {
+            if (event.target === this) closeProductDetail();
+        });
+        document.getElementById('assetAllocationModal').addEventListener('click', function(event) {
+            if (event.target === this) closeAssetAllocation();
+        });
+        document.getElementById('openRiskAssessmentBtn').addEventListener('click', function() {
+            openRiskAssessment(false);
+        });
+        document.getElementById('riskAssessmentClose').addEventListener('click', closeRiskAssessment);
+        document.getElementById('riskAssessmentForm').addEventListener('submit', submitRiskAssessment);
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && !document.getElementById('assetAllocationModal').hidden) {
+                closeAssetAllocation();
+            }
+            if (event.key === 'Escape' && !document.getElementById('riskAssessmentModal').hidden) {
+                closeRiskAssessment();
+            }
+        });
+        document.querySelectorAll('.navbar-menu [data-view]').forEach(link => {
+            link.addEventListener('click', function() {
+                showDashboardView(this.dataset.view);
+            });
+        });
 
         // AI聊天功能
         const chatToggle = document.getElementById('chatToggle');
@@ -824,6 +1469,7 @@
         const chatInput = document.getElementById('chatInput');
         const chatSend = document.getElementById('chatSend');
         const chatMessages = document.getElementById('chatMessages');
+        const chatUnreadBadge = document.getElementById('chatUnreadBadge');
 
         // 从localStorage读取聊天窗口状态
         const chatWindowState = localStorage.getItem('chatWindowOpen') === 'true';
@@ -834,14 +1480,187 @@
         chatToggle.addEventListener('click', function() {
             const isShown = chatWindow.classList.toggle('show');
             localStorage.setItem('chatWindowOpen', isShown);
+            if (isShown) clearUnreadNotifications();
         });
+
+        async function loadRiskAssessmentStatus() {
+            const banner = document.getElementById('riskStatusBanner');
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/customer/risk-assessment/status`, {
+                    headers: {'Authorization': `Bearer ${getToken()}`}
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200) return;
+                const data = result.data || {};
+                riskAssessmentRequired = Boolean(data.required);
+                banner.hidden = false;
+                banner.classList.toggle('valid', !riskAssessmentRequired);
+                document.getElementById('riskStatusTitle').textContent = riskAssessmentRequired
+                    ? (data.status === 'expired' ? '风险测评已过期' : '请先完成风险测评')
+                    : `当前风险等级：${data.risk_level}`;
+                document.getElementById('riskStatusDescription').textContent = riskAssessmentRequired
+                    ? '完成测评后才能查看适配产品和办理投资交易。'
+                    : `测评分数 ${Number(data.total_score || 0).toFixed(2)}，有效期至 ${data.valid_until || '--'}`;
+                document.getElementById('openRiskAssessmentBtn').textContent = riskAssessmentRequired
+                    ? '开始风险测评' : '重新测评';
+                if (riskAssessmentRequired) openRiskAssessment(true);
+            } catch (error) {
+                console.error('加载风险测评状态失败:', error);
+            }
+        }
+
+        async function openRiskAssessment(required) {
+            riskAssessmentRequired = Boolean(required) || riskAssessmentRequired;
+            const modal = document.getElementById('riskAssessmentModal');
+            const closeButton = document.getElementById('riskAssessmentClose');
+            closeButton.hidden = riskAssessmentRequired;
+            modal.hidden = false;
+            if (!riskQuestionsLoaded) await loadRiskAssessmentQuestions();
+        }
+
+        function closeRiskAssessment() {
+            if (riskAssessmentRequired) return;
+            document.getElementById('riskAssessmentModal').hidden = true;
+            document.getElementById('openRiskAssessmentBtn').focus();
+        }
+
+        async function loadRiskAssessmentQuestions() {
+            const container = document.getElementById('riskQuestionsContainer');
+            try {
+                const response = await fetch(`${API_BASE}/api/profile/assessment/questions`, {
+                    headers: {'Authorization': `Bearer ${getToken()}`}
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200) {
+                    throw new Error(result.detail || result.msg || '测评问卷加载失败');
+                }
+                const questions = result.data?.questions || [];
+                container.innerHTML = questions.map(question => `
+                    <fieldset class="risk-question" data-question-id="${question.id}">
+                        <legend>${question.id}. ${escapeHtml(question.question)}</legend>
+                        <div class="risk-options">${question.options.map((option, index) => {
+                            const optionCode = String.fromCharCode(65 + index);
+                            return `<label class="risk-option">
+                                <input type="radio" name="risk-question-${question.id}" value="${optionCode}" required>
+                                <span>${optionCode}. ${escapeHtml(option.label)}</span>
+                            </label>`;
+                        }).join('')}</div>
+                    </fieldset>`).join('');
+                riskQuestionsLoaded = questions.length === 16;
+                container.addEventListener('change', updateRiskAssessmentProgress);
+            } catch (error) {
+                container.innerHTML = `<div class="empty-state"><p>${escapeHtml(error.message)}</p></div>`;
+            }
+        }
+
+        function updateRiskAssessmentProgress() {
+            const answered = document.querySelectorAll('#riskAssessmentForm input[type="radio"]:checked').length;
+            document.getElementById('riskAssessmentProgress').textContent = `已完成 ${answered}/16 题`;
+        }
+
+        async function submitRiskAssessment(event) {
+            event.preventDefault();
+            const answers = Array.from(document.querySelectorAll('.risk-question')).map(fieldset => {
+                const selected = fieldset.querySelector('input[type="radio"]:checked');
+                return selected ? {
+                    question_no: Number(fieldset.dataset.questionId),
+                    option: selected.value
+                } : null;
+            }).filter(Boolean);
+            if (answers.length !== 16) {
+                document.getElementById('riskAssessmentProgress').textContent = `还有 ${16 - answers.length} 题未完成`;
+                return;
+            }
+
+            const button = document.getElementById('submitRiskAssessmentBtn');
+            button.disabled = true;
+            button.textContent = '提交中...';
+            try {
+                const customerId = Number(localStorage.getItem('user_id'));
+                const response = await fetch(`${API_BASE}/api/profile/${customerId}/assessment`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({answers})
+                });
+                const result = await response.json();
+                if (!response.ok || result.status_code !== 200) {
+                    throw new Error(result.detail || result.msg || '测评提交失败');
+                }
+                riskAssessmentRequired = false;
+                document.getElementById('riskAssessmentClose').hidden = false;
+                document.getElementById('riskAssessmentModal').hidden = true;
+                addMessage(`风险测评已完成，您的风险等级为 ${result.data?.assessment?.risk_level || '--'}。`, 'bot');
+                await loadRiskAssessmentStatus();
+                // 测评前产品接口会因无有效风评返回409；提交成功后立即重载，解锁适配产品。
+                await loadProducts();
+            } catch (error) {
+                document.getElementById('riskAssessmentProgress').textContent = error.message;
+            } finally {
+                button.disabled = false;
+                button.textContent = '提交测评';
+            }
+        }
 
         chatClose.addEventListener('click', function() {
             chatWindow.classList.remove('show');
             localStorage.setItem('chatWindowOpen', 'false');
         });
 
-        // 发送消息
+        async function consumeSse(response, onContent) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            function consumeEvent(rawEvent) {
+                const payloadLines = [];
+                let dataStarted = false;
+                rawEvent.replace(/\r/g, '').split('\n').forEach(line => {
+                    if (line.startsWith('data:')) {
+                        dataStarted = true;
+                        payloadLines.push(line.slice(5).replace(/^ /, ''));
+                    } else if (dataStarted && line && !line.startsWith(':')) {
+                        // 兼容服务端历史帧中未逐行添加 data: 前缀的多行内容。
+                        payloadLines.push(line);
+                    }
+                });
+                if (!dataStarted && rawEvent.trim() && !rawEvent.trim().startsWith(':')) {
+                    // 兼容旧服务端把正文空行误当成 SSE 事件分隔符的情况。
+                    payloadLines.push(rawEvent.replace(/\r/g, ''));
+                }
+
+                const payload = payloadLines.join('\n');
+                if (!payload || payload.trim() === '[EOF]') return;
+
+                try {
+                    const structured = JSON.parse(payload);
+                    if (structured.type === 'error' || (structured.code != null && structured.code !== 0)) {
+                        throw new Error(structured.content || structured.message || '服务处理失败');
+                    }
+                    onContent(structured.content || payload);
+                } catch (error) {
+                    if (error instanceof SyntaxError) {
+                        onContent(payload);
+                        return;
+                    }
+                    throw error;
+                }
+            }
+
+            while (true) {
+                const {done, value} = await reader.read();
+                buffer += decoder.decode(value || new Uint8Array(), {stream: !done});
+                const events = buffer.split(/\r?\n\r?\n/);
+                buffer = events.pop() || '';
+                events.forEach(consumeEvent);
+                if (done) break;
+            }
+            if (buffer.trim()) consumeEvent(buffer);
+        }
+
+        // 发送消息（SSE流式接收）
         async function sendMessage() {
             const message = chatInput.value.trim();
             if (!message) return;
@@ -851,60 +1670,95 @@
             chatInput.value = '';
             chatSend.disabled = true;
 
+            // 创建AI回复的占位消息
+            const botMessageId = 'bot-msg-' + Date.now();
+            addBotMessagePlaceholder(botMessageId);
+
             try {
                 const token = getToken();
-                const response = await fetch(`${API_BASE}/api/wealth/chat`, {
+                const userId = parseInt(localStorage.getItem('user_id')) || 1;
+
+                const response = await fetch(`${API_BASE}/api/chat/customer`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        agent_type: 'customer_service',
                         message: message,
-                        session_id: chatSessionId
+                        session_id: chatSessionId,
+                        user_id: userId,
+                        is_stream: true
                     })
                 });
 
                 if (response.status === 401) {
-                    alert('登录已过期，请重新登录');
-                    window.location.href = '/login.html';
+                    updateBotMessage(botMessageId, '登录已过期，请重新登录');
+                    setTimeout(() => window.location.href = '/', 2000);
                     return;
                 }
 
-                const result = await response.json();
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('客服Agent请求失败:', response.status, errorText);
+                    updateBotMessage(botMessageId, `客服服务请求失败（${response.status}）`);
+                    return;
+                }
 
-                if (response.ok && result.code === 0) {
-                    const reply = result.data.reply || '抱歉，我没有理解您的问题。';
-                    addMessage(reply, 'bot');
-                } else {
-                    // API错误，使用模拟回复
-                    const mockReply = generateMockReply(message);
-                    addMessage(mockReply, 'bot');
+                let fullResponse = '';
+                await consumeSse(response, content => {
+                    fullResponse += content;
+                    updateBotMessage(botMessageId, fullResponse);
+                });
+
+                // 空流属于服务异常，不能用模拟内容伪装成功。
+                if (!fullResponse) {
+                    updateBotMessage(botMessageId, '客服服务未返回内容，请稍后重试');
+                }
+                // 只有明确要求开始/重做测评或打开问卷时才弹窗；
+                // “有效期多久”“我的风险等级”等查询不应打断客服对话。
+                if (/(?:开始|进行|做|重做|重新|更新).{0,6}(?:风险测评|风险评估)|(?:风险测评|风险评估).{0,6}(?:问卷|入口|一下)|打开.{0,4}(?:风险测评|风险评估)/.test(message)) {
+                    openRiskAssessment(false);
                 }
 
             } catch (error) {
                 console.error('发送消息失败:', error);
-                const mockReply = generateMockReply(message);
-                addMessage(mockReply, 'bot');
+                updateBotMessage(botMessageId, `客服服务失败：${error.message || '请稍后重试'}`);
             } finally {
                 chatSend.disabled = false;
                 chatInput.focus();
             }
         }
 
-        // 生成模拟回复
-        function generateMockReply(message) {
-            const lowerMsg = message.toLowerCase();
+        // 添加机器人消息占位符
+        function addBotMessagePlaceholder(messageId) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot';
+            messageDiv.id = messageId;
 
-            if (lowerMsg.includes('持仓') || lowerMsg.includes('产品')) {
-                return '您可以在上方的"我的持仓"表格中查看所有持仓产品的详细信息，包括持有份额、当前净值和收益率。';
-            } else if (lowerMsg.includes('收益') || lowerMsg.includes('赚')) {
-                return '您的今日收益信息显示在页面顶部的数据卡片中。如需了解更详细的收益分析，可以联系您的理财顾问。';
-            } else if (lowerMsg.includes('买') || lowerMsg.includes('购买')) {
-                return '您可以通过"产品中心"浏览可购买的理财产品，或联系您的理财顾问获取个性化推荐。';
-            } else {
-                return '感谢您的咨询！如需更详细的帮助，请联系您的专属理财顾问，或拨打客服热线 400-888-8888。';
+            const time = formatTime(new Date());
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar bot">🤖</div>
+                <div>
+                    <div class="message-content">正在思考...</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 更新机器人消息内容
+        function updateBotMessage(messageId, content) {
+            const messageDiv = document.getElementById(messageId);
+            if (messageDiv) {
+                const contentDiv = messageDiv.querySelector('.message-content');
+                if (contentDiv) {
+                    contentDiv.textContent = content;
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
 
@@ -919,13 +1773,207 @@
             messageDiv.innerHTML = `
                 <div class="message-avatar ${type}">${avatar}</div>
                 <div>
-                    <div class="message-content">${content}</div>
+                    <div class="message-content">${escapeHtml(content)}</div>
                     <div class="message-time">${time}</div>
                 </div>
             `;
 
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function getNotificationStorageKey() {
+            return `wealth_seen_notifications_${localStorage.getItem('user_id') || 'customer'}`;
+        }
+
+        function readSeenNotificationIds() {
+            try {
+                return new Set(JSON.parse(sessionStorage.getItem(getNotificationStorageKey()) || '[]'));
+            } catch (error) {
+                return new Set();
+            }
+        }
+
+        function storeSeenNotificationIds(ids) {
+            sessionStorage.setItem(getNotificationStorageKey(), JSON.stringify(Array.from(ids).slice(-200)));
+        }
+
+        function updateUnreadBadge() {
+            chatUnreadBadge.textContent = unreadNotificationCount > 99 ? '99+' : String(unreadNotificationCount);
+            chatUnreadBadge.hidden = unreadNotificationCount === 0;
+            chatToggle.setAttribute(
+                'aria-label',
+                unreadNotificationCount ? `打开智能客服，${unreadNotificationCount}条未读消息` : '打开智能客服'
+            );
+        }
+
+        function clearUnreadNotifications() {
+            unreadNotificationCount = 0;
+            updateUnreadBadge();
+        }
+
+        function appendWorkOrderResult(notification) {
+            const orderLabel = notification.order_id ? `工单 #${notification.order_id}` : '服务工单';
+            const status = notification.status || '已处理';
+            const message = notification.message || '您的服务请求已有处理结果。';
+            const handler = notification.handler_name
+                ? `经办客户经理：${notification.handler_name}${notification.handler_id ? `（工号 ${notification.handler_id}）` : ''}`
+                : (notification.handler_id ? `经办客户经理工号：${notification.handler_id}` : '经办客户经理：未返回');
+            addMessage(`${orderLabel} ${status}\n${handler}\n${message}`, 'bot');
+        }
+
+        function isRecentWorkOrderResult(notification) {
+            if (notification?.type !== 'work_order_result' || !notification.created_at) return false;
+            const createdAt = new Date(String(notification.created_at).replace(' ', 'T'));
+            if (Number.isNaN(createdAt.getTime())) return false;
+            const ageMs = Date.now() - createdAt.getTime();
+            return ageMs >= 0 && ageMs <= 5 * 60 * 1000;
+        }
+
+        function appendComplianceEvidence(notification) {
+            const operator = notification.operator_name
+                ? `${notification.operator_name}${notification.operator_id ? `（工号 ${notification.operator_id}）` : ''}`
+                : (notification.operator_id ? `工号 ${notification.operator_id}` : '未记录');
+            addMessage(`客户经理已完成测试双录\n经办客户经理：${operator}\n${notification.message || '合规证据已归档。'}\n双录完成不会自动执行交易；待客户经理提交完整业务草稿后，这里会显示“确认执行/取消”按钮。`, 'bot');
+        }
+
+        function formatOperationConfirmation(notification) {
+            const params = notification.operation_params || {};
+            const intentLabels = {purchase: '申购', redeem: '赎回', transfer: '转账', update_info: '资料变更'};
+            const intent = intentLabels[notification.operation_intent] || notification.operation_intent || '业务操作';
+            const product = params.product_name || params.product_id;
+            const amount = params.amount != null ? `金额 ${formatCurrency(params.amount)}` : '';
+            const shares = params.shares != null ? `份额 ${params.shares}` : '';
+            const details = [product && `产品 ${product}`, amount, shares].filter(Boolean).join('，');
+            const operator = notification.operator_id ? `经办客户经理工号：${notification.operator_id}` : '经办客户经理：以关联工单为准';
+            const card = document.createElement('div');
+            card.className = 'chat-message bot operation-confirmation-card';
+            card.dataset.confirmToken = notification.confirm_token || '';
+            card.innerHTML = `<div class="message-avatar bot">🤖</div><div><div class="message-content"><strong>客户二次确认：${escapeHtml(intent)}</strong><br>${escapeHtml(details || '请核对业务参数')}<br>${escapeHtml(operator)}<br>${escapeHtml(notification.message || '确认后才会执行模拟业务。')}<div class="operation-confirmation-status" aria-live="polite"></div><div class="operation-confirmation-actions"><button type="button" data-action="cancel">取消</button><button type="button" data-action="confirm">确认执行</button></div></div><div class="message-time">${escapeHtml(notification.created_at || '')}</div></div>`;
+            card.querySelectorAll('button').forEach(button => {
+                button.addEventListener('click', () => confirmCustomerOperation(notification, button.dataset.action, card));
+            });
+            chatMessages.appendChild(card);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function confirmCustomerOperation(notification, action, card) {
+            const buttons = card.querySelectorAll('button');
+            const status = card.querySelector('.operation-confirmation-status');
+            const actionButton = card.querySelector(`[data-action="${action}"]`);
+            const originalLabel = actionButton?.textContent || '';
+            buttons.forEach(button => { button.disabled = true; });
+            if (status) status.textContent = action === 'confirm' ? '正在确认并执行，请稍候...' : '正在取消，请稍候...';
+            if (actionButton) actionButton.textContent = '处理中...';
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/customer/operation-confirmations/${encodeURIComponent(notification.confirm_token)}`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({action})
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        card.remove();
+                        addMessage('该客户确认请求已失效，页面已清理旧卡片。', 'bot');
+                        return;
+                    }
+                    throw new Error(result.detail || '客户确认失败');
+                }
+                const message = result.data?.message || (action === 'confirm' ? '模拟业务已提交执行。' : '模拟业务已取消。');
+                card.remove();
+                addMessage(`${action === 'confirm' ? '客户已确认' : '客户已取消'}\n${message}`, 'bot');
+                if (action === 'confirm') await Promise.all([loadHoldings(), loadTransactions()]);
+            } catch (error) {
+                if (status) {
+                    status.className = 'operation-confirmation-status error-text';
+                    status.textContent = `${error.message || '确认失败'}，请重试或联系经办客户经理。`;
+                }
+                if (actionButton) actionButton.textContent = originalLabel;
+                buttons.forEach(button => { button.disabled = false; });
+            }
+        }
+
+        async function refreshCustomerDataForResult(notification) {
+            // 业务经理完成交易后，结果通知与页面轮询是两个独立链路；
+            // 收到通知时重新读取数据库，避免客户仍看到旧持仓/交易记录。
+            const subtype = String(notification?.business_subtype || '').trim();
+            const transactionSubtypes = new Set(['申购', '追加申购', '赎回', '转账']);
+            if (!transactionSubtypes.has(subtype)) return;
+            try {
+                await Promise.all([loadHoldings(), loadTransactions()]);
+            } catch (error) {
+                // 通知已展示；刷新失败由各自的加载函数呈现错误状态，避免吞掉结果通知。
+                console.debug('交易结果已通知，但客户数据刷新暂时失败:', error);
+            }
+        }
+
+        async function pollCustomerNotifications() {
+            if (notificationPollInFlight || document.hidden) return;
+            notificationPollInFlight = true;
+            try {
+                const response = await fetch(`${API_BASE}/api/wealth/customer/notifications?limit=50`, {
+                    headers: {'Authorization': `Bearer ${getToken()}`}
+                });
+                if (response.status === 401) {
+                    stopNotificationPolling();
+                    return;
+                }
+                if (!response.ok) return;
+                const result = await response.json();
+                if (result.status_code !== 200) return;
+
+                const seenIds = readSeenNotificationIds();
+                const notifications = result.data?.items || [];
+                // 首次打开客户页不重放 Redis 中的历史结果消息，避免旧业务对话污染当前会话；
+                // 待确认操作仍需展示，之后新到达的通知照常展示。
+                if (!notificationBaselineReady) {
+                    notifications.forEach(item => {
+                        if (item.id && item.type !== 'operation_confirmation' && !isRecentWorkOrderResult(item)) seenIds.add(item.id);
+                    });
+                    notificationBaselineReady = true;
+                    storeSeenNotificationIds(seenIds);
+                }
+                const unseen = notifications
+                    .filter(item => item.id && (!seenIds.has(item.id) || (item.type === 'operation_confirmation' && item.status === '待确认')))
+                    .reverse();
+                unseen.forEach(item => {
+                    if (item.type === 'operation_confirmation') {
+                        if (!document.querySelector(`[data-confirm-token="${CSS.escape(item.confirm_token || '')}"]`)) {
+                            formatOperationConfirmation(item);
+                        }
+                    } else if (item.type === 'compliance_evidence') {
+                        seenIds.add(item.id);
+                        appendComplianceEvidence(item);
+                    } else {
+                        seenIds.add(item.id);
+                        appendWorkOrderResult(item);
+                        refreshCustomerDataForResult(item);
+                    }
+                });
+                if (unseen.length) {
+                    storeSeenNotificationIds(seenIds);
+                    if (!chatWindow.classList.contains('show')) {
+                        unreadNotificationCount += unseen.length;
+                        updateUnreadBadge();
+                    }
+                }
+            } catch (error) {
+                console.debug('通知轮询暂时不可用:', error);
+            } finally {
+                notificationPollInFlight = false;
+            }
+        }
+
+        function startNotificationPolling() {
+            if (notificationPollTimer) return;
+            pollCustomerNotifications();
+            notificationPollTimer = window.setInterval(pollCustomerNotifications, 12000);
+        }
+
+        function stopNotificationPolling() {
+            if (notificationPollTimer) window.clearInterval(notificationPollTimer);
+            notificationPollTimer = null;
         }
 
         // HTML转义函数（防XSS攻击）
@@ -950,8 +1998,25 @@
             if (checkAuth()) {
                 loadUserInfo();
                 loadHoldings();
+                showDashboardView(window.location.hash.slice(1));
+                startNotificationPolling();
+                loadRiskAssessmentStatus();
             }
         });
+        // 页面由 hash 驱动且产品表异步渲染，提供全局兜底监听，避免导航或动态按钮丢失事件。
+        window.addEventListener('hashchange', function() {
+            showDashboardView(window.location.hash.slice(1));
+        });
+        document.addEventListener('click', function(event) {
+            const button = event.target.closest('.product-detail-btn');
+            if (button && typeof openProductDetail === 'function') {
+                openProductDetail(Number(button.dataset.productId));
+            }
+        });
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) pollCustomerNotifications();
+        });
+        window.addEventListener('beforeunload', stopNotificationPolling);
     </script>
 </body>
 </html>

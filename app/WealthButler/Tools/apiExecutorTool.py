@@ -42,7 +42,10 @@ class APIExecutorTool(BaseTool):
             return self._failure("UNKNOWN_INTENT", "不支持的业务操作意图", trace_id)
         if not isinstance(employee_id, int) or isinstance(employee_id, bool) or employee_id <= 0:
             return self._failure("INVALID_EMPLOYEE", "员工上下文不合法", trace_id)
-        if not isinstance(customer_id, int) or isinstance(customer_id, bool) or customer_id <= 0:
+        if (
+            intent != "product_query"
+            and (not isinstance(customer_id, int) or isinstance(customer_id, bool) or customer_id <= 0)
+        ):
             return self._failure("INVALID_CUSTOMER", "客户上下文不合法", trace_id)
         if not isinstance(trace_id, str) or not trace_id.strip():
             return self._failure("INVALID_TRACE_ID", "调用链ID不合法", "")

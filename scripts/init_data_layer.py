@@ -110,15 +110,15 @@ def init_milvus_collections():
     print("Milvus集合初始化")
     print("=" * 60)
 
-    from app.WealthButler.Repository.faqCollectionModel import FaqCollectionModel
-    from app.WealthButler.Repository.productCollectionModel import ProductCollectionModel
-    from app.WealthButler.Repository.policyCollectionModel import PolicyCollectionModel
+    from app.WealthButler.Repository.faqCollectionModelV2 import FaqCollectionModelV2
+    from app.WealthButler.Repository.productCollectionModelV2 import ProductCollectionModelV2
+    from app.WealthButler.Repository.policyCollectionModelV2 import PolicyCollectionModelV2
     from app.WealthButler.Repository.customerMemoryCollectionModel import CustomerMemoryCollectionModel
 
     collections = [
-        ("fin_faq_collection", FaqCollectionModel),
-        ("fin_product_collection", ProductCollectionModel),
-        ("fin_policy_collection", PolicyCollectionModel),
+        ("fin_faq_collection", FaqCollectionModelV2),
+        ("fin_product_collection", ProductCollectionModelV2),
+        ("fin_policy_collection", PolicyCollectionModelV2),
         ("fin_customer_memory_collection", CustomerMemoryCollectionModel),
     ]
 

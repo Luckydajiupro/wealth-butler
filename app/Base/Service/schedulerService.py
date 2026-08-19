@@ -2,12 +2,14 @@ from app.Base.Client.schedulerClient import TaskSchedulerClient
 from app.Base.Repository.base.connectionManager import ConnectionManager
 
 base_module_scheduler_client = TaskSchedulerClient(
-        mysql_url=ConnectionManager.get("base_module").get_connection_url()
+        mysql_url=ConnectionManager.get("base_module").get_connection_url(),
+        auto_start=False,
     )
 
 default_scheduler_client = TaskSchedulerClient(
         mysql_url=ConnectionManager.get_default().get_connection_url(),
-        table_name="apscheduler_jobs"
+        table_name="apscheduler_jobs",
+        auto_start=False,
     )
 
 def get_base_module_scheduler_client():

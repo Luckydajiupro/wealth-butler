@@ -12,6 +12,7 @@ class WorkOrderArgs(BaseModel):
     intent_summary: str = Field(..., min_length=1, max_length=500, description="客户诉求摘要")
     priority: str = Field(default="中", pattern="^(低|中|高|紧急)$", description="工单优先级")
     session_id: str = Field(..., min_length=1, max_length=64, description="会话 ID")
+    business_subtype: str = Field(..., description="结构化业务子类型")
 
 
 class WorkOrderTool(BaseTool):
@@ -25,10 +26,11 @@ class WorkOrderTool(BaseTool):
         super().__init__()
         self.service = service or WorkOrderService()
 
-    def execute(self, customer_id: int, intent_summary: str, priority: str, session_id: str) -> dict:
+    def execute(self, customer_id: int, intent_summary: str, priority: str, session_id: str, business_subtype: str) -> dict:
         return self.service.create_customer_referral(
             customer_id=customer_id,
             intent_summary=intent_summary,
             priority=priority,
             session_id=session_id,
+            business_subtype=business_subtype,
         )

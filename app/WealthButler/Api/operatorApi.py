@@ -4,6 +4,8 @@
 确保与对话入口使用同一套确定性业务规则。
 """
 
+import os
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,6 +17,7 @@ from app.WealthButler.Api.operatorApiSupport import (
     get_authenticated_employee,
     operation_response,
 )
+from app.WealthButler.Service.operatorAccessService import OperatorAccessService
 
 
 router = APIRouter(prefix="/api/operation", tags=["业务操作"])
@@ -109,6 +112,146 @@ def update_contact(
     return _submit(current_user, request.customer_id, "update_info", {
         "phone": request.phone,
         "email": request.email,
+    })
+
+
+@router.get("/customers/{customer_id}/overview")
+def customer_overview(
+    customer_id: int,
+    current_user: Any = Depends(get_authenticated_employee),
+):
+    """返回客户经理可办理客户的只读业务概览。
+
+    客户经理只能查看自己已领取/负责的客户；业务管理员可查看全量客户。
+    资金余额、持仓和交易流水均来自现有业务表，不在接口层生成模拟值。
+    """
+    if not OperatorAccessService.can_view_customer(current_user.id, customer_id):
+        raise HTTPException(status_code=403, detail="该客户不在当前客户经理的办理范围内")
+
+    from app.WealthButler.Models.baseUserExtModel import BaseUserExtModel
+    from app.WealthButler.Models.customerProfileModel import CustomerProfileModel
+    from app.WealthButler.Models.holdingsModel import HoldingsModel
+    from app.WealthButler.Models.transactionModel import TransactionModel
+    from app.WealthButler.Models.productModel import ProductModel
+    from app.WealthButler.Models.advisorAllocationPlanModel import AdvisorAllocationPlanModel
+    from app.WealthButler.Service.riskAssessService import RiskAssessService
+
+    customer = BaseUserExtModel.get_by_id(customer_id)
+    if customer is None or getattr(customer, "user_type", None) != "CUSTOMER":
+        raise HTTPException(status_code=404, detail="客户不存在")
+    profile = CustomerProfileModel.find_by_customer_id(customer_id)
+    assessment = RiskAssessService.get_latest_assessment(customer_id)
+    allocation = getattr(profile, "asset_allocation", None) if profile else None
+    if not isinstance(allocation, dict):
+        allocation = {}
+    available = allocation.get("available_balance", allocation.get("cash_reserve"))
+    balance_source = "customer_profile.asset_allocation" if available is not None else None
+    balance_is_simulated = False
+    if available is None and allocation.get("total_assets") is not None:
+        # Keep read-only overview consistent with the transaction gateway when
+        # legacy profiles have total assets but no explicit cash field.
+        try:
+            from app.WealthButler.Models.holdingsModel import HoldingsModel
+
+            holding_total = sum(
+                Decimal(str(getattr(item, "current_value", 0) or 0))
+                for item in HoldingsModel.find_by_customer_id(customer_id)
+            )
+            available = max(Decimal("0"), Decimal(str(allocation["total_assets"])) - holding_total)
+            balance_source = "customer_profile.total_assets_minus_holdings"
+        except (InvalidOperation, TypeError, ValueError):
+            available = None
+    if available is None and os.getenv("WEALTH_BUTLER_SIMULATED_COMPLIANCE_ENABLED", "false").lower() == "true":
+        # Historical demo profiles contain only allocation ratios. The real
+        # operator gateway initializes these accounts from the same test cash.
+        try:
+            available = Decimal(os.getenv("WEALTH_BUTLER_SIMULATED_INITIAL_CASH", "100000.00"))
+            balance_source = "simulated_initial_cash"
+            balance_is_simulated = True
+        except InvalidOperation:
+            available = None
+    advisor_plan = AdvisorAllocationPlanModel.find_latest_by_customer_id(customer_id)
+    advisor = (
+        BaseUserExtModel.get_by_id(advisor_plan.advisor_id)
+        if advisor_plan is not None
+        else None
+    )
+
+    def value(item: Any, field: str, default: Any = None) -> Any:
+        raw = getattr(item, field, default)
+        if hasattr(raw, "isoformat"):
+            return raw.isoformat()
+        if hasattr(raw, "quantize"):
+            return float(raw)
+        return raw
+
+    holdings = []
+    for holding in HoldingsModel.find_by_customer_id(customer_id):
+        product = ProductModel.get_by_id(holding.product_id)
+        holdings.append({
+            "product_id": holding.product_id,
+            "product_name": getattr(product, "product_name", None) or f"产品 {holding.product_id}",
+            "product_code": getattr(product, "product_code", None),
+            "risk_level": getattr(product, "risk_level", None),
+            "shares": value(holding, "shares", 0),
+            "cost_amount": value(holding, "cost_amount", 0),
+            "current_value": value(holding, "current_value", 0),
+            "profit_loss": value(holding, "profit_loss", 0),
+            "profit_ratio": value(holding, "profit_ratio", 0),
+        })
+
+    transactions = []
+    for transaction in TransactionModel.find_by_customer_id(customer_id, limit=20):
+        product = ProductModel.get_by_id(transaction.product_id) if transaction.product_id else None
+        transactions.append({
+            "id": transaction.id,
+            "transaction_type": transaction.transaction_type,
+            "amount": value(transaction, "amount", 0),
+            "shares": value(transaction, "shares"),
+            "status": transaction.status,
+            "transaction_time": value(transaction, "transaction_time"),
+            "product_name": getattr(product, "product_name", None) or "非产品交易",
+        })
+
+    return HttpResponse.ok(data={
+        "customer": {
+            "id": customer.id,
+            "name": customer.username,
+            "phone": customer.phone,
+            "email": customer.email,
+            "customer_level": customer.customer_level,
+        },
+        "profile": {
+            "risk_level": getattr(profile, "risk_level", None),
+            "risk_score": value(profile, "risk_score"),
+            "dimension1_score": value(profile, "dimension1_score"),
+            "dimension2_score": value(profile, "dimension2_score"),
+            "dimension3_score": value(profile, "dimension3_score"),
+            "dimension4_score": value(profile, "dimension4_score"),
+            "confidence_score": value(profile, "confidence_score"),
+            "fm_flags": getattr(profile, "fm_flags", None) if profile else None,
+            "updated_reason": getattr(profile, "updated_reason", None) if profile else None,
+            "updated_at": value(profile, "updated_at"),
+            "valid_until": value(assessment, "valid_until"),
+            "asset_allocation": allocation,
+            "product_preference": getattr(profile, "product_preference", None) if profile else None,
+        },
+        "account": {
+            "available_balance": float(available) if available is not None else None,
+            "balance_source": balance_source,
+            "balance_is_simulated": balance_is_simulated,
+        },
+        "holdings": holdings,
+        "transactions": transactions,
+        "advisor_plan": {
+            "id": advisor_plan.id,
+            "advisor_id": advisor_plan.advisor_id,
+            "advisor_name": getattr(advisor, "username", None),
+            "risk_level": advisor_plan.risk_level,
+            "products": advisor_plan.products,
+            "disclaimer": advisor_plan.disclaimer,
+            "created_at": value(advisor_plan, "created_at"),
+        } if advisor_plan else None,
     })
 
 

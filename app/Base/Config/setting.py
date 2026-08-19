@@ -188,7 +188,7 @@ class DeepSeekSettings(BaseEnvSettings):
 # Ollama（本地向量模型）
 # =========================
 class OllamaSettings(BaseEnvSettings):
-    base_url: str = "http://127.0.0.1:11434/v1"
+    base_url: str = "http://127.0.0.1:11434"
     embedding_model: str = "bge-m3"
     default_model: Optional[str] = None
 

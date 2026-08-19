@@ -1,8 +1,9 @@
 from pathlib import Path
+import re
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -117,6 +118,69 @@ class SortMenuRequest(BaseModel):
 security = HTTPBearer(auto_error=False)
 
 
+def _user_identity(user) -> dict:
+    """Return display and business identity fields across old/new schemas."""
+    identity = {
+        "display_name": None,
+        "user_type": None,
+        "employee_role": None,
+        "advisor_level": None,
+        "customer_level": None,
+    }
+    extra = getattr(user, "extra_data", None)
+    if isinstance(extra, dict):
+        identity["display_name"] = extra.get("display_name") or extra.get("real_name")
+        for key in ("user_type", "employee_role", "advisor_level", "customer_level"):
+            if extra.get(key) is not None:
+                identity[key] = extra[key]
+    try:
+        from app.Base.Client.mysqlClient import MySQLClient
+        client = MySQLClient()
+        try:
+            rows = client.execute_sync(
+                "SELECT user_type, employee_role, advisor_level, customer_level, extra_data "
+                "FROM base_user WHERE id=%s LIMIT 1", (user.id,)
+            ) or []
+        finally:
+            client.close()
+        if rows:
+            row = rows[0]
+            for key in ("user_type", "employee_role", "advisor_level", "customer_level"):
+                if row.get(key) is not None:
+                    identity[key] = row[key]
+            row_extra = row.get("extra_data")
+            if isinstance(row_extra, str):
+                import json
+                try:
+                    row_extra = json.loads(row_extra)
+                except (TypeError, ValueError):
+                    row_extra = {}
+            if isinstance(row_extra, dict):
+                identity["display_name"] = (
+                    row_extra.get("display_name") or row_extra.get("real_name")
+                    or identity["display_name"]
+                )
+    except Exception:
+        # Optional presentation metadata must not make a valid login fail on
+        # an older base_user schema.
+        pass
+    identity["display_name"] = identity["display_name"] or getattr(user, "username", None)
+    return identity
+
+
+def _demo_login_kind(username: str, display_name: str, user_type: str) -> Optional[str]:
+    """Identify accounts created by the supported quick-login seed rules."""
+    normalized_type = str(user_type or "").upper()
+    username = str(username or "")
+    display_name = str(display_name or "")
+    if normalized_type == "EMPLOYEE":
+        return "employee_named" if username and username == display_name else None
+    if normalized_type == "CUSTOMER" and display_name:
+        numbered_name = re.fullmatch(rf"{re.escape(display_name)}\d{{3}}", username)
+        return "customer_numbered" if numbered_name else None
+    return None
+
+
 # =========================
 # Auth Helpers
 # =========================
@@ -170,13 +234,46 @@ def register(req: RegisterRequest):
 
 
 @router.post("/login")
-def login(req: LoginRequest):
+def login(req: LoginRequest, response: Response):
+    login_username = req.username.strip()
+    from app.Base.Models.userModel import UserModel
+    if not UserModel.find_by_username(login_username):
+        from app.Base.Client.mysqlClient import MySQLClient
+
+        client = MySQLClient()
+        try:
+            aliases = client.execute_sync(
+                "SELECT username FROM base_user WHERE status='active' AND deleted_at IS NULL "
+                "AND source_module IN ('fin','WealthButler') AND ("
+                "JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.display_name'))=%s OR "
+                "JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.real_name'))=%s) LIMIT 2",
+                (login_username, login_username),
+            ) or []
+        finally:
+            client.close()
+        if len(aliases) == 1:
+            login_username = str(aliases[0]["username"])
+        elif len(aliases) > 1:
+            raise HTTPException(status_code=400, detail="该姓名对应多个账号，请使用完整用户名登录")
     ok, user, access_token, refresh_token, msg = AuthService.login(
-        username=req.username, password=req.password,
+        username=login_username, password=req.password,
     )
     if not ok:
         raise HTTPException(status_code=401, detail=msg)
     role_info = AuthService.get_user_role_info(user.id, user.source_module)
+    identity = _user_identity(user)
+    # Workbench HTML navigation cannot attach the frontend's Bearer header.
+    # Keep the token in an HttpOnly cookie for server-side page authorization;
+    # API clients may continue using the returned access_token as before.
+    response.set_cookie(
+        key="wealth_access_token",
+        value=access_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=3600,
+        path="/",
+    )
     return HttpResponse.ok(
         data={
             "id": user.id,
@@ -187,9 +284,70 @@ def login(req: LoginRequest):
             "roles": role_info["role_names"],
             "permissions": role_info["permissions"],
             "is_admin": role_info["is_admin"],
+            **identity,
         },
         msg="登录成功",
     )
+
+
+@router.get("/demo-accounts")
+def demo_accounts():
+    """从当前数据库读取可用于验收的测试账号摘要。
+
+    只返回用户名和业务角色，不返回密码、手机号、邮箱或 extra_data，
+    避免登录页继续依赖旧 SQL 种子里的 employee00x/customer000x 账号。
+    """
+    from app.Base.Client.mysqlClient import MySQLClient
+
+    client = MySQLClient()
+    rows = client.execute_sync(
+        """
+        SELECT id, username, user_type, employee_role, advisor_level,
+               customer_level, extra_data
+        FROM base_user
+        WHERE status='active' AND deleted_at IS NULL
+          AND source_module IN ('fin', 'WealthButler')
+        ORDER BY CASE WHEN user_type IN ('EMPLOYEE', 'employee') THEN 1 ELSE 2 END,
+                 CASE employee_role
+                   WHEN '理财顾问' THEN 1
+                   WHEN '风控专员' THEN 2
+                   WHEN '客户经理' THEN 3
+                   WHEN '业务管理员' THEN 4
+                   ELSE 5 END,
+                 id
+        LIMIT 60
+        """
+    ) or []
+    accounts = []
+    for row in rows:
+        extra = row.get("extra_data")
+        if isinstance(extra, str):
+            try:
+                import json
+                extra = json.loads(extra)
+            except (TypeError, ValueError):
+                extra = {}
+        extra = extra if isinstance(extra, dict) else {}
+        display_name = extra.get("display_name") or extra.get("real_name")
+        display_name = display_name or row["username"]
+        quick_login_kind = _demo_login_kind(
+            row["username"], display_name, row.get("user_type")
+        )
+        if not quick_login_kind:
+            continue
+        role = row.get("employee_role") or ("客户" if row.get("user_type") == "CUSTOMER" else "员工")
+        accounts.append({
+            "id": int(row["id"]),
+            "username": row["username"],
+            "user_type": row.get("user_type"),
+            "role": role,
+            "display_name": display_name,
+            "quick_login_kind": quick_login_kind,
+            "advisor_level": row.get("advisor_level"),
+            "customer_level": row.get("customer_level"),
+        })
+    client.close()
+    return HttpResponse.ok(data={"accounts": accounts})
 
 
 @router.post("/refresh")
@@ -208,6 +366,7 @@ def refresh(req: RefreshRequest):
 def get_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
     user = _get_current_user(credentials)
     role_info = AuthService.get_user_role_info(user.id, user.source_module)
+    identity = _user_identity(user)
     return HttpResponse.ok(data={
         "id": user.id,
         "username": user.username,
@@ -219,6 +378,7 @@ def get_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
         "permissions": role_info["permissions"],
         "is_admin": role_info["is_admin"],
         "is_super_admin": role_info["is_super_admin"],
+        **identity,
         "last_login_at": str(user.last_login_at) if user.last_login_at else None,
         "created_at": str(user.created_at) if user.created_at else None,
     })

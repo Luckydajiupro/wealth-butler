@@ -170,6 +170,9 @@
             transform: translateY(-4px);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
         }
+        .stat-card[role="button"] { cursor: pointer; }
+        .stat-card[role="button"]:focus { outline: 3px solid rgba(102,126,234,.35); outline-offset: 2px; }
+        .stat-card-hint { margin-top:8px; color:#667085; font-size:12px; }
 
         .stat-label {
             font-size: 14px;
@@ -201,6 +204,10 @@
             margin-bottom: 24px;
             color: #333;
         }
+        .section-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+        .section-hint { color:#667085; margin:-10px 0 18px; line-height:1.6; }
+        [data-admin-section-panel] { min-height: 420px; }
+        .admin-section .alert-card { margin-bottom:14px; }
 
         .query-input-wrapper {
             margin-bottom: 20px;
@@ -591,16 +598,21 @@
         .ai-chat-footer {
             padding: 16px;
             border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
         }
 
         .ai-chat-input {
-            width: 100%;
+            flex: 1;
             padding: 10px;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             font-size: 14px;
             resize: none;
         }
+        .ai-send-btn { min-width:72px; height:44px; border:0; border-radius:8px; background:#667eea; color:#fff; font-weight:600; cursor:pointer; }
+        .ai-send-btn:hover { background:#5568d8; }
 
         /* 确认对话框 */
         .modal-overlay {
@@ -737,9 +749,10 @@
                 <span>智能财富管家系统</span>
             </div>
             <div class="nav-menu">
-                <a href="#" class="nav-item active">数据分析</a>
-                <a href="#" class="nav-item">风控复核</a>
-                <a href="#" class="nav-item">系统管理</a>
+                <a href="#dataAnalysis" class="nav-item active" data-admin-section="dataAnalysis">数据分析</a>
+                <a href="#riskReview" class="nav-item" data-admin-section="riskReview">风控复核</a>
+                <a href="#workorderSupervision" class="nav-item" data-admin-section="workorderSupervision">工单监督</a>
+                <a href="#systemManagement" class="nav-item" data-admin-section="systemManagement">系统管理</a>
             </div>
             <div class="user-menu">
                 <div class="user-info" onclick="toggleUserDropdown()">
@@ -758,23 +771,28 @@
 
     <!-- 主容器 -->
     <div class="container">
+        <div class="admin-section" id="dataAnalysis" data-admin-section-panel>
         <!-- 业务数据统计卡片 -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">今日交易总额</div>
-                <div class="stat-value" id="statTodayAmount">¥0</div>
+            <div class="stat-card" role="button" tabindex="0" onclick="openAdminMetric('transactions')" onkeydown="if(event.key==='Enter')openAdminMetric('transactions')">
+                <div class="stat-label">今日交易笔数</div>
+                <div class="stat-value" id="statTodayAmount">0 笔</div>
+                <div class="stat-card-hint">点击查看今日逐笔交易</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">活跃客户数</div>
+            <div class="stat-card" role="button" tabindex="0" onclick="openAdminMetric('customers')" onkeydown="if(event.key==='Enter')openAdminMetric('customers')">
+                <div class="stat-label">客户总数</div>
                 <div class="stat-value" id="statActiveUsers">0</div>
+                <div class="stat-card-hint">点击查看客户统计口径</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">风控预警处理率</div>
-                <div class="stat-value" id="statAlertRate">0%</div>
+            <div class="stat-card" role="button" tabindex="0" onclick="openAdminMetric('risk')" onkeydown="if(event.key==='Enter')openAdminMetric('risk')">
+                <div class="stat-label">待管理员复核预警</div>
+                <div class="stat-value" id="statAlertRate">0 条</div>
+                <div class="stat-card-hint">点击查看待管理员复核预警</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">系统健康度</div>
-                <div class="stat-value" id="statSystemHealth">0%</div>
+            <div class="stat-card" role="button" tabindex="0" onclick="openAdminMetric('health')" onkeydown="if(event.key==='Enter')openAdminMetric('health')">
+                <div class="stat-label">系统状态</div>
+                <div class="stat-value" id="statSystemHealth">-</div>
+                <div class="stat-card-hint">点击查看管理员权限边界</div>
             </div>
         </div>
 
@@ -789,9 +807,9 @@
                 ></textarea>
             </div>
             <div class="query-examples">
-                <button class="example-btn" onclick="fillExample('本月新增客户数')">本月新增客户数</button>
-                <button class="example-btn" onclick="fillExample('交易金额最高的5个产品')">交易金额最高的5个产品</button>
-                <button class="example-btn" onclick="fillExample('风险预警数量趋势')">风险预警数量趋势</button>
+                <button class="example-btn" onclick="runQuickQuery('本月新增客户数')">本月新增客户数</button>
+                <button class="example-btn" onclick="runQuickQuery('交易金额最高的5个产品')">交易金额最高的5个产品</button>
+                <button class="example-btn" onclick="runQuickQuery('风险预警数量趋势')">风险预警数量趋势</button>
             </div>
             <button class="query-btn" id="queryBtn" onclick="executeQuery()">
                 查询
@@ -833,6 +851,35 @@
                 </div>
             </div>
         </div>
+        </div>
+
+        <div class="admin-section" id="riskReview" data-admin-section-panel style="display:none">
+            <div class="query-section">
+                <div class="section-header"><h2 class="section-title">风险复核</h2><span class="alert-badge" id="riskReviewCount">0</span></div>
+                <p class="section-hint">仅展示需要业务管理员复核的高风险预警。管理员只能执行复核授权，不替代风控专员调查。</p>
+                <div id="riskReviewList"><div class="empty-state">正在加载待复核预警...</div></div>
+            </div>
+        </div>
+
+        <div class="admin-section" id="workorderSupervision" data-admin-section-panel style="display:none">
+            <div class="query-section">
+                <div class="section-header"><h2 class="section-title">全量工单监督</h2><button class="export-btn" onclick="loadWorkorders()">刷新</button></div>
+                <div class="results-table-wrapper"><table class="results-table"><thead><tr><th>编号</th><th>类型</th><th>子类型</th><th>客户</th><th>处理角色/人</th><th>状态</th><th>创建时间</th></tr></thead><tbody id="workordersTableBody"><tr><td colspan="7">正在加载工单...</td></tr></tbody></table></div>
+            </div>
+        </div>
+
+        <div class="admin-section" id="systemManagement" data-admin-section-panel style="display:none">
+            <div class="query-section">
+                <h2 class="section-title">系统管理</h2>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-label">角色边界</div><div class="stat-value" style="font-size:22px">四类角色</div><p>理财顾问、客户经理、风控专员、业务管理员</p></div>
+                    <div class="stat-card"><div class="stat-label">数据权限</div><div class="stat-value" style="font-size:22px">全量监督</div><p>可查看全量客户、工单、风险和报表</p></div>
+                    <div class="stat-card"><div class="stat-label">资金权限</div><div class="stat-value" style="font-size:22px">不可绕过</div><p>不得替代专业角色执行资金操作或跳过二次确认</p></div>
+                    <div class="stat-card"><div class="stat-label">知识库管理</div><div class="stat-value" style="font-size:22px">受权限保护</div><p>系统配置接口按 system:config 权限校验</p></div>
+                </div>
+                <div class="empty-state">角色和权限的修改需要专用管理 API；当前页面提供监督状态，不伪造未落库的权限变更。</div>
+            </div>
+        </div>
     </div>
 
     <!-- AI数据分析助手浮动气泡 -->
@@ -857,8 +904,9 @@
                 id="aiChatInput"
                 placeholder="输入您的问题..."
                 rows="3"
-                onkeypress="handleAIChatKeyPress(event)"
+                onkeydown="handleAIChatKeyPress(event)"
             ></textarea>
+            <button class="ai-send-btn" onclick="sendAIMessage()">发送</button>
         </div>
     </div>
 
@@ -878,7 +926,7 @@
         const API_BASE = window.location.origin;
         let currentModalAction = null;
         let currentModalData = null;
-        let queryHistory = JSON.parse(localStorage.getItem('query_history') || '[]');
+        let queryHistory = [];
         let currentSortColumn = null;
         let currentSortDirection = 'asc';
         let currentResultsData = [];
@@ -889,8 +937,30 @@
             loadUserInfo();
             loadStatistics();
             loadAlerts();
+            loadWorkorders();
             loadQueryHistory();
+            initAdminNavigation();
         });
+
+        function initAdminNavigation() {
+            const show = hash => {
+                const target = String(hash || '#dataAnalysis').replace('#', '') || 'dataAnalysis';
+                document.querySelectorAll('[data-admin-section-panel]').forEach(panel => panel.style.display = panel.id === target ? '' : 'none');
+                document.querySelectorAll('.nav-item[data-admin-section]').forEach(link => link.classList.toggle('active', link.dataset.adminSection === target));
+            };
+            show(window.location.hash || '#dataAnalysis');
+            window.addEventListener('hashchange', () => show(window.location.hash || '#dataAnalysis'));
+        }
+
+        function openAdminMetric(metric) {
+            if (metric === 'risk') { window.location.hash = '#riskReview'; return; }
+            if (metric === 'health') { window.location.hash = '#systemManagement'; return; }
+            window.location.hash = '#dataAnalysis';
+            const query = metric === 'transactions' ? '查询今日交易明细' : '查询客户总数和今日交易、待处理预警统计';
+            document.getElementById('queryInput').value = query;
+            executeQuery();
+            document.getElementById('queryResults')?.scrollIntoView({behavior:'smooth', block:'start'});
+        }
 
         // 检查认证
         function checkAuth() {
@@ -921,15 +991,21 @@
             const username = localStorage.getItem('username') || '管理员';
             document.getElementById('userName').textContent = username;
             document.getElementById('userAvatar').textContent = username.charAt(0);
+            const userKey = localStorage.getItem('user_id') || username;
+            queryHistory = JSON.parse(localStorage.getItem(`query_history_${userKey}`) || '[]');
         }
 
         // 加载统计数据
         async function loadStatistics() {
-            // Mock数据
-            document.getElementById('statTodayAmount').textContent = '¥12,456,789';
-            document.getElementById('statActiveUsers').textContent = '1,234';
-            document.getElementById('statAlertRate').textContent = '95.6%';
-            document.getElementById('statSystemHealth').textContent = '99.2%';
+            try {
+                const result = await adminFetch('/api/wealth/analyst/statistics');
+                const d = result.data || {};
+                document.getElementById('statTodayAmount').textContent = `${Number(d.total_transactions_today || 0)} 笔`;
+                document.getElementById('statActiveUsers').textContent = Number(d.total_customers || 0).toLocaleString();
+                document.getElementById('statSystemHealth').textContent = d.system_status || '未知';
+            } catch (error) {
+                ['statTodayAmount','statActiveUsers','statAlertRate','statSystemHealth'].forEach(id => document.getElementById(id).textContent = '暂不可用');
+            }
         }
 
         // 加载风控预警
@@ -943,45 +1019,13 @@
                     }
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.code === 0 && result.data && result.data.length > 0) {
-                        displayAlerts(result.data);
-                    } else {
-                        displayMockAlerts();
-                    }
-                } else {
-                    displayMockAlerts();
-                }
+                const result = await response.json();
+                if (!response.ok || result.status_code >= 400 || !result.data) throw new Error(result.detail || result.msg || '预警加载失败');
+                displayAlerts(result.data.alerts || []);
             } catch (error) {
                 console.error('加载预警失败:', error);
-                displayMockAlerts();
+                displayAlerts([]);
             }
-        }
-
-        // 显示Mock预警数据
-        function displayMockAlerts() {
-            const mockAlerts = [
-                {
-                    id: 1,
-                    rule_code: 'RISK-001',
-                    rule_name: '大额交易预警',
-                    customer_name: '张先生',
-                    level: '高风险',
-                    reason: '单笔交易金额超过50万元，且客户近期交易频率异常增高',
-                    suggestion: '建议人工核实客户身份和交易意图，确认资金来源合法性'
-                },
-                {
-                    id: 2,
-                    rule_code: 'RISK-003',
-                    rule_name: '异常登录预警',
-                    customer_name: '李女士',
-                    level: '高风险',
-                    reason: '检测到来自境外IP的登录尝试，与客户常用地址不符',
-                    suggestion: '建议联系客户确认是否本人操作，必要时冻结账户'
-                }
-            ];
-            displayAlerts(mockAlerts);
         }
 
         // 显示预警列表
@@ -990,6 +1034,9 @@
             const alertCount = document.getElementById('alertCount');
 
             alertCount.textContent = alerts.length;
+            document.getElementById('statAlertRate').textContent = `${alerts.length} 条`;
+            const reviewCount = document.getElementById('riskReviewCount');
+            if (reviewCount) reviewCount.textContent = alerts.length;
 
             if (alerts.length === 0) {
                 alertsList.innerHTML = '<div class="empty-state">暂无需要裁决的预警</div>';
@@ -1000,27 +1047,29 @@
                 <div class="alert-card">
                     <div class="alert-header">
                         <div>
-                            <div class="alert-title">${alert.rule_code} - ${alert.rule_name}</div>
-                            <div class="alert-info">客户：${alert.customer_name}</div>
+                        <div class="alert-title">${escapeHtml(alert.alert_type || alert.rule_code || '-')} - ${escapeHtml(alert.alert_name || alert.rule_name || '-')}</div>
+                        <div class="alert-info">客户：${escapeHtml(alert.customer_name || `客户${alert.customer_id || '-'}`)}</div>
                         </div>
-                        <div class="alert-level">${alert.level}</div>
+                        <div class="alert-level">${escapeHtml(alert.alert_level || alert.level || '-')}</div>
                     </div>
                     <div class="alert-reason">
-                        <strong>触发原因：</strong>${alert.reason}
+                        <strong>触发原因：</strong>${escapeHtml(alert.trigger_reason || alert.reason || '未提供')}
                     </div>
                     <div class="alert-reason">
-                        <strong>系统建议：</strong>${alert.suggestion}
+                        <strong>当前状态：</strong>${escapeHtml(alert.status || '待复核')} · 置信度 ${Number(alert.confidence || 0).toFixed(2)}
                     </div>
                     <div class="alert-actions">
                         <button class="alert-action-btn approve-btn" onclick="handleAlert(${alert.id}, 'approve')">
-                            批准放行
+                            批准复核
                         </button>
                         <button class="alert-action-btn reject-btn" onclick="handleAlert(${alert.id}, 'reject')">
-                            确认拦截
+                            驳回复核
                         </button>
                     </div>
                 </div>
             `).join('');
+            const reviewList = document.getElementById('riskReviewList');
+            if (reviewList) reviewList.innerHTML = alerts.length ? alertsList.innerHTML : '<div class="empty-state">暂无需要管理员复核的预警</div>';
         }
 
         // 处理预警裁决
@@ -1045,29 +1094,47 @@
             const token = localStorage.getItem('access_token');
 
             try {
-                // 这里应该调用实际的API
-                // const response = await fetch(`${API_BASE}/api/wealth/risk/alerts/${alertId}/${action}`, {
-                //     method: 'POST',
-                //     headers: {
-                //         'Authorization': `Bearer ${token}`,
-                //         'Content-Type': 'application/json'
-                //     }
-                // });
-
-                // Mock成功响应
-                setTimeout(() => {
-                    alert(`预警已${action === 'approve' ? '批准放行' : '确认拦截'}`);
-                    loadAlerts();
-                }, 500);
+                const response = await fetch(`${API_BASE}/api/wealth/risk/alert/${encodeURIComponent(alertId)}/handle`, {
+                    method: 'PUT', headers: {'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({action: action === 'approve' ? 'override_approve' : 'override_reject', remark: '业务管理员复核'})
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || result.status_code >= 400) throw new Error(result.detail || result.msg || '复核失败');
+                loadAlerts();
             } catch (error) {
                 console.error('执行裁决失败:', error);
                 alert('操作失败，请重试');
             }
         }
 
+        async function adminFetch(url, options = {}) {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE}${url}`, Object.assign({}, options, {headers: Object.assign({'Authorization': `Bearer ${token}`}, options.headers || {})}));
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.status_code >= 400) throw new Error(result.detail || result.msg || '请求失败');
+            return result;
+        }
+
+        async function loadWorkorders() {
+            const body = document.getElementById('workordersTableBody');
+            if (!body) return;
+            try {
+                const result = await adminFetch('/api/wealth/workorder/list?limit=100&offset=0');
+                const rows = (result.data && (result.data.workorders || result.data.orders)) || [];
+                body.innerHTML = rows.length ? rows.map(order => `<tr><td>${escapeHtml(String(order.id || '-'))}</td><td>${escapeHtml(order.order_type || '-')}</td><td>${escapeHtml(order.business_subtype || '-')}</td><td>${escapeHtml(order.customer_name || `客户${order.customer_id || '-'}`)}</td><td>${escapeHtml(order.handler_name || order.handled_by || '待领取')}</td><td>${escapeHtml(order.status || '-')}</td><td>${escapeHtml(order.created_at || '-')}</td></tr>`).join('') : '<tr><td colspan="7">暂无工单</td></tr>';
+            } catch (error) {
+                body.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message || '工单加载失败')}</td></tr>`;
+            }
+        }
+
         // 填充示例问题
         function fillExample(question) {
             document.getElementById('queryInput').value = question;
+        }
+
+        function runQuickQuery(question) {
+            fillExample(question);
+            executeQuery();
         }
 
         // 执行查询（真实NL2SQL集成）
@@ -1086,6 +1153,12 @@
             const startTime = Date.now();
 
             try {
+                const deterministic = await runDeterministicAdminReport(queryInput);
+                if (deterministic) {
+                    displayQueryResults(deterministic.rows, Date.now() - startTime, deterministic.summary);
+                    saveQueryHistory(queryInput);
+                    return;
+                }
                 const token = localStorage.getItem('access_token');
                 const userId = parseInt(localStorage.getItem('user_id')) || 1;
 
@@ -1100,35 +1173,16 @@
                         message: queryInput,
                         user_id: userId,
                         session_id: `admin_analyst_${Date.now()}`,
-                        is_stream: false
+                        is_stream: true
                     })
                 });
 
                 const elapsed = Date.now() - startTime;
 
                 if (response.ok) {
-                    const result = await response.json();
-
-                    // 解析NL2SQL返回的数据
-                    let queryData = [];
-                    if (result.code === 0 && result.data) {
-                        // 如果返回了query_result，直接使用
-                        if (result.data.query_result && Array.isArray(result.data.query_result)) {
-                            queryData = result.data.query_result;
-                        } else if (result.data.response) {
-                            // 尝试从response中提取数据
-                            try {
-                                const parsed = JSON.parse(result.data.response);
-                                if (parsed.query_result) {
-                                    queryData = parsed.query_result;
-                                }
-                            } catch (e) {
-                                console.warn('无法解析返回数据，使用空结果', e);
-                            }
-                        }
-                    }
-
-                    displayQueryResults(queryData, elapsed);
+                    const payload = await readAnalystStream(response);
+                    const queryData = payload && payload.data && Array.isArray(payload.data.query_result) ? payload.data.query_result : [];
+                    displayQueryResults(queryData, elapsed, payload && payload.data ? payload.data.response : (payload && payload.message ? payload.message : '分析服务未返回结果'));
                     saveQueryHistory(queryInput);
                 } else {
                     const errorText = await response.text();
@@ -1145,6 +1199,57 @@
                 queryBtn.disabled = false;
                 queryBtn.innerHTML = originalText;
             }
+        }
+
+        // 管理员常用指标走确定性只读接口，避免模型不可用时页面出现空白结果。
+        async function runDeterministicAdminReport(question) {
+            const q = question.toLowerCase();
+            try {
+                if (q.includes('本月') && q.includes('新增') && q.includes('客户')) {
+                    const d = (await adminFetch('/api/wealth/analyst/reports/monthly-new-customers')).data || {};
+                    return {rows:d.items || [], summary:`本月新增客户共 ${Number(d.total || 0)} 人`};
+                }
+                if (q.includes('产品') && (q.includes('最高') || q.includes('最多') || q.includes('top'))) {
+                    const d = (await adminFetch('/api/wealth/analyst/reports/top-products?limit=5')).data || {};
+                    return {rows:d.items || [], summary:'按累计成交金额从高到低排列前5个产品'};
+                }
+                if (q.includes('风险') && (q.includes('趋势') || q.includes('数量'))) {
+                    const d = (await adminFetch('/api/wealth/analyst/reports/risk-trend')).data || {};
+                    return {rows:d.items || [], summary:`近30日共 ${Number(d.total || 0)} 条风险预警`};
+                }
+                if ((q.includes('钱最多') || q.includes('金额最高') || q.includes('成交最多')) && !q.includes('产品')) {
+                    const d = (await adminFetch('/api/wealth/analyst/reports/top-customers?limit=10')).data || {};
+                    return {rows:d.items || [], summary:'这里的“钱最多”按累计成交金额解释，以下为前10名客户'};
+                }
+                if (q.includes('客户') || q.includes('用户')) {
+                    const d = (await adminFetch('/api/wealth/analyst/customers/summary')).data || {};
+                    return {rows:d.items || [], summary:`客户总数 ${Number(d.total || 0)} 人，以下为客户结构与统计口径`};
+                }
+                if (q.includes('风险') || q.includes('预警')) {
+                    const d = (await adminFetch('/api/wealth/risk/reports')).data || {};
+                    return {rows: Object.entries(d.by_status || {}).map(([状态,数量]) => ({状态, 数量:Number(数量), 来源:'风险报表接口'})), summary:'已返回风险预警状态统计'};
+                }
+                if (q.includes('交易') || q.includes('金额')) {
+                    const d = (await adminFetch('/api/wealth/analyst/transactions/today?limit=100')).data || {};
+                    return {rows:d.items || [], summary:`今日共 ${Number(d.total || 0)} 笔交易，以下为逐笔明细`};
+                }
+            } catch (error) {
+                return {rows: [], summary:`报表接口暂不可用：${error.message}`};
+            }
+            return null;
+        }
+
+        async function readAnalystStream(response) {
+            const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''; let latest = null;
+            while (true) {
+                const {done, value} = await reader.read(); if (done) break;
+                buffer += decoder.decode(value, {stream:true}); const lines = buffer.split('\n'); buffer = lines.pop() || '';
+                for (const line of lines) if (line.startsWith('data: ')) {
+                    const raw = line.slice(6).trim(); if (!raw || raw === '[EOF]') continue;
+                    try { const parsed = JSON.parse(raw); if (parsed && (parsed.data || parsed.code !== undefined)) latest = parsed; } catch (_) {}
+                }
+            }
+            return latest;
         }
 
         // 获取Mock数据
@@ -1177,7 +1282,7 @@
         }
 
         // 显示查询结果
-        function displayQueryResults(data, elapsed) {
+        function displayQueryResults(data, elapsed, summary = '') {
             const queryResults = document.getElementById('queryResults');
             const queryTime = document.getElementById('queryTime');
             const tableHead = document.getElementById('resultsTableHead');
@@ -1192,7 +1297,7 @@
 
             if (data.length === 0) {
                 tableHead.innerHTML = '<tr><th>查询结果</th></tr>';
-                tableBody.innerHTML = '<tr><td style="text-align:center;padding:40px;color:#999;">暂无数据</td></tr>';
+                tableBody.innerHTML = `<tr><td style="text-align:center;padding:40px;color:#667085;">${summary ? escapeHtml(summary) : '暂无数据。可尝试使用示例问题，或缩小查询范围。'}</td></tr>`;
                 return;
             }
 
@@ -1293,7 +1398,8 @@
                 queryHistory = queryHistory.slice(0, 20);
             }
 
-            localStorage.setItem('query_history', JSON.stringify(queryHistory));
+            const userKey = localStorage.getItem('user_id') || localStorage.getItem('username') || 'admin';
+            localStorage.setItem(`query_history_${userKey}`, JSON.stringify(queryHistory));
             loadQueryHistory();
         }
 
@@ -1354,7 +1460,7 @@
             }
         }
 
-        // 发送AI消息
+        // 发送AI消息（SSE流式接收）
         async function sendAIMessage() {
             const input = document.getElementById('aiChatInput');
             const message = input.value.trim();
@@ -1367,7 +1473,7 @@
             chatBody.innerHTML += `
                 <div style="text-align: right; margin-bottom: 12px;">
                     <div style="display: inline-block; background: #667eea; color: white; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
-                        ${message}
+                        ${escapeHtml(message)}
                     </div>
                 </div>
             `;
@@ -1375,10 +1481,30 @@
             input.value = '';
             chatBody.scrollTop = chatBody.scrollHeight;
 
-            // 发送到后端
+            // 创建AI回复占位符
+            const botMsgId = 'bot-msg-' + Date.now();
+            chatBody.innerHTML += `
+                <div id="${botMsgId}" style="margin-bottom: 12px;">
+                    <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                        正在思考...
+                    </div>
+                </div>
+            `;
+            chatBody.scrollTop = chatBody.scrollHeight;
+
             try {
+                const deterministic = await runDeterministicAdminReport(message);
+                if (deterministic) {
+                    const lines = deterministic.rows.slice(0, 10).map((row, index) => `${index + 1}. ${Object.entries(row).map(([key,value]) => `${key}：${value}`).join('；')}`);
+                    const reply = [deterministic.summary, ...lines].join('\n');
+                    document.getElementById(botMsgId).innerHTML = `<div style="display:inline-block;background:#f5f7fa;padding:10px 16px;border-radius:12px;max-width:90%;white-space:pre-wrap">${escapeHtml(reply || '暂无符合条件的数据')}</div>`;
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                    return;
+                }
                 const token = localStorage.getItem('access_token');
-                const response = await fetch(`${API_BASE}/api/wealth/chat`, {
+                const userId = parseInt(localStorage.getItem('user_id')) || 1;
+
+                const response = await fetch(`${API_BASE}/api/chat/analyst`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1386,37 +1512,40 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        agent_type: 'analyst'
+                        session_id: `admin_analyst_${Date.now()}`,
+                        user_id: userId,
+                        is_stream: true
                     })
                 });
 
-                if (response.ok) {
-                    const result = await response.json();
-                    const reply = result.data?.reply || '抱歉，我暂时无法回答这个问题。';
-
-                    chatBody.innerHTML += `
-                        <div style="margin-bottom: 12px;">
-                            <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
-                                ${reply}
-                            </div>
+                if (!response.ok) {
+                    document.getElementById(botMsgId).innerHTML = `
+                        <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                            服务暂时不可用，请稍后重试
                         </div>
                     `;
-                } else {
-                    chatBody.innerHTML += `
-                        <div style="margin-bottom: 12px;">
-                            <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
-                                Mock回复：我已收到您的问题"${message}"，正在为您分析数据...
-                            </div>
+                    return;
+                }
+
+                const payload = await readAnalystStream(response);
+                const fullResponse = payload && payload.data ? (payload.data.response || `查询完成，共返回 ${payload.data.row_count || 0} 条记录`) : (payload && payload.message) || '分析完成，但没有返回结果';
+                document.getElementById(botMsgId).innerHTML = `<div style="display:inline-block;background:#f5f7fa;padding:10px 16px;border-radius:12px;max-width:80%;white-space:pre-wrap">${escapeHtml(fullResponse)}</div>`;
+                chatBody.scrollTop = chatBody.scrollHeight;
+
+                // 如果没有收到任何响应
+                if (!fullResponse) {
+                    document.getElementById(botMsgId).innerHTML = `
+                        <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                            我已收到您的问题"${escapeHtml(message)}"，正在为您分析数据...
                         </div>
                     `;
                 }
+
             } catch (error) {
                 console.error('发送消息失败:', error);
-                chatBody.innerHTML += `
-                    <div style="margin-bottom: 12px;">
-                        <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
-                            Mock回复：我已收到您的问题"${message}"，正在为您分析数据...
-                        </div>
+                document.getElementById(botMsgId).innerHTML = `
+                    <div style="display: inline-block; background: #f5f7fa; padding: 10px 16px; border-radius: 12px; max-width: 80%;">
+                        网络连接出现问题，请稍后重试
                     </div>
                 `;
             }

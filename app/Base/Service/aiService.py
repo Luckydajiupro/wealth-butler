@@ -1,7 +1,8 @@
 import json
 from typing import Literal
 
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm, QwenLlm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm, DeepSeekLlm
+from app.Base.Ai.llms.ollamaEmbedding import ollama_embedding
 from app.Base.Ai.prompt.commonPrompt import text_auditing_prompt_v1
 from app.Base.Ai.service.commonService import RewriteQuestionParams, rewrite_question
 from app.Base.Ai.utils.common import jinja2_prompt_render
@@ -18,8 +19,9 @@ class AiService:
 
     @staticmethod
     def rewrite_question(question: str, user_id: str, session_id: str):
-        llm = QwenLlm()
-        question_embedding = llm.embedding(text=question)[0]
+        llm = DeepSeekLlm()
+        # 使用本地Ollama的bge-m3模型生成向量（DeepSeek不支持embedding）
+        question_embedding = ollama_embedding(text=question)
         similarity = VdbLLMConversation.search(data=question_embedding, output_fields=['question'])
         history = BaseLLMConversationModel.get_last_n_turns_context(user_id, session_id, 5)
         history = BaseLLMConversationModel.db_res_2_messages(history, is_rewrite=True)
@@ -37,7 +39,7 @@ class AiService:
         {"status": 0, "reason": "包含敏感政治元素【敏感政治人物】"}
         """
         if auditing_type == 'local':
-            llm = QwenLlm()
+            llm = DeepSeekLlm()
             prompt = jinja2_prompt_render(prompt=text_auditing_prompt_v1, params={'text': text})
             response = llm.invoke(prompt=prompt)
             res_dict = json.loads(response)

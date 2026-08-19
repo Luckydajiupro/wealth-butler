@@ -161,9 +161,13 @@ class FakeTransactionGateway:
     def __init__(self, holding_gateway: FakeHoldingGateway):
         self.holding_gateway = holding_gateway
         self.transactions = []
+        self.available_balances: Dict[int, Decimal] = {}
         self.fail_reason: Optional[str] = None
         self._transactions_by_trace: Dict[str, Dict[str, Any]] = {}
         self._lock = RLock()
+
+    def get_available_balance(self, customer_id: int) -> Decimal:
+        return self.available_balances.get(customer_id, Decimal("1000000.00"))
 
     def execute(
         self,
@@ -186,6 +190,13 @@ class FakeTransactionGateway:
 
             transaction_type = {"purchase": "申购", "redeem": "赎回", "transfer": "转账"}[command.intent]
             amount = Decimal(str(execution["amount"]))
+            available = self.available_balances.get(customer_id, Decimal("1000000.00"))
+            if command.intent in {"purchase", "transfer"}:
+                if available < amount:
+                    raise ValueError("模拟可用资金不足")
+                available -= amount
+            else:
+                available += amount
             holding_after = None
             if command.intent in {"purchase", "redeem"}:
                 holding_after = self.holding_gateway.apply_transaction(
@@ -208,7 +219,9 @@ class FakeTransactionGateway:
                 "trace_id": command.trace_id,
                 "intent": command.intent,
                 "holding_after": holding_after,
+                "available_balance_after": f"{available:.2f}",
             }
+            self.available_balances[customer_id] = available
             self.transactions.append(transaction)
             self._transactions_by_trace[command.trace_id] = {
                 "request_fingerprint": request_fingerprint,

@@ -7,6 +7,15 @@
 - **复用声明**：认证方式、响应信封、SSE帧格式全部直接复用脚手架已有实现（`Base/RicUtils/httpUtils.py`的`HttpResponse`、`Base/Api/authApi.py`的Bearer鉴权模式、`Base/Api/ai/chatApi.py`的流式响应模式），不新造一套格式——这是"能复用绝不重写"原则（架构设计文档§1）在API层的落地，也让新写的接口和直接复用的`/api/auth/*`风格一致，不增加前端联调的心智负担。
 - 若本文档字段与《表设计文档》/《研判规则提取与落地方案.md》/《架构设计文档》出现不一致，以那几份为准，视为本文档需要同步修正的信号。
 
+### 0.1 当前实现状态（Phase 5基线）
+
+- 正式入口为`app/WealthButler/main.py`，不是`app/Base/main.py`。
+- Phase 4启动验收的历史OpenAPI基线为**64条路径、69个操作**；Phase 5 REST 契约补齐后当前为 **78条路径、83个操作**。该数字包含复用的Base认证/管理接口、页面路由和WealthButler业务接口。
+- 当前已注册的关键业务模块包括：对话与二次确认、风控预警、持仓、工单、投顾客户视图、Operator写操作、分析/画像/风评、合规证据和核验收款方。
+- 目标契约已于 2026-08-17 通过 `app/WealthButler/Api/phase5ContractApi.py` 落地：`/api/knowledge/*`、`/api/profile/*`、`/api/product/*`、`POST /api/risk/monitor`、`/api/graph/*`、`POST /api/admin/recalculate-confidence`均已注册到正式入口。该层仅做认证、字段可见性、参数验证和现有 Service/Tool 调用。
+- REST 对外状态严格使用《表设计文档》的 `待入库/已入库/已下线`。现有 MySQL 表的历史 ENUM 仍为 `待审核/已上线/已下线`，适配层做双向映射；不在 REST 补齐任务中擅自执行 ENUM 迁移。
+- 详细完成/待批准/待人工状态以《Phase5交付差距清单.md》为准。
+
 ---
 
 ## 1. 全局范式（统一约定，逐接口不再重复）
@@ -117,7 +126,7 @@
 
 | 接口 | 权限 | 请求体/参数 | 响应体 | 归属 |
 |---|---|---|---|---|
-| `POST /api/knowledge/upload` | `SYSTEM_CONFIG`（业务管理员，见§1.2） | multipart文件 + `{knowledge_type: FAQ\|产品说明\|政策法规, title, source_file}` | 新建`fin_knowledge_meta`记录（`status=待入库`），异步触发《RAG切片入库策略.md》流水线，响应`{id, status}` | 知识库入库流水线负责人 |
+| `POST /api/knowledge/upload` | `SYSTEM_CONFIG`（业务管理员，见§1.2） | multipart文件 + `{knowledge_type: FAQ\|产品说明\|政策法规, title, source_file}` | 新建`fin_knowledge_meta`记录（对外`status=待入库`），异步触发《RAG切片入库策略.md》流水线，响应`{id, status}` | 知识库入库流水线负责人 |
 | `POST /api/knowledge/search` | `SYSTEM_CONFIG`（管理端手动检索验证用，非对话检索——对话检索走各Agent内部`KnowledgeRetrieval`工具，不经此REST） | `{query, knowledge_type, top_k}` | Milvus检索命中列表（`content/score/source_file`） | 同上 |
 | `GET /api/knowledge/list` | `SYSTEM_CONFIG` | query: `knowledge_type/status` + 分页 | `fin_knowledge_meta`列表 | 同上 |
 | `DELETE /api/knowledge/{id}` | `SYSTEM_CONFIG` | — | 软下线：`fin_knowledge_meta.status=已下线`（《RAG切片入库策略.md》§5下线流程，不物理删除Milvus向量） | 同上 |
@@ -215,3 +224,4 @@
 | 2026-08-13 | 修正`GET/PUT /api/profile/{customer_id}`：取消客户PUT权限（画像是计算产物非用户可编辑资料），GET改为按调用方角色返回字段子集，客户不再能看到`fm_flags`/各维度分/`confidence_score`/`memory_units`等风控内部字段 | （待填） |
 | 2026-08-13 | 补充`GET /api/profile/assessment/questions`：16题风评问卷题库（题干/选项/分值，来源《个人投资者适当性管理指南.md》第三章）需要单独的读取接口供前端渲染表单，不建MySQL表，走`risk_assessment_questions.json`配置文件，与提交结果的`fin_risk_assessment.answers`分工不重复 | （待填） |
 | 2026-08-13 | 跨文档一致性修正：消歧§2.1/§2.4/§2.5中4处指代不清的"§8.2"引用（NL2SQL安全要求、二次确认阈值3处→改为"需求文档§8.2"；投顾助手融合排序工具链1处→改为"架构设计文档§8.2"，两份文档都有§8.2但内容不同） | （待填） |
+| 2026-08-17 | Phase 5 REST 契约补齐：新增知识库、画像/风评、产品、手动风控、图谱和置信度重算路由；知识状态对外保持表设计契约，对内兼容历史 ENUM | Codex |

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.Base.Ai.base import UserMessages
 from app.Base.Ai.base.baseEnum import LLMTypeEnum
-from app.Base.Ai.llms.qwenLlm import QwenLlm
+from app.Base.Ai.llms.deepseekLlm import DeepSeekLlm
 from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
 from app.Base.Models.BaseLLMSession import BaseLLMSession
 from app.Base.RicUtils.httpUtils import HttpResponse
@@ -47,7 +47,7 @@ def persist_conversation(auto_save_vdb: bool = True, is_rewriting: bool = True, 
                 # 以下所有装饰器内部逻辑都包裹在 try-except 中，确保不影响被装饰函数
                 session = BaseLLMSession.get_user_last_session(params.user_id, params.session_id)
                 conversation.session_id = session.session_uuid
-                llm = QwenLlm()
+                llm = DeepSeekLlm()
                 conversation.ai_model = llm.model_name
                 conversation.source = "base_chat_api"
 
@@ -266,7 +266,7 @@ def chat(params: ChatParams):
     - 支持思考模式（is_thinking=True）
     - 自动持久化会话记录到传统 DB 和 VDB（通过装饰器非侵入式实现）
     """
-    llm = QwenLlm()
+    llm = DeepSeekLlm()
     full_messages = params.messages
 
     if params.is_stream:

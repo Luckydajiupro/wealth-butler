@@ -321,6 +321,22 @@ class MilvusLongTermStore:
             return self._connection_getter()
         return self._model().get_connection()
 
+    @staticmethod
+    def _customer_filter(connection: Any, collection_name: str, customer_id: int) -> str:
+        """兼容旧集合 VARCHAR customer_id 与 v2 INT64，切换期间不伪造类型。"""
+        description = connection.describe_collection(collection_name)
+        fields = {
+            str(field.get("name")): field
+            for field in (description.get("fields", []) or [])
+        }
+        customer_field = fields.get("customer_id")
+        if customer_field is None:
+            raise MemoryStoreUnavailableError("长期记忆集合缺少 customer_id 字段")
+        field_type = str(customer_field.get("type", "")).upper()
+        if field_type == "21" or field_type.endswith("VARCHAR"):
+            return f'customer_id == "{int(customer_id)}"'
+        return f"customer_id == {int(customer_id)}"
+
     def search(self, customer_id: int, query: str, top_k: int,
                threshold: float) -> List[Dict[str, Any]]:
         if self._embedding_fn is None:
@@ -337,12 +353,13 @@ class MilvusLongTermStore:
             raise MemoryStoreUnavailableError(
                 "长期记忆不可用：embedding 返回空/非法向量（EB-E-02，禁止随机向量）"
             )
+        collection_name = self._model().get_collection_name()
         results = connection.search(
-            collection_name=self._model().get_collection_name(),
+            collection_name=collection_name,
             data=[list(vector)],
             anns_field=LONG_TERM_ANN_FIELD,
             limit=int(top_k),
-            filter_expr=f"customer_id == {int(customer_id)}",
+            filter=self._customer_filter(connection, collection_name, customer_id),
             search_params={"metric_type": "COSINE", "params": {"nprobe": 10}},
             output_fields=["customer_id", "memory_type", "content", "session_id",
                            "agent_type", "importance", "created_at", "last_accessed_at",

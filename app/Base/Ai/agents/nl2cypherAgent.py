@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.Base.Ai.base.baseAgent import ReActAgent, AssistantMessages
 from app.Base.Ai.base.baseTool import BaseTool
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Client.neo4jClient import Neo4jClient
 from app.Base.Service.neo4jService import parse_nl_2_graph
 
@@ -157,7 +157,7 @@ class NL2CypherAgent(ReActAgent):
         max_iterations: int = 5,
         **kwargs: Any,
     ):
-        llm = get_default_qwen_llm()
+        llm = get_default_deepseek_llm()
 
         tools = [
             ExtractGraphTool(),

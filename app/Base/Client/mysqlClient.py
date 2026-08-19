@@ -19,7 +19,7 @@ from app.Base.Config.setting import settings
 
 load_dotenv()  # 自动加载 .env 文件
 
-db_config = settings.mysql.dict()
+db_config = getattr(settings.mysql, "model_dump")()
 
 
 class MySQLClient:

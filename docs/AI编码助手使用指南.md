@@ -51,7 +51,10 @@
 
 ### 1.3 命名约定
 
-- **数据库表**：统一前缀 `wealth_`（如 `wealth_advisor`）
+- **数据库表**：以 `docs/表设计文档.md` 为命名权威；理财业务数据使用
+  `fin_` 前缀（如 `fin_transaction`），通用业务流程数据使用 `biz_` 前缀
+  （如 `biz_work_order`），复用脚手架的基础表保留 `base_` 前缀。不再新增
+  `wealth_` 前缀的平行命名体系。
 - **Model类**：驼峰命名 + `Model`后缀（如 `AdvisorModel`）
 - **Service类**：驼峰命名 + `Service`后缀（如 `AdvisorService`）
 - **Agent类**：驼峰命名 + `Agent`后缀（如 `CustomerServiceAgent`）
@@ -376,3 +379,4 @@ git push origin main
 | 日期 | 更新内容 | 更新人 |
 |---|---|---|
 | 2026-08-14 | 首版发布，整合12个skill内容为通用AI助手规范 | 李清华 |
+| 2026-08-17 | 修正数据库表前缀约定，与表设计文档的 `fin_` / `biz_` / `base_` 体系保持一致 | 李清华 |

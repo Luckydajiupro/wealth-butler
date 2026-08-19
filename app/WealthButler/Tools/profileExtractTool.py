@@ -1,4 +1,4 @@
-"""客服对话中的客户偏好提取模拟工具。"""
+"""客服对话中的显式客户偏好规则提取工具。"""
 from pydantic import BaseModel, Field
 
 from app.Base.Ai.base.baseTool import BaseTool

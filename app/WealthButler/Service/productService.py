@@ -32,7 +32,7 @@ class ProductService:
             Optional[ProductModel]: 产品记录
         """
         try:
-            return ProductModel.find_by_id(product_id)
+            return ProductModel.get_by_id(product_id)
         except Exception as e:
             logger.error(f"查询产品失败: product_id={product_id}, error={e}", exc_info=True)
             return None

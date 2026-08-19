@@ -48,6 +48,8 @@ class HoldingGateway(Protocol):
 
 
 class TransactionGateway(Protocol):
+    def get_available_balance(self, customer_id: int) -> Any: ...
+
     def execute(
         self,
         employee_id: int,
@@ -78,6 +80,10 @@ class WorkOrderGateway(Protocol):
     ) -> Dict[str, Any]: ...
 
     def reject(self, work_order_id: int, handler_id: int, handle_note: str) -> Dict[str, Any]: ...
+
+    def complete_transaction_for_customer(
+        self, customer_id: int, handler_id: int, intent: str, transaction_id: int
+    ) -> Optional[Dict[str, Any]]: ...
 
 
 class RiskAssessmentGateway(Protocol):

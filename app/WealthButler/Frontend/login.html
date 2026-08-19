@@ -245,15 +245,15 @@
                 <button class="user-type-btn" data-type="employee">员工登录</button>
             </div>
 
-            <form id="loginForm">
+                <form id="loginForm" autocomplete="off">
                 <div class="form-group">
                     <label for="username">用户名</label>
-                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="off" required>
                 </div>
 
                 <div class="form-group">
                     <label for="password">密码</label>
-                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="new-password" required>
                 </div>
 
                 <button type="submit" class="login-btn" id="loginBtn">
@@ -264,35 +264,7 @@
             <div class="quick-login">
                 <h3>快速登录（测试账号）</h3>
                 <div class="quick-login-grid" id="quickLoginGrid">
-                    <!-- 客户账号 -->
-                    <div class="quick-login-btn" data-username="customer_zhang" data-password="123456">
-                        <span class="role">客户A</span>
-                        <span class="username">张先生</span>
-                    </div>
-                    <div class="quick-login-btn" data-username="customer_li" data-password="123456">
-                        <span class="role">客户B</span>
-                        <span class="username">李女士</span>
-                    </div>
-                    <!-- 理财顾问 -->
-                    <div class="quick-login-btn" data-username="advisor_wang" data-password="123456">
-                        <span class="role">理财顾问</span>
-                        <span class="username">王顾问</span>
-                    </div>
-                    <!-- 风控专员 -->
-                    <div class="quick-login-btn" data-username="risk_zhao" data-password="123456">
-                        <span class="role">风控专员</span>
-                        <span class="username">赵专员</span>
-                    </div>
-                    <!-- 客户经理 -->
-                    <div class="quick-login-btn" data-username="operator_liu" data-password="123456">
-                        <span class="role">客户经理</span>
-                        <span class="username">刘经理</span>
-                    </div>
-                    <!-- 管理员 -->
-                    <div class="quick-login-btn" data-username="admin" data-password="123456">
-                        <span class="role">管理员</span>
-                        <span class="username">admin</span>
-                    </div>
+                    <div class="quick-login-btn" style="cursor:default;color:#777;">正在读取当前数据库账号...</div>
                 </div>
             </div>
 
@@ -305,14 +277,34 @@
 
     <script>
         const API_BASE = window.location.origin;
+
+        function clearStaleClientSession() {
+            [
+                'access_token', 'refresh_token', 'user_id', 'username', 'display_name',
+                'user_type', 'employee_role', 'advisor_level', 'customer_level',
+                'roles', 'permissions', 'customer_id', 'customer_name'
+            ].forEach(key => localStorage.removeItem(key));
+            sessionStorage.removeItem('operator_chat_session');
+            Object.keys(sessionStorage).filter(key => key.startsWith('wealth_seen_notifications_'))
+                .forEach(key => sessionStorage.removeItem(key));
+        }
+        clearStaleClientSession();
+        document.getElementById('loginForm').reset();
         let currentUserType = 'customer';
+        let demoAccounts = [];
+
+        function switchLoginType(type) {
+            currentUserType = type;
+            document.querySelectorAll('.user-type-btn').forEach(button => {
+                button.classList.toggle('active', button.dataset.type === type);
+            });
+            renderDemoAccounts();
+        }
 
         // 用户类型切换
         document.querySelectorAll('.user-type-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.querySelectorAll('.user-type-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentUserType = this.dataset.type;
+                switchLoginType(this.dataset.type);
             });
         });
 
@@ -331,16 +323,86 @@
             await doLogin(username, password);
         });
 
-        // 快速登录
-        document.querySelectorAll('.quick-login-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const username = this.dataset.username;
-                const password = this.dataset.password;
-                document.getElementById('username').value = username;
-                document.getElementById('password').value = password;
-                await doLogin(username, password);
+        // 测试账号从当前数据库读取；后端只返回符合受支持测试数据规则的账号。
+        async function loadDemoAccounts() {
+            const grid = document.getElementById('quickLoginGrid');
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/demo-accounts`);
+                const result = await response.json();
+                demoAccounts = result?.data?.accounts || [];
+                renderDemoAccounts();
+            } catch (error) {
+                grid.innerHTML = '<div class="quick-login-btn" style="cursor:default;color:#b33;">测试账号读取失败，请手动输入账号</div>';
+                console.error('Demo account loading error:', error);
+            }
+        }
+
+        function renderDemoAccounts() {
+            const grid = document.getElementById('quickLoginGrid');
+            const expectedType = currentUserType === 'customer' ? 'CUSTOMER' : 'EMPLOYEE';
+            const accounts = demoAccounts.filter(account =>
+                String(account.user_type || '').toUpperCase() === expectedType
+            );
+            grid.innerHTML = '';
+            if (!accounts.length) {
+                grid.innerHTML = `<div class="quick-login-btn" style="cursor:default;color:#777;">当前数据库没有可用${currentUserType === 'customer' ? '客户' : '员工'}账号</div>`;
+                return;
+            }
+            let visibleAccounts = accounts.slice(0, 12);
+            if (expectedType === 'EMPLOYEE') {
+                const roleLimits = {'理财顾问': 3, '风控专员': 2, '客户经理': 3, '业务管理员': 2, '员工': 2};
+                const roleCounts = {};
+                visibleAccounts = accounts.filter(account => {
+                    const role = account.role || '员工';
+                    roleCounts[role] = roleCounts[role] || 0;
+                    if (roleCounts[role] >= (roleLimits[role] || 2)) return false;
+                    roleCounts[role] += 1;
+                    return true;
+                }).slice(0, 12);
+            }
+            visibleAccounts.forEach(account => {
+                    const button = document.createElement('div');
+                    button.className = 'quick-login-btn';
+                    const isCustomer = expectedType === 'CUSTOMER';
+                    const loginName = account.username;
+                    const roleLabel = isCustomer
+                        ? `${account.customer_level || '普通'}客户`
+                        : (account.role || '业务账号');
+                    button.dataset.username = account.username;
+                    button.innerHTML = `<span class="role">${escapeHtml(roleLabel)}</span>` +
+                        `<span class="username">${escapeHtml(account.display_name || account.username)} · ${escapeHtml(account.username)}</span>`;
+                    button.addEventListener('click', async () => {
+                        const password = getDemoPassword(account, isCustomer);
+                        if (!password) {
+                            showError('该测试账号没有可识别的测试密码规则，请手动登录');
+                            return;
+                        }
+                        document.getElementById('username').value = loginName;
+                        document.getElementById('password').value = password;
+                        await doLogin(loginName, password);
+                    });
+                    grid.appendChild(button);
             });
-        });
+        }
+
+        // 当前数据库测试数据约定：客户 Cust{序号}@2024，员工 Wb{姓名}@2024。
+        // 密码只在点击测试账号时用于本次登录，不显示在账号列表中。
+        function getDemoPassword(account, isCustomer) {
+            if (isCustomer && account.quick_login_kind === 'customer_numbered') {
+                const match = String(account.username || '').match(/(\d+)$/);
+                return match ? `Cust${Number(match[1])}@2024` : '';
+            }
+            if (!isCustomer && account.quick_login_kind === 'employee_named') {
+                return account.username ? `Wb${account.username}@2024` : '';
+            }
+            return '';
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[char]));
+        }
 
         // 执行登录
         async function doLogin(username, password) {
@@ -362,7 +424,7 @@
 
                 const result = await response.json();
 
-                if (response.ok && result.code === 0) {
+                if (response.ok && result.status_code === 200) {
                     // 登录成功
                     const userData = result.data;
 
@@ -371,8 +433,16 @@
                     localStorage.setItem('refresh_token', userData.refresh_token);
                     localStorage.setItem('user_id', userData.id);
                     localStorage.setItem('username', userData.username);
+                    localStorage.setItem('display_name', userData.display_name || userData.username);
+                    localStorage.setItem('user_type', userData.user_type || '');
+                    localStorage.setItem('employee_role', userData.employee_role || '');
+                    localStorage.setItem('advisor_level', userData.advisor_level || '');
+                    localStorage.setItem('customer_level', userData.customer_level || '');
                     localStorage.setItem('roles', JSON.stringify(userData.roles));
+                    localStorage.removeItem('customer_id');
+                    localStorage.removeItem('customer_name');
                     localStorage.setItem('permissions', JSON.stringify(userData.permissions));
+                    sessionStorage.removeItem('operator_chat_session');
 
                     showSuccess('登录成功！正在跳转...');
 
@@ -425,6 +495,12 @@
 
         // 检查是否已登录
         window.addEventListener('DOMContentLoaded', function() {
+            const requestedSwitch = new URLSearchParams(window.location.search).get('switch');
+            if (requestedSwitch === 'employee' || requestedSwitch === 'customer') {
+                localStorage.clear();
+                switchLoginType(requestedSwitch === 'employee' ? 'employee' : 'customer');
+            }
+            loadDemoAccounts();
             const token = localStorage.getItem('access_token');
             if (token) {
                 // 验证token是否有效

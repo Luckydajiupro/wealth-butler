@@ -402,6 +402,19 @@ class RiskAgent:
         """周批入口：对 WEEKLY_RULE_IDS（2 条）批量扫描。"""
         return self._scan(SCAN_TYPE_WEEKLY, list(WEEKLY_RULE_IDS), customer_ids, run_id)
 
+    def scan_selected_rules(self, rule_codes: List[str],
+                            customer_ids: Optional[List[int]] = None,
+                            run_id: Optional[str] = None) -> Dict[str, Any]:
+        """手动验收入口：仅扫描指定的日批/周批规则。"""
+        allowed = set(REALTIME_RULE_IDS) | set(DAILY_RULE_IDS) | set(WEEKLY_RULE_IDS)
+        requested = list(dict.fromkeys(rule_codes))
+        unknown = set(requested) - allowed
+        if unknown:
+            raise ValueError(f"批量扫描不支持规则: {sorted(unknown)}")
+        if not requested:
+            raise ValueError("rule_codes 不能为空")
+        return self._scan("manual", requested, customer_ids, run_id)
+
     def _scan(self, scan_type: str, rule_scope: List[str],
               customer_ids: Optional[List[int]], run_id: Optional[str]) -> Dict[str, Any]:
         now = self._now_fn()

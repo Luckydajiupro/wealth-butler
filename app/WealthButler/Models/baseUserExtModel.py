@@ -2,6 +2,7 @@ from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime
 import json
+from pydantic import field_validator
 
 
 class BaseUserExtModel(BaseDBModel):
@@ -45,6 +46,20 @@ class BaseUserExtModel(BaseDBModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
+
+    @field_validator('extra_data', mode='before')
+    @classmethod
+    def parse_extra_data(cls, value):
+        """数据库 JSON 列由 PyMySQL 返回字符串时恢复为字典。"""
+        if value is None or isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError:
+                return None
+            return parsed if isinstance(parsed, dict) else None
+        return value
 
     def model_dump(self, **kwargs):
         """重写model_dump，序列化JSON字段"""

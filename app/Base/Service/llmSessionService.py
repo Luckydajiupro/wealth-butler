@@ -1,6 +1,6 @@
 import logging
 
-from app.Base.Ai.llms.qwenLlm import get_default_qwen_llm
+from app.Base.Ai.llms.deepseekLlm import get_default_deepseek_llm
 from app.Base.Ai.prompt.commonPrompt import session_summary_prompt_v1
 from app.Base.Ai.utils.common import jinja2_prompt_render
 from app.Base.Models.BaseLLMConversationModel import BaseLLMConversationModel
@@ -18,7 +18,7 @@ def ai_summary_session(session_id: str, user_id: str):
 
     if conversations:
         prompt = jinja2_prompt_render(session_summary_prompt_v1,{"history": qa_pairs,"last_session": session.ai_summary})
-        llm = get_default_qwen_llm()
+        llm = get_default_deepseek_llm()
         response = llm.invoke(prompt)
         BaseLLMSession(id = session.id, ai_summary = response, last_handle_id=conversations[-1].get('id')).save()
         return response

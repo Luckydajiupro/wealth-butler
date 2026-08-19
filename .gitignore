@@ -12,6 +12,7 @@ env/
 .env.local
 .env.test
 .env.*
+token.txt
 
 # 本机 Claude Code 权限配置（各成员本机不同，不入库）
 .claude/settings.local.json
@@ -32,10 +33,13 @@ env/
 # 日志文件
 logs/
 *.log
+/runtime_artifacts/
+/runtime-restart.out
+/runtime-restart.err
 
-# 测试脚本（临时测试文件）
-test_*.py
-*_test.py
+# 根目录临时测试脚本（tests/ 下的正式测试不忽略）
+/test_*.py
+/*_test.py
 
 # PowerShell 脚本（本地环境配置）
 *.ps1

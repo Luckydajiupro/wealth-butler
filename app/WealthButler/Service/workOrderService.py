@@ -16,6 +16,7 @@ class WorkOrderService:
         intent_summary: str,
         priority: str,
         session_id: str,
+        business_subtype: Optional[str] = None,
     ) -> dict:
         """创建初始状态为“待处理”的客户转介工单。"""
         return self.repository.create_customer_referral(
@@ -23,4 +24,5 @@ class WorkOrderService:
             intent_summary=intent_summary,
             priority=priority,
             session_id=session_id,
+            business_subtype=business_subtype,
         )

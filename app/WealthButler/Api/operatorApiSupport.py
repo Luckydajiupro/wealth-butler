@@ -8,9 +8,9 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.Base.Api.authApi import _get_current_user, security
 from app.Base.RicUtils.httpUtils import HttpResponse
 from app.WealthButler.Service.chatService import ChatService
+from app.WealthButler.Service.operatorAccessService import OperatorAccessService
 from app.WealthButler.Service.operatorApiRuntime import (
     OperatorApiRuntime,
-    OperatorApiRuntimeFactory,
     to_json_safe_result,
 )
 
@@ -32,6 +32,8 @@ def ensure_employee_user(current_user: Any) -> Any:
         user_type = business_user.user_type if business_user else None
     if user_type != "EMPLOYEE":
         raise HTTPException(status_code=403, detail="业务操作仅限员工身份访问")
+    if not OperatorAccessService.can_use_operator(getattr(current_user, "id", 0)):
+        raise HTTPException(status_code=403, detail="业务操作仅限客户经理或业务管理员访问")
     return current_user
 
 
@@ -41,12 +43,16 @@ def get_authenticated_employee(credentials: HTTPAuthorizationCredentials = Depen
 
 
 def ensure_operator_runtime(runtime: Optional[OperatorApiRuntime] = None) -> OperatorApiRuntime:
-    """装配指定 Runtime；未注入时保留离线开发使用的 Fake 回退。"""
+    """装配指定的正式 Runtime；生产入口禁止隐式回退到 Fake。"""
     if runtime is not None:
+        if runtime.runtime_mode != "real":
+            raise ValueError("正式业务入口只允许装配 real OperatorApiRuntime")
         ChatService.configure_operator_runtime(runtime)
         return runtime
     if ChatService._operator_runtime is None:
-        ChatService.configure_operator_runtime(OperatorApiRuntimeFactory.create_fake())
+        raise RuntimeError("正式业务操作运行时尚未配置")
+    if ChatService._operator_runtime.runtime_mode != "real":
+        raise RuntimeError("正式业务入口检测到非 real OperatorApiRuntime")
     return ChatService._operator_runtime
 
 
@@ -66,6 +72,14 @@ def execute_structured_operation(
             "data": {},
             "metadata": {},
         }
+    if not OperatorAccessService.can_access_customer(employee_id, customer_id):
+        return {
+            "success": False,
+            "code": "CUSTOMER_SCOPE_DENIED",
+            "message": "该客户不在当前客户经理的办理范围内，请先领取对应工单",
+            "data": {},
+            "metadata": {},
+        }
     return to_json_safe_result(runtime.submit(employee_id, customer_id, intent, params))
 
 
@@ -76,7 +90,7 @@ def operation_response(result: Dict[str, Any]) -> HttpResponse:
 
     code = result.get("code", "")
     status_code = 400
-    if code == "PERMISSION_DENIED":
+    if code in {"PERMISSION_DENIED", "CUSTOMER_SCOPE_DENIED"}:
         status_code = 403
     elif code in {"CUSTOMER_NOT_FOUND", "PRODUCT_NOT_FOUND", "CONFIRMATION_NOT_FOUND"}:
         status_code = 404

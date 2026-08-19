@@ -9,6 +9,7 @@ import json
 import time
 import uuid
 import logging
+import threading
 from datetime import datetime
 from typing import Callable, Optional, Dict, Any
 from app.Base.Client.redisClient import redis_client
@@ -114,7 +115,8 @@ class EventBus:
         consumer_name: str,
         handler: Callable[[str, Dict[str, Any], str], bool],
         block_ms: int = 5000,
-        count: int = 10
+        count: int = 10,
+        stop_event: Optional[threading.Event] = None,
     ) -> None:
         """消费指定 Stream 的事件（阻塞式循环，常驻后台）
 
@@ -145,7 +147,7 @@ class EventBus:
         # ═══════════════════════════════════════════════════════════
         logger.info(f"[EventBus] 检查 Pending List: {stream_key}:{consumer_group}:{consumer_name}")
 
-        while True:
+        while stop_event is None or not stop_event.is_set():
             try:
                 # 读取pending消息（id='0' 重放PEL）
                 pending_messages = redis_client.client.xreadgroup(
@@ -153,7 +155,7 @@ class EventBus:
                     consumer_name,
                     {stream_key: '0'},  # '0' 重放该消费者的Pending List
                     count=count,
-                    block=0  # 非阻塞，立即返回
+                    block=None  # Pending 查询必须非阻塞，避免关闭时永久卡住
                 )
 
                 if not pending_messages or not pending_messages[0][1]:
@@ -161,12 +163,22 @@ class EventBus:
                     break
 
                 # 处理pending消息
+                retry_pending = False
                 for stream, msg_list in pending_messages:
                     for msg_id, fields in msg_list:
                         logger.warning(f"[EventBus] 重放PEL消息: {msg_id}")
-                        EventBus._process_message(
+                        completed = EventBus._process_message(
                             stream_key, consumer_group, msg_id, fields, handler
                         )
+                        if not completed:
+                            # 可重试失败继续保留在 PEL；停止本轮重放，避免同一消息忙循环。
+                            logger.warning(f"[EventBus] PEL消息仍需重试，本轮停止重放: {msg_id}")
+                            retry_pending = True
+                            break
+                    if retry_pending:
+                        break
+                if retry_pending:
+                    break
 
             except Exception as e:
                 logger.error(f"[EventBus] PEL重放异常: {e}", exc_info=True)
@@ -177,14 +189,15 @@ class EventBus:
         # ═══════════════════════════════════════════════════════════
         logger.info(f"[EventBus] 开始消费新消息: {stream_key}")
 
-        while True:
+        while stop_event is None or not stop_event.is_set():
             try:
                 # XREADGROUP 读取新消息（id='>' 只读取未消费的新消息）
                 messages = redis_client.client.xreadgroup(
                     consumer_group,
                     consumer_name,
                     {stream_key: '>'},  # '>' 只读取新消息
-                    block=block_ms,
+                    # 配置停止事件时缩短最长等待，以便应用生命周期干净关闭。
+                    block=min(block_ms, 1000) if stop_event is not None else block_ms,
                     count=count
                 )
 
@@ -203,7 +216,10 @@ class EventBus:
                 break
             except Exception as e:
                 logger.error(f"[EventBus] Consumer error: {e}", exc_info=True)
-                time.sleep(1)  # 短暂休眠，避免错误循环
+                if stop_event is None:
+                    time.sleep(1)  # 短暂休眠，避免错误循环
+                else:
+                    stop_event.wait(1)
 
     @staticmethod
     def _process_message(
@@ -212,34 +228,42 @@ class EventBus:
         msg_id: str,
         fields: Dict,
         handler: Callable
-    ) -> None:
+    ) -> bool:
         """处理单条消息（成功后ACK，保证at-least-once语义）"""
         from app.Base.Client.redisClient import redis_client
+
+        client = redis_client.client
+        event_type = fields.get('event_type', '')
+        payload_str = fields.get('payload', '{}')
+        trace_id = fields.get('trace_id', '')
+        identity = trace_id or f"{stream_key}:{msg_id}"
+        processed_key = f"eventbus:processed:{identity}"
+        processing_key = f"eventbus:processing:{identity}"
+        handler_name = getattr(handler, '__name__', type(handler).__name__)
 
         try:
             # ═══════════════════════════════════════════════════════
             # 步骤1: 解析消息字段
             # ═══════════════════════════════════════════════════════
-            event_type = fields.get('event_type', '')
-            payload_str = fields.get('payload', '{}')
-            trace_id = fields.get('trace_id', '')
-            timestamp = fields.get('timestamp', '')
-
             payload = json.loads(payload_str)
+
+            # 在业务 handler 前执行统一 schema 校验。非法消息不可重试，进入 DLQ 后 ACK。
+            from app.WealthButler.EventBus.schemas import validate_event
+            validate_event(event_type, payload)
 
             # ═══════════════════════════════════════════════════════
             # 步骤2: 幂等检查（trace_id去重）
             # ═══════════════════════════════════════════════════════
-            idempotent_key = f"eventbus:processed:{trace_id}"
-
-            # SET NX EX 86400 → 如果key不存在则设置，过期时间24小时
-            is_first_time = redis_client.client.set(idempotent_key, '1', nx=True, ex=86400)
-
-            if not is_first_time:
+            if client.get(processed_key):
                 logger.warning(f"[EventBus] 重复消息，跳过并ACK: trace_id={trace_id}")
-                # 重复消息直接ACK，避免PEL堆积
-                redis_client.client.xack(stream_key, consumer_group, msg_id)
-                return
+                client.xack(stream_key, consumer_group, msg_id)
+                return True
+
+            # processing 锁仅防并发执行，不代表处理完成；失败时必须释放并保留 PEL。
+            lock_token = str(uuid.uuid4())
+            if not client.set(processing_key, lock_token, nx=True, ex=60):
+                logger.warning(f"[EventBus] 消息正在由其他消费者处理: msg_id={msg_id}")
+                return False
 
             logger.info(
                 f"[EventBus] Processing {event_type} from {stream_key}, "
@@ -249,44 +273,65 @@ class EventBus:
             # ═══════════════════════════════════════════════════════
             # 步骤3: 调用业务handler
             # ═══════════════════════════════════════════════════════
-            success = handler(event_type, payload, trace_id)
+            try:
+                success = handler(event_type, payload, trace_id)
+            except Exception as exc:
+                EventBus._write_dead_letter(
+                    client, stream_key, msg_id, event_type, payload_str, trace_id,
+                    handler_name, "HANDLER_EXCEPTION", type(exc).__name__,
+                )
+                client.delete(processing_key)
+                logger.error(
+                    f"[EventBus] Handler异常，消息保留PEL: msg_id={msg_id}, "
+                    f"error_type={type(exc).__name__}",
+                    exc_info=True,
+                )
+                return False
 
             if success:
                 # ═══════════════════════════════════════════════════
                 # 步骤4: 成功后ACK（at-least-once语义保证）
                 # ═══════════════════════════════════════════════════
-                redis_client.client.xack(stream_key, consumer_group, msg_id)
+                pipe = client.pipeline(transaction=True)
+                pipe.set(processed_key, '1', ex=86400)
+                pipe.xack(stream_key, consumer_group, msg_id)
+                pipe.delete(processing_key)
+                pipe.execute()
                 logger.info(f"[EventBus] 处理成功并ACK: {msg_id}")
+                return True
             else:
                 # ═══════════════════════════════════════════════════
                 # 步骤5: 失败写入死信队列并ACK
                 # ═══════════════════════════════════════════════════
-                dead_letter_key = f"{stream_key}:dead_letter"
-                redis_client.client.xadd(dead_letter_key, {
-                    'original_stream': stream_key,
-                    'original_msg_id': msg_id,
-                    'event_type': event_type,
-                    'payload': payload_str,
-                    'trace_id': trace_id,
-                    'error_time': datetime.now().isoformat(),
-                    'handler_name': handler.__name__
-                })
-                # 已写入死信队列，ACK掉避免PEL堆积
-                redis_client.client.xack(stream_key, consumer_group, msg_id)
-                logger.error(f"[EventBus] 处理失败，已写入死信队列并ACK: {dead_letter_key}")
+                EventBus._write_dead_letter(
+                    client, stream_key, msg_id, event_type, payload_str, trace_id,
+                    handler_name, "HANDLER_REJECTED", "BusinessHandlerRejected",
+                )
+                client.delete(processing_key)
+                logger.error(f"[EventBus] 处理失败，已记录DLQ并保留PEL: {msg_id}")
+                return False
 
-        except json.JSONDecodeError as e:
-            logger.error(f"[EventBus] Invalid JSON in {msg_id}: {e}")
-            # JSON 格式错误，写入死信队列并ACK
-            dead_letter_key = f"{stream_key}:dead_letter"
-            redis_client.client.xadd(dead_letter_key, {
-                'original_stream': stream_key,
-                'original_msg_id': msg_id,
-                'payload': fields.get('payload', ''),
-                'error': f"JSONDecodeError: {str(e)}",
-                'error_time': datetime.now().isoformat()
-            })
-            redis_client.client.xack(stream_key, consumer_group, msg_id)
+        except json.JSONDecodeError:
+            EventBus._write_dead_letter(
+                client, stream_key, msg_id, event_type, payload_str, trace_id,
+                handler_name, "INVALID_JSON", "JSONDecodeError",
+            )
+            client.xack(stream_key, consumer_group, msg_id)
+            logger.error(f"[EventBus] Invalid JSON in {msg_id}")
+            return True
+
+        except (ValueError, TypeError) as exc:
+            # Pydantic ValidationError 继承 ValueError；只记录类型，不泄露输入值/异常文本。
+            EventBus._write_dead_letter(
+                client, stream_key, msg_id, event_type, payload_str, trace_id,
+                handler_name, "SCHEMA_VALIDATION_FAILED", type(exc).__name__,
+            )
+            client.xack(stream_key, consumer_group, msg_id)
+            logger.error(
+                f"[EventBus] Schema validation failed: msg_id={msg_id}, "
+                f"error_type={type(exc).__name__}"
+            )
+            return True
 
         except Exception as e:
             logger.error(
@@ -294,6 +339,37 @@ class EventBus:
                 exc_info=True
             )
             # 未预期异常：不ACK，保留在PEL中等待重放
+            client.delete(processing_key)
+            return False
+
+    @staticmethod
+    def _write_dead_letter(
+        client: Any,
+        stream_key: str,
+        msg_id: str,
+        event_type: str,
+        payload_str: str,
+        trace_id: str,
+        handler_name: str,
+        error_code: str,
+        error_type: str,
+    ) -> None:
+        """兼容原字段并新增稳定错误分类；同一原消息只记录一次。"""
+        marker_key = f"eventbus:dlq-recorded:{stream_key}:{msg_id}"
+        if not client.set(marker_key, '1', nx=True, ex=30 * 24 * 3600):
+            return
+        client.xadd(f"{stream_key}:dead_letter", {
+            'original_stream': stream_key,
+            'original_msg_id': msg_id,
+            'event_type': event_type,
+            'payload': payload_str,
+            'trace_id': trace_id,
+            'error': error_code,
+            'error_code': error_code,
+            'error_type': error_type,
+            'error_time': datetime.now().isoformat(),
+            'handler_name': handler_name,
+        })
 
     @staticmethod
     def create_consumer_group(

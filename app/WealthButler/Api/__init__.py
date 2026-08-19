@@ -32,14 +32,55 @@
         return HttpResponse.ok(data={"advisors": advisors, "total": total})
 """
 
-from app.WealthButler.Api.chatApi import register_wealth_chat_router
-from app.WealthButler.Api.riskApi import register_risk_api
-from app.WealthButler.Api.frontendApi import register_wealth_frontend_router
-from app.WealthButler.Api.holdingsApi import register_holdings_api
-from app.WealthButler.Api.workOrderApi import register_workorder_api
-from app.WealthButler.Api.advisorApi import register_advisor_api
-from app.WealthButler.Api.operatorApi import register_operator_api
-from app.WealthButler.Api.analystApi import register_analyst_api
+def register_wealth_chat_router(app):
+    from app.WealthButler.Api.chatApi import register_wealth_chat_router as register
+    return register(app)
+
+
+def register_risk_api(app):
+    from app.WealthButler.Api.riskApi import register_risk_api as register
+    return register(app)
+
+
+def register_wealth_frontend_router(app):
+    from app.WealthButler.Api.frontendApi import register_wealth_frontend_router as register
+    return register(app)
+
+
+def register_holdings_api(app):
+    from app.WealthButler.Api.holdingsApi import register_holdings_api as register
+    return register(app)
+
+
+def register_workorder_api(app):
+    from app.WealthButler.Api.workOrderApi import register_workorder_api as register
+    return register(app)
+
+
+def register_advisor_api(app):
+    from app.WealthButler.Api.advisorApi import register_advisor_api as register
+    return register(app)
+
+
+def register_operator_api(app):
+    from app.WealthButler.Api.operatorApi import register_operator_api as register
+    return register(app)
+
+
+def register_analyst_api(app):
+    from app.WealthButler.Api.analystApi import register_analyst_api as register
+    return register(app)
+
+
+def register_compliance_write_api(app):
+    # 延迟导入保持 ``import main`` 和 API 包检查不初始化数据库/Redis。
+    from app.WealthButler.Api.complianceWriteApi import register_compliance_write_api as register
+    return register(app)
+
+
+def register_phase5_contract_api(app):
+    from app.WealthButler.Api.phase5ContractApi import register_phase5_contract_api as register
+    return register(app)
 
 __all__ = [
     "register_wealth_chat_router",
@@ -49,5 +90,7 @@ __all__ = [
     "register_workorder_api",
     "register_advisor_api",
     "register_operator_api",
-    "register_analyst_api"
+    "register_analyst_api",
+    "register_compliance_write_api",
+    "register_phase5_contract_api",
 ]

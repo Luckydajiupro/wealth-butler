@@ -16,6 +16,9 @@ class TransactionModel(BaseDBModel):
     CREATE TABLE `fin_transaction` (
       `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
       `customer_id` INT NOT NULL COMMENT '客户ID',
+      `employee_id` INT COMMENT '实际发起操作的员工ID',
+      `trace_id` VARCHAR(64) COMMENT '跨Agent业务追踪ID',
+      `idempotency_key` VARCHAR(128) COMMENT '成交幂等键',
       `product_id` INT COMMENT '产品ID（转账类交易可为空）',
       `transaction_type` ENUM('申购','赎回','转账','分红','定投') NOT NULL COMMENT '交易类型',
       `amount` DECIMAL(14,2) NOT NULL COMMENT '交易金额',
@@ -30,10 +33,16 @@ class TransactionModel(BaseDBModel):
       `device_fingerprint` VARCHAR(100) COMMENT '发起交易的设备指纹',
       `channel` VARCHAR(30) COMMENT '交易渠道（APP/柜台/网银等）',
       `status` ENUM('待确认','成交','失败','已撤销') DEFAULT '成交' COMMENT '交易状态',
+      `failure_code` VARCHAR(64) COMMENT '失败码',
+      `failure_reason` VARCHAR(500) COMMENT '脱敏失败原因',
       `transaction_time` DATETIME NOT NULL COMMENT '交易发生时间',
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
       PRIMARY KEY (`id`),
       KEY `idx_customer_id` (`customer_id`),
+      KEY `idx_fin_transaction_employee_id` (`employee_id`),
+      UNIQUE KEY `uk_fin_transaction_trace_id` (`trace_id`),
+      UNIQUE KEY `uk_fin_transaction_idempotency_key` (`idempotency_key`),
       KEY `idx_product_id` (`product_id`),
       KEY `idx_transaction_type` (`transaction_type`),
       KEY `idx_transaction_time` (`transaction_time`),
@@ -45,6 +54,9 @@ class TransactionModel(BaseDBModel):
     # Pydantic字段定义
     id: Optional[int] = None
     customer_id: int
+    employee_id: Optional[int] = None
+    trace_id: Optional[str] = None
+    idempotency_key: Optional[str] = None
     product_id: Optional[int] = None
     transaction_type: str
     amount: Decimal
@@ -59,8 +71,11 @@ class TransactionModel(BaseDBModel):
     device_fingerprint: Optional[str] = None
     channel: Optional[str] = None
     status: str = "成交"
+    failure_code: Optional[str] = None
+    failure_reason: Optional[str] = None
     transaction_time: datetime
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     @classmethod
     def find_by_customer_id(cls, customer_id: int, limit: int = 100, offset: int = 0):

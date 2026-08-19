@@ -109,14 +109,10 @@ BUILTIN_ROLES = {
     # ==================== 财富管家业务角色（对应需求文档3.3节权限矩阵） ====================
     "advisor": {
         "display_name": "理财顾问",
-        "description": "使用投顾助手Agent和业务操作Agent",
+        "description": "使用只读投顾助手Agent提供分析与产品建议",
         "permissions": [
             Permission.PRODUCT_QUERY,
             Permission.PRODUCT_RECOMMEND,
-            Permission.OPERATION_PURCHASE,
-            Permission.OPERATION_REDEEM,
-            Permission.RISK_REASSESS,
-            Permission.RISK_SUSPICIOUS_REPORT,
             Permission.DATA_NL2SQL_QUERY,
         ],
     },
@@ -135,17 +131,33 @@ BUILTIN_ROLES = {
         "description": "使用业务操作Agent",
         "permissions": [
             Permission.PRODUCT_QUERY,
+            Permission.OPERATION_PURCHASE,
+            Permission.OPERATION_REDEEM,
             Permission.OPERATION_TRANSFER,
             Permission.CUSTOMER_INFO_UPDATE,
-            Permission.RISK_SUSPICIOUS_REPORT,
             Permission.WORKORDER_CREATE,
             Permission.DATA_NL2SQL_QUERY,
         ],
     },
     "business_admin": {
         "display_name": "业务管理员",
-        "description": "使用数据分析Agent，拥有风控复核裁决权",
+        "description": "管理员权限，负责全量监督、数据分析和风控复核",
         "permissions": [
+            # 管理员基础权限：业务管理员与管理员权限口径一致。
+            Permission.USER_MANAGE,
+            Permission.USER_READ,
+            Permission.ROLE_MANAGE,
+            Permission.CONTENT_MANAGE,
+            Permission.CONTENT_READ,
+            Permission.SYSTEM_CONFIG,
+            Permission.MODULE_MANAGE,
+            Permission.DATA_EXPORT,
+            Permission.PRODUCT_QUERY,
+            Permission.OPERATION_PURCHASE,
+            Permission.OPERATION_REDEEM,
+            Permission.OPERATION_TRANSFER,
+            Permission.CUSTOMER_INFO_UPDATE,
+            Permission.WORKORDER_CREATE,
             Permission.RISK_OVERRIDE,
             Permission.DATA_NL2SQL_QUERY,
         ],
@@ -315,7 +327,7 @@ class RoleModel(BaseModuleDBModel):
 
     @classmethod
     def ensure_builtin_roles(cls, source_module: str = "default"):
-        """确保预置角色存在（启动时调用，已存在则跳过）"""
+        """确保预置角色存在，并同步代码中定义的内置权限矩阵。"""
         for role_name, role_data in BUILTIN_ROLES.items():
             existing = cls.find_by_name(role_name, source_module)
             if not existing:
@@ -328,6 +340,19 @@ class RoleModel(BaseModuleDBModel):
                     is_builtin=True,
                 )
                 role.save()
+            elif existing.is_builtin:
+                current_permissions = sorted(_parse_json_field(existing.permissions))
+                expected_permissions = sorted(role_data["permissions"])
+                if (
+                    current_permissions != expected_permissions
+                    or existing.display_name != role_data["display_name"]
+                    or existing.description != role_data["description"]
+                ):
+                    existing.update(
+                        display_name=role_data["display_name"],
+                        description=role_data["description"],
+                        permissions=role_data["permissions"],
+                    )
 
     def update_permissions(self, permissions: List[str]) -> bool:
         """更新角色权限（内置角色也可更新）"""

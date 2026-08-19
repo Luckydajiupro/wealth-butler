@@ -31,6 +31,7 @@ from app.WealthButler.Service.operatorContracts import (
     INTENT_PERMISSIONS,
     OperationCommand,
     OperationResult,
+    TRANSACTION_CONFIRMATION_INTENTS,
     to_decimal,
 )
 
@@ -75,7 +76,7 @@ class OperationService:
         self.confirmation_service = confirmation_service or ConfirmationService()
 
     def submit(self, employee_id: int, customer_id: int, command: OperationCommand) -> OperationResult:
-        """提交一条已解析命令；命中确认阈值时只创建令牌。"""
+        """提交一条已解析命令；资金操作必须先创建确认令牌。"""
         result = self._submit(employee_id, customer_id, command)
         return self._audit_result(employee_id, customer_id, command, result)
 
@@ -83,6 +84,10 @@ class OperationService:
         authorization_error = self.authorize(employee_id, command.intent, command.trace_id)
         if authorization_error:
             return authorization_error
+        # 产品查询是客户经理的公共只读能力，不绑定具体客户；其余意图
+        # 都必须在客户对象上执行并继续走客户范围校验。
+        if command.intent == "product_query":
+            return self._execute_after_preflight(employee_id, customer_id, command)
         if customer_id <= 0:
             return self._fail("INVALID_CUSTOMER", "客户ID必须为正整数", command)
         if not self.customer_gateway.exists(customer_id):
@@ -94,15 +99,17 @@ class OperationService:
 
         if self._requires_confirmation(command):
             pending = self.confirmation_service.create(employee_id, customer_id, command)
+            confirmation_metadata = self._confirmation_metadata(command)
             return OperationResult(
                 True,
                 "CONFIRMATION_REQUIRED",
-                "操作需要线下确认后再执行",
+                "请明确确认本次操作后再执行",
                 metadata={
                     "confirm_required": True,
                     "confirm_token": pending.token,
                     "pending_action": command.intent,
                     "trace_id": command.trace_id,
+                    **confirmation_metadata,
                 },
             )
         return self._execute_after_preflight(employee_id, customer_id, command)
@@ -171,12 +178,37 @@ class OperationService:
         if amount < to_decimal(product.get("min_investment", "0"), "起投金额"):
             return self._fail("MINIMUM_INVESTMENT_NOT_MET", "申购金额低于产品起投金额", command)
 
+        balance_reader = getattr(self.transaction_gateway, "get_available_balance", None)
+        if callable(balance_reader):
+            try:
+                available_balance = balance_reader(customer_id)
+            except Exception:
+                return self._fail("AVAILABLE_BALANCE_UNAVAILABLE", "无法确认客户可用余额，暂不能发起申购", command)
+            if available_balance is None:
+                return self._fail("AVAILABLE_BALANCE_UNAVAILABLE", "客户可用余额尚未建立，暂不能发起申购", command)
+            try:
+                available_balance = to_decimal(available_balance, "可用余额")
+            except ValueError:
+                return self._fail("AVAILABLE_BALANCE_UNAVAILABLE", "客户可用余额数据异常，暂不能发起申购", command)
+            if available_balance < amount:
+                return OperationResult(
+                    False,
+                    "INSUFFICIENT_AVAILABLE_BALANCE",
+                    f"客户可用余额不足：申购金额{amount:.2f}元，可用余额{available_balance:.2f}元",
+                    metadata={
+                        "requested_amount": f"{amount:.2f}",
+                        "available_balance": f"{available_balance:.2f}",
+                        "trace_id": command.trace_id,
+                    },
+                )
+
         advisor_error = self._check_advisor_qualification(employee_id, product, command)
         if advisor_error:
             return advisor_error
 
         if product.get("admission_tier") == "仅预约":
-            return self._create_booking(employee_id, customer_id, product, amount, command)
+            # 预约也是申购流程的一部分，只允许在明确确认后创建。
+            return None
 
         suitability = self.suitability_gateway.check(customer_id, int(command.params["product_id"]))
         if not suitability.get("passed", False):
@@ -284,6 +316,11 @@ class OperationService:
         return None
 
     def _execute_after_preflight(self, employee_id: int, customer_id: int, command: OperationCommand) -> OperationResult:
+        if command.intent == "purchase":
+            product = self.product_gateway.get_product(int(command.params["product_id"]))
+            if product and product.get("admission_tier") == "仅预约":
+                amount = to_decimal(command.params["amount"], "申购金额")
+                return self._create_booking(employee_id, customer_id, product, amount, command)
         if command.intent in {"purchase", "redeem", "transfer"}:
             return self._execute_transaction(employee_id, customer_id, command)
         if command.intent == "reassess":
@@ -294,11 +331,25 @@ class OperationService:
             result = self.customer_info_gateway.update_contact(customer_id, command.params.get("phone"), command.params.get("email"))
             return self._ok("CONTACT_UPDATED", "联系方式已更新", command, result)
         if command.intent == "product_query":
+            if command.params.get("product_name") and not command.params.get("keyword"):
+                command.params["keyword"] = command.params.pop("product_name")
             if command.params.get("product_id") is not None:
                 product = self.product_gateway.get_product(int(command.params["product_id"]))
                 return self._fail("PRODUCT_NOT_FOUND", "产品不存在", command) if not product else self._ok("PRODUCT_FOUND", "产品查询成功", command, product)
             result = self.product_gateway.list_products(**command.params)
-            return self._ok("PRODUCT_LISTED", "产品列表查询成功", command, result)
+            items = result.get("items", []) if isinstance(result, dict) else []
+            total = result.get("total", len(items)) if isinstance(result, dict) else len(items)
+            if not items:
+                message = "未找到符合条件的在售产品"
+            else:
+                names = []
+                for item in items[:5]:
+                    name = str(item.get("product_name") or item.get("product_code") or "未命名产品")
+                    risk = item.get("risk_level")
+                    names.append(f"{name}{f'（{risk}）' if risk else ''}")
+                suffix = "等" if total > len(names) else ""
+                message = f"共找到 {total} 只产品：" + "、".join(names) + suffix
+            return self._ok("PRODUCT_LISTED", message, command, result)
         if command.intent == "suspicious_report":
             result = self.risk_alert_gateway.report_suspicious_transaction(
                 reporter_id=employee_id,
@@ -341,6 +392,40 @@ class OperationService:
         if transaction.get("idempotent_replay"):
             return self._ok("TRANSACTION_IDEMPOTENT_REPLAY", "请求已处理，已返回原交易结果", command, transaction)
 
+        work_order_completion = None
+        completion_warning = None
+        complete_workorder = getattr(self.work_order_gateway, "complete_transaction_for_customer", None)
+        if callable(complete_workorder):
+            try:
+                work_order_completion = complete_workorder(
+                    customer_id, employee_id, command.intent, int(transaction["transaction_id"])
+                )
+                if work_order_completion is None:
+                    completion_warning = "交易已成交，但未找到可自动完成的匹配工单，请客户经理核查"
+                else:
+                    subtype = {"purchase": "申购", "redeem": "赎回", "transfer": "转账"}.get(command.intent)
+                    result_payload = {
+                        "event_id": f"{command.trace_id}:work-order:{work_order_completion['id']}",
+                        "order_id": int(work_order_completion["id"]),
+                        "customer_id": customer_id,
+                        "business_subtype": work_order_completion.get("business_subtype") or subtype,
+                        "session_id": None,
+                        "status": "已完成",
+                        "reply": f"您的{subtype or '交易'}交易已成交，关联工单已完成。",
+                        "handler_id": employee_id,
+                    }
+                    if work_order_completion.get("handler_name"):
+                        result_payload["handler_name"] = work_order_completion["handler_name"]
+                    self.event_publisher.publish(
+                        "stream:work_order_result",
+                        "work_order_result",
+                        result_payload,
+                        "operator_agent",
+                        command.trace_id,
+                    )
+            except Exception:
+                completion_warning = "交易已成交，但工单闭环或客户结果通知失败，请客户经理核查"
+
         payload = {"customer_id": customer_id, "transaction_id": transaction["transaction_id"]}
         if command.intent != "transfer":
             payload["product_id"] = transaction.get("product_id")
@@ -351,27 +436,44 @@ class OperationService:
         payload["transaction_type"] = transaction["transaction_type"]
         try:
             self.event_publisher.publish("stream:large_transaction", "large_transaction", payload, "operator_agent", command.trace_id)
-        except Exception as exc:
+        except Exception:
             # 交易已提交，事件失败只能记录为可审计失败，不能伪造回滚。
             try:
-                self.event_publisher.enqueue_retry(
+                retry_message_id = self.event_publisher.enqueue_retry(
                     "stream:large_transaction",
                     "large_transaction",
                     payload,
                     "operator_agent",
                     command.trace_id,
-                    str(exc),
+                    # 异常文本可能包含连接地址或凭据，只持久化稳定故障码。
+                    "PRIMARY_EVENT_PUBLISH_FAILED",
                 )
             except Exception:
-                pass
+                return self._ok(
+                    "TRANSACTION_SUCCEEDED_EVENT_RETRY_FAILED",
+                    "交易已成交，但风控事件补发登记失败，请立即人工核查",
+                    command,
+                    transaction,
+                    {"event_pending": True, "retry_persisted": False, "work_order_completion": work_order_completion},
+                )
             return self._ok(
                 "TRANSACTION_SUCCEEDED_EVENT_PENDING",
                 "交易已成交，风控事件待补发",
                 command,
                 transaction,
-                {"event_pending": True},
+                {
+                    "event_pending": True,
+                    "retry_persisted": True,
+                    "retry_message_id": retry_message_id,
+                    "work_order_completion": work_order_completion,
+                },
             )
-        return self._ok("TRANSACTION_SUCCEEDED", "交易已成交", command, transaction)
+        metadata = {}
+        if work_order_completion:
+            metadata["work_order_completion"] = work_order_completion
+        if completion_warning:
+            metadata["work_order_completion_warning"] = completion_warning
+        return self._ok("TRANSACTION_SUCCEEDED", "交易已成交" + ("，工单已自动完成" if work_order_completion else ""), command, transaction, metadata)
 
     def _build_transaction_execution(self, command: OperationCommand) -> tuple[Optional[Dict[str, Any]], Optional[OperationResult]]:
         if command.intent == "transfer":
@@ -413,18 +515,18 @@ class OperationService:
         return self._ok("BOOKING_CREATED", "产品仅可预约，已提交资格初核", command, order, {"admission_tier": "仅预约", "work_order_id": order["id"]})
 
     def _check_advisor_qualification(self, employee_id: int, product: Dict[str, Any], command: OperationCommand) -> Optional[OperationResult]:
-        """员工侧资质独立于客户适当性，缺失或未知等级按拒绝处理。"""
-        maximum_risk_level = {"初级": 2, "中级": 3, "高级": 5}
+        """员工经办资质独立于客户适当性，缺失或未知等级按拒绝处理。"""
+        maximum_risk_level = {"初级": 2, "中级": 3, "高级": 5, "业务经办": 5}
         advisor_level = self.advisor_qualification_gateway.get_advisor_level(employee_id)
         if advisor_level not in maximum_risk_level:
-            return self._fail("ADVISOR_LEVEL_UNAVAILABLE", "无法确认理财顾问执业等级，暂不能办理申购", command)
+            return self._fail("OPERATOR_QUALIFICATION_UNAVAILABLE", "无法确认客户经理经办资质，暂不能办理申购", command)
         risk_level = product.get("risk_level")
         if not isinstance(risk_level, str) or risk_level not in {"R1", "R2", "R3", "R4", "R5"}:
             return self._fail("PRODUCT_RISK_LEVEL_INVALID", "产品风险等级不合法，暂不能办理申购", command)
         if int(risk_level[1]) > maximum_risk_level[advisor_level]:
             return self._fail(
-                "ADVISOR_QUALIFICATION_REJECTED",
-                f"{advisor_level}理财顾问仅可销售R1-R{maximum_risk_level[advisor_level]}产品",
+                "OPERATOR_QUALIFICATION_REJECTED",
+                f"当前经办资质仅可办理R1-R{maximum_risk_level[advisor_level]}产品",
                 command,
             )
         return None
@@ -517,10 +619,18 @@ class OperationService:
         return None
 
     def _requires_confirmation(self, command: OperationCommand) -> bool:
+        return command.intent in TRANSACTION_CONFIRMATION_INTENTS
+
+    def _confirmation_metadata(self, command: OperationCommand) -> Dict[str, Any]:
+        """高金额只提升复核等级，所有资金操作仍统一要求明确确认。"""
         threshold = CONFIRMATION_THRESHOLDS.get(command.intent)
-        if threshold is None:
-            return False
-        return to_decimal(command.params["amount"], "操作金额") > threshold
+        enhanced_review_required = False
+        if threshold is not None and command.params.get("amount") is not None:
+            enhanced_review_required = to_decimal(command.params["amount"], "操作金额") > threshold
+        return {
+            "enhanced_review_required": enhanced_review_required,
+            "confirmation_policy": "explicit_confirmation_required",
+        }
 
     def _require(self, command: OperationCommand, *fields: str) -> Optional[OperationResult]:
         missing = [

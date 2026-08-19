@@ -55,7 +55,7 @@ def scan_and_register_scheduler_tasks(force_reload: bool = False) -> Dict[str, A
 
         try:
             # 将文件名转换为模块名
-            module_name = f"Base.Service.scheduler.{py_file.stem}"
+            module_name = f"app.Base.Service.scheduler.{py_file.stem}"
 
             # 导入模块
             if force_reload and module_name in sys.modules:

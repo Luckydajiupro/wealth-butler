@@ -391,7 +391,7 @@ class RiskAssessService:
     def save_assessment_result(
         cls,
         customer_id: int,
-        answers: Dict[int, int],
+        answers: list[dict],
         total_score: Decimal,
         risk_level: str,
         is_professional_investor: bool = False
@@ -400,7 +400,7 @@ class RiskAssessService:
 
         Args:
             customer_id: 客户ID
-            answers: 答题记录
+            answers: 答题记录（按题号的数组，用于 JSON 审计留痕）
             total_score: 总分
             risk_level: 风险等级
             is_professional_investor: 是否专业投资者
@@ -422,9 +422,11 @@ class RiskAssessService:
                 valid_until=valid_until
             )
 
-            result = assessment.insert()
+            assessment_id = assessment.save()
+            if assessment_id <= 0:
+                raise RuntimeError("风险评估记录写入失败")
             logger.info(f"风险评估结果已保存：customer_id={customer_id}, level={risk_level}")
-            return result
+            return assessment
 
         except Exception as e:
             logger.error(f"保存风险评估结果失败: {e}", exc_info=True)

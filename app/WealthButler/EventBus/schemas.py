@@ -17,7 +17,7 @@ class LargeTransactionEvent(BaseModel):
     - 注意：发布者不过滤金额，消费者自行判断阈值
     """
     # 必填字段
-    customer_id: int = Field(..., description="客户ID")
+    customer_id: int = Field(..., gt=0, description="客户ID（正整数）")
     transaction_id: int = Field(..., description="交易流水号")
 
     # 可选字段（发布者尽量提供，消费者容错处理）
@@ -39,7 +39,7 @@ class SuspiciousIntentEvent(BaseModel):
     触发条件：客服对话中检测到敏感关键词或可疑行为模式
     用途：反洗钱规则的辅助信号
     """
-    customer_id: int = Field(..., description="客户ID")
+    customer_id: int = Field(..., gt=0, description="客户ID（正整数）")
     session_id: str = Field(..., description="会话ID")
     intent_type: str = Field(..., description="意图类型: money_laundering | fraud | phishing | other")
     confidence: str = Field(..., description="置信度（字符串，如'0.85'）")
@@ -91,6 +91,19 @@ class WorkOrderEvent(BaseModel):
     handler_id: Optional[int] = Field(None, description="指定处理人ID（可选）")
 
 
+class WorkOrderResultEvent(BaseModel):
+    """业务处理结果（专业 Agent/员工 → 客服会话通知）。"""
+    event_id: str = Field(..., min_length=1, description="业务结果事件唯一标识")
+    order_id: int = Field(..., gt=0)
+    customer_id: int = Field(..., gt=0)
+    business_subtype: Optional[str] = Field(None, description="结构化业务子类型")
+    session_id: Optional[str] = Field(None, description="客户客服会话 ID")
+    status: str = Field(..., description="已完成、已驳回或已关闭")
+    reply: str = Field(..., min_length=1, max_length=500)
+    handler_id: int = Field(..., gt=0)
+    handler_name: Optional[str] = Field(None, min_length=1, max_length=100, description="处理人姓名")
+
+
 # 事件类型与 Schema 的映射（供运行时校验）
 EVENT_SCHEMAS = {
     'large_transaction': LargeTransactionEvent,
@@ -98,6 +111,7 @@ EVENT_SCHEMAS = {
     'risk_alert': RiskAlertEvent,
     'profile_updated': ProfileUpdatedEvent,
     'work_order': WorkOrderEvent,
+    'work_order_result': WorkOrderResultEvent,
 }
 
 

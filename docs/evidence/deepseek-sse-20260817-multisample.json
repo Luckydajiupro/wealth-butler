@@ -1,0 +1,238 @@
+{
+  "generated_at": "2026-08-17T02:40:03.998445+00:00",
+  "model": "deepseek-v4-flash",
+  "endpoint": "/api/chat/customer",
+  "configuration": {
+    "cycles": 5,
+    "hot_per_cycle": 2,
+    "timeout_seconds": 120.0,
+    "startup_timeout_seconds": 90.0,
+    "expected_user_id": 1640,
+    "response_content_stored": false
+  },
+  "samples": [
+    {
+      "cycle": 1,
+      "sequence": 1,
+      "kind": "cold",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 22,
+      "first_frame_ms": 4644.6,
+      "completion_ms": 4831.2,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 1,
+      "sequence": 1,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 24,
+      "first_frame_ms": 12560.5,
+      "completion_ms": 12707.2,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 1,
+      "sequence": 2,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 21,
+      "first_frame_ms": 2563.8,
+      "completion_ms": 2741.3,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 2,
+      "sequence": 1,
+      "kind": "cold",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 22,
+      "first_frame_ms": 5012.4,
+      "completion_ms": 5234.9,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 2,
+      "sequence": 1,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 22,
+      "first_frame_ms": 1464.6,
+      "completion_ms": 1757.0,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 2,
+      "sequence": 2,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 23,
+      "first_frame_ms": 2209.4,
+      "completion_ms": 2330.7,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 3,
+      "sequence": 1,
+      "kind": "cold",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 39,
+      "first_frame_ms": 3522.7,
+      "completion_ms": 3916.0,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 3,
+      "sequence": 1,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 33,
+      "first_frame_ms": 2906.4,
+      "completion_ms": 3267.1,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 3,
+      "sequence": 2,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 23,
+      "first_frame_ms": 2102.9,
+      "completion_ms": 2325.4,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 4,
+      "sequence": 1,
+      "kind": "cold",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 21,
+      "first_frame_ms": 8235.4,
+      "completion_ms": 8404.5,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 4,
+      "sequence": 1,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 21,
+      "first_frame_ms": 3927.0,
+      "completion_ms": 4103.6,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 4,
+      "sequence": 2,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 26,
+      "first_frame_ms": 5250.0,
+      "completion_ms": 5446.4,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 5,
+      "sequence": 1,
+      "kind": "cold",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 31,
+      "first_frame_ms": 4036.0,
+      "completion_ms": 4403.5,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 5,
+      "sequence": 1,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 25,
+      "first_frame_ms": 2101.0,
+      "completion_ms": 2348.7,
+      "streamed_before_completion": true,
+      "error_type": null
+    },
+    {
+      "cycle": 5,
+      "sequence": 2,
+      "kind": "hot",
+      "success": true,
+      "http_status": 200,
+      "content_type": "text/event-stream; charset=utf-8",
+      "frame_count": 30,
+      "first_frame_ms": 4936.2,
+      "completion_ms": 5094.7,
+      "streamed_before_completion": true,
+      "error_type": null
+    }
+  ],
+  "summary": {
+    "cold": {
+      "sample_count": 5,
+      "success_count": 5,
+      "success_rate_percent": 100.0,
+      "first_frame_ms": {
+        "p50": 4644.6,
+        "p95": 7590.8
+      },
+      "completion_ms": {
+        "p50": 4831.2,
+        "p95": 7770.6
+      }
+    },
+    "hot": {
+      "sample_count": 10,
+      "success_count": 10,
+      "success_rate_percent": 100.0,
+      "first_frame_ms": {
+        "p50": 2735.1,
+        "p95": 9270.8
+      },
+      "completion_ms": {
+        "p50": 3004.2,
+        "p95": 9439.8
+      }
+    }
+  }
+}

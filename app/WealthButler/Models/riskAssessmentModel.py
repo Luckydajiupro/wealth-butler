@@ -2,6 +2,9 @@ from app.Base.Repository.base.baseDBModel import BaseDBModel
 from typing import Optional, ClassVar
 from datetime import datetime
 from decimal import Decimal
+import json
+
+from pydantic import field_validator
 
 
 class RiskAssessmentModel(BaseDBModel):
@@ -34,11 +37,35 @@ class RiskAssessmentModel(BaseDBModel):
     customer_id: int
     total_score: Decimal
     risk_level: str
-    answers: list
+    answers: list | dict
     is_professional_investor: bool = False
     assessment_time: datetime
     valid_until: datetime
     created_at: Optional[datetime] = None
+
+    @field_validator("answers", mode="before")
+    @classmethod
+    def decode_answers_json(cls, value):
+        """兼容新版数组及历史按 Q1..Q16 编号的对象格式。"""
+        if isinstance(value, str):
+            decoded = json.loads(value)
+        else:
+            decoded = value
+        if isinstance(decoded, list):
+            return decoded
+        if (
+            isinstance(decoded, dict)
+            and decoded
+            and all(
+                isinstance(key, str)
+                and key.startswith("Q")
+                and key[1:].isdigit()
+                and isinstance(answer, dict)
+                for key, answer in decoded.items()
+            )
+        ):
+            return decoded
+        raise ValueError("answers JSON 必须是数组或按题号存储的对象")
 
     @classmethod
     def find_latest_by_customer_id(cls, customer_id: int):

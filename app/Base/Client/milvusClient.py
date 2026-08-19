@@ -28,7 +28,7 @@ class MilvusClientSingleton:
         if cls._instance is None:
             cls._instance = super(MilvusClientSingleton, cls).__new__(cls)
             cls._instance._initialize()
-            logger.info("✅ MilvusVDBConnection 初始单例实例化成功")
+            logger.info("MilvusVDBConnection 初始单例实例化成功")
         return cls._instance
 
     def _initialize(self):
@@ -62,7 +62,7 @@ class MilvusClientSingleton:
                 token=token,
                 db_name=db_name  # 自动切换到指定数据库
             )
-            logger.info(f"✅ MilvusClient 成功连接 | URI: {uri} | DB: {db_name}")
+            logger.info(f"MilvusClient 成功连接 | URI: {uri} | DB: {db_name}")
         except Exception as e:
             logger.error(f"❌ 连接 Milvus 失败: {e}")
             raise
@@ -471,7 +471,6 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(f"测试失败: {e}")
-
 
 
 

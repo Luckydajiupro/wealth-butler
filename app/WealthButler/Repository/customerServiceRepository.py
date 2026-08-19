@@ -62,23 +62,35 @@ class CustomerServiceRepository:
         intent_summary: str,
         priority: str,
         session_id: str,
+        business_subtype: Optional[str] = None,
     ) -> dict:
         self.ensure_schema()
         order_no = f"CS-{datetime.now():%Y%m%d%H%M%S}-{uuid4().hex[:6].upper()}"
         self.client.execute_sync(
             """
             INSERT INTO biz_work_order
-                (order_no, order_type, source, customer_id, title, description,
-                 priority, status, related_entity_type, handle_records)
-            VALUES (%s, '客户转介', '转人工', %s, %s, %s, %s, '待处理', 'conversation', %s)
+                (order_no, order_type, source, customer_id, customer_name, title,
+                 description, intent_summary, priority, status,
+                 related_entity_type, handle_records)
+            VALUES (
+                %s, '客户转介', '转人工', %s,
+                (SELECT COALESCE(
+                    JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.display_name')),
+                    JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.real_name')),
+                    username
+                 ) FROM base_user WHERE id=%s LIMIT 1),
+                %s, %s, %s, %s, '待处理', 'conversation', %s
+            )
             """,
             (
                 order_no,
                 customer_id,
+                customer_id,
                 "客户转人工服务",
                 intent_summary,
+                intent_summary,
                 priority,
-                json.dumps([{"session_id": session_id, "action": "客服Agent转人工"}], ensure_ascii=False),
+                json.dumps({"business_subtype": business_subtype, "session_id": session_id, "action": "客服Agent转人工"}, ensure_ascii=False),
             ),
         )
         rows = self.client.execute_sync(
@@ -95,6 +107,7 @@ class CustomerServiceRepository:
         intent_summary: str,
         priority: str,
         session_id: str,
+        business_subtype: Optional[str] = None,
     ) -> dict:
         """兼容旧调用方；新的公共入口为 create_customer_referral。"""
         return self.create_customer_referral(
@@ -102,6 +115,7 @@ class CustomerServiceRepository:
             intent_summary=intent_summary,
             priority=priority,
             session_id=session_id,
+            business_subtype=business_subtype,
         )
 
     def save_conversation(

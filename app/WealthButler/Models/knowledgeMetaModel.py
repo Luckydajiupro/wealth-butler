@@ -26,6 +26,11 @@ class KnowledgeMetaModel(BaseDBModel):
       `approved_at` DATETIME COMMENT '审核时间',
       `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
       `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+      `source_file` VARCHAR(255) COMMENT '原始素材文件名',
+      `milvus_collection` VARCHAR(64) COMMENT '关联的Milvus集合名',
+      `milvus_pk` BIGINT COMMENT '关联的Milvus主键ID',
+      `minio_object_key` VARCHAR(255) COMMENT '关联的MinIO对象Key',
+      `uploaded_by` INT COMMENT '上传人ID',
       PRIMARY KEY (`id`),
       KEY `idx_knowledge_type` (`knowledge_type`),
       KEY `idx_collection_name` (`collection_name`),
@@ -47,6 +52,11 @@ class KnowledgeMetaModel(BaseDBModel):
     approved_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    source_file: Optional[str] = None
+    milvus_collection: Optional[str] = None
+    milvus_pk: Optional[int] = None
+    minio_object_key: Optional[str] = None
+    uploaded_by: Optional[int] = None
 
     @classmethod
     def find_by_collection(cls, collection_name: str, status: str = "已上线"):

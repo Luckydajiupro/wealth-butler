@@ -3,7 +3,7 @@ from typing import Any, Optional, List
 from app.Base.Ai.base.baseEnum import LLMTypeEnum
 from app.Base.Ai.base.baseLlm import BaseLlm
 from app.Base.Ai.base.baseSetting import DeepSeekConfig
-from Base import settings
+from app.Base.Config.setting import settings
 
 
 # noinspection PyTypeChecker
@@ -153,6 +153,16 @@ def create_deepseek_llm(
 
     return DeepSeekLlm(config=config)
 
+# todo: 此处存在缺陷，任意地方修改参数将影响所有地方，但是实际上流式输出和非流式输出有不同的处理逻辑需要适配
+default_deepseek_llm = create_deepseek_llm()
+
+def get_default_deepseek_llm() -> DeepSeekLlm:
+    """
+    便捷函数：获取默认的 DeepSeek LLM 实例
+    建议使用这个函数获取默认的 DeepSeek LLM 实例，大量的滥构造实例感觉可能存在资源回收方面的问题，虽然花销不大，还是尽量避免
+    一些配置参数可以调用时传入
+    """
+    return default_deepseek_llm
 
 if __name__ == '__main__':
 

@@ -1,3 +1,4 @@
+import os
 from typing import Optional, ClassVar, List
 from pydantic import Field
 from app.Base.Repository.base.baseVDB import BaseVDBModel
@@ -87,7 +88,11 @@ class CustomerMemoryCollectionModel(BaseVDBModel):
     )
 
     # 集合配置
-    collection_alias: ClassVar[str] = "fin_customer_memory_collection"
+    # v2 并行集合完成 apply+verify 后，通过环境变量灰度切换；默认仍指向旧集合。
+    collection_alias: ClassVar[str] = os.getenv(
+        "WEALTH_BUTLER_MEMORY_COLLECTION",
+        "fin_customer_memory_collection",
+    )
     description: ClassVar[str] = "客户长期记忆集合（纯稠密向量）"
     auto_create_collection: ClassVar[bool] = True
 

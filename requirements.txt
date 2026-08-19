@@ -164,10 +164,3 @@ pytest-asyncio>=0.23.0
 
 # ===== PostgreSQL 支持（生产环境可选，仅在使用 PostgreSQL 时需要）=====
 # psycopg2-binary>=2.9.9  # 默认注释，项目当前使用 MySQL，如需 PostgreSQL 请取消注释
-
-# ===== 测试依赖 =====
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
-
-# ===== PostgreSQL支持 =====
-psycopg2-binary>=2.9.9  # PostgreSQL数据库驱动（若使用PostgreSQL则必需）
