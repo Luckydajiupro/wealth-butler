@@ -951,9 +951,10 @@
         }
 
         // 页面加载时初始化
-        window.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            loadUserInfo();
+        window.addEventListener('DOMContentLoaded', async function() {
+            const currentUser = await checkAuth();
+            if (!currentUser) return;
+            loadUserInfo(currentUser);
             loadStatistics();
             loadWorkorders();
             loadRecentCustomers();
@@ -985,23 +986,51 @@
         }
 
         // 权限检查
-        function checkAuth() {
+        async function clearSessionAndRedirect() {
+            try {
+                await fetch(`${API_BASE}/api/auth/logout`, {method: 'POST', credentials: 'same-origin'});
+            } catch (_) {
+                // Local session state must still be cleared if the server is unavailable.
+            }
+            localStorage.clear();
+            sessionStorage.removeItem('operator_chat_session');
+            window.location.href = '/login';
+        }
+
+        async function checkAuth() {
             const token = localStorage.getItem('access_token');
             if (!token) {
-                window.location.href = '/login.html';
-                return;
+                await clearSessionAndRedirect();
+                return null;
             }
-
-            const roles = JSON.parse(localStorage.getItem('roles') || '[]');
-            if (!roles.includes('operator')) {
-                alert('无权限访问此页面');
-                window.location.href = '/login.html';
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {'Authorization': `Bearer ${token}`},
+                    credentials: 'same-origin'
+                });
+                const result = await response.json().catch(() => ({}));
+                const identity = result?.data || result;
+                const roles = Array.isArray(identity?.roles) ? identity.roles : [];
+                if (!response.ok || !roles.includes('operator')) throw new Error('当前账号不是客户经理');
+                const storedUserId = localStorage.getItem('user_id');
+                if (storedUserId && identity?.id && String(storedUserId) !== String(identity.id)) {
+                    localStorage.removeItem('customer_id');
+                    localStorage.removeItem('customer_name');
+                    sessionStorage.removeItem('operator_chat_session');
+                }
+                localStorage.setItem('user_id', String(identity.id));
+                localStorage.setItem('username', identity.username || '客户经理');
+                localStorage.setItem('roles', JSON.stringify(roles));
+                return identity;
+            } catch (_) {
+                await clearSessionAndRedirect();
+                return null;
             }
         }
 
         // 加载用户信息
-        function loadUserInfo() {
-            const username = localStorage.getItem('username');
+        function loadUserInfo(identity = {}) {
+            const username = identity.display_name || identity.username || localStorage.getItem('username');
             if (username) {
                 document.getElementById('userName').textContent = username;
             }
@@ -1986,10 +2015,9 @@
             showOperatorModal('系统设置', '当前工作台使用数据库实时工单、客户范围授权和模拟交易账户。系统设置由业务管理员统一维护。', '<button class="operator-modal-primary" onclick="closeOperatorModal()">关闭</button>');
         }
 
-        function logout() {
+        async function logout() {
             if (confirm('确定要退出登录吗？')) {
-                localStorage.clear();
-                window.location.href = '/login.html';
+                await clearSessionAndRedirect();
             }
         }
 

@@ -19,6 +19,8 @@ from app.Base.Models.roleModel import Permission
 from app.Base.RicUtils.httpUtils import HttpResponse
 from app.Base.Service.authService import AuthService
 from app.WealthButler.Api.operatorApiSupport import get_authenticated_employee
+from app.WealthButler.Api.operatorApiSupport import get_authenticated_user
+from app.WealthButler.Api.operatorApiSupport import ensure_employee_identity
 from app.WealthButler.Api.operatorApiSupport import ensure_employee_user
 from app.WealthButler.Service.complianceWriteService import (
     ComplianceEvidenceService,
@@ -65,9 +67,9 @@ class PayeeVerifyRequest(_ControlledRequest):
     valid_until: datetime
 
 
-def get_compliance_writer(current_user: Any = Depends(get_authenticated_employee)) -> Any:
+def get_compliance_writer(current_user: Any = Depends(get_authenticated_user)) -> Any:
     """受控写入要求员工身份及现有最高风控处置权限。"""
-    ensure_employee_user(current_user)
+    ensure_employee_identity(current_user)
     allowed = AuthService.has_permission(
         current_user.id,
         Permission.RISK_OVERRIDE,

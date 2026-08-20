@@ -328,7 +328,7 @@ def test_api_requires_jwt_and_enforces_risk_override(monkeypatch):
         assert unauthenticated.status_code == 401
 
         app.dependency_overrides[
-            complianceWriteApi.get_authenticated_employee
+            complianceWriteApi.get_authenticated_user
         ] = lambda: SimpleNamespace(id=2, user_type="EMPLOYEE", source_module="fin")
         monkeypatch.setattr(
             complianceWriteApi.AuthService,
@@ -338,3 +338,19 @@ def test_api_requires_jwt_and_enforces_risk_override(monkeypatch):
         denied = client.post("/api/compliance/payees/verify", json=payload)
         assert denied.status_code == 403
         assert "risk:override" in denied.json()["detail"]
+
+
+def test_compliance_writer_does_not_require_operator_role(monkeypatch):
+    user = SimpleNamespace(id=9, user_type="EMPLOYEE", source_module="fin")
+    monkeypatch.setattr(
+        complianceWriteApi.AuthService,
+        "has_permission",
+        lambda *args, **kwargs: True,
+    )
+    monkeypatch.setattr(
+        complianceWriteApi.OperatorAccessService,
+        "can_use_operator",
+        classmethod(lambda cls, _user_id: False),
+    )
+
+    assert complianceWriteApi.get_compliance_writer(user) is user

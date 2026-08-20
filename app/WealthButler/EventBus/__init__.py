@@ -5,6 +5,7 @@ from app.WealthButler.EventBus.eventBus import EventBus
 from app.WealthButler.EventBus.schemas import (
     LargeTransactionEvent,
     ProfileUpdatedEvent,
+    RecommendationRefreshRequestedEvent,
     RiskAlertEvent,
     SuspiciousIntentEvent,
     WorkOrderEvent,
@@ -17,6 +18,7 @@ __all__ = [
     "SuspiciousIntentEvent",
     "RiskAlertEvent",
     "ProfileUpdatedEvent",
+    "RecommendationRefreshRequestedEvent",
     "WorkOrderEvent",
     "validate_event",
     "start_all_consumers",

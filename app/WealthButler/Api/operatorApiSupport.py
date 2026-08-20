@@ -20,8 +20,8 @@ def get_authenticated_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return _get_current_user(credentials)
 
 
-def ensure_employee_user(current_user: Any) -> Any:
-    """业务操作仅允许员工发起，权限字符串不能替代员工身份边界。"""
+def ensure_employee_identity(current_user: Any) -> Any:
+    """只校验财富管家员工身份，不附加具体岗位权限。"""
     user_type = getattr(current_user, "user_type", None)
     if user_type is None:
         # authApi 当前返回脚手架 UserModel（未声明业务扩展列），仅在此时读取扩展模型。
@@ -32,6 +32,12 @@ def ensure_employee_user(current_user: Any) -> Any:
         user_type = business_user.user_type if business_user else None
     if user_type != "EMPLOYEE":
         raise HTTPException(status_code=403, detail="业务操作仅限员工身份访问")
+    return current_user
+
+
+def ensure_employee_user(current_user: Any) -> Any:
+    """业务操作仅允许客户经理岗位发起，权限字符串不能替代岗位边界。"""
+    ensure_employee_identity(current_user)
     if not OperatorAccessService.can_use_operator(getattr(current_user, "id", 0)):
         raise HTTPException(status_code=403, detail="业务操作仅限客户经理或业务管理员访问")
     return current_user

@@ -1441,11 +1441,16 @@
         });
 
         // 退出登录
-        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+        document.getElementById('logoutBtn').addEventListener('click', async function(e) {
             e.preventDefault();
+            try {
+                await fetch(`${API_BASE}/api/auth/logout`, {method: 'POST', credentials: 'same-origin'});
+            } catch (_) {
+                // Local session state must still be cleared if the server is unavailable.
+            }
             localStorage.clear();
             alert('已退出登录');
-            window.location.href = '/';
+            window.location.href = '/login';
         });
 
         // 刷新按钮

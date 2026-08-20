@@ -768,8 +768,10 @@
         let riskTrendChart = null;
 
         // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
+        document.addEventListener('DOMContentLoaded', async function() {
+            const currentUser = await checkAuth();
+            if (!currentUser) return;
+            loadUserInfo(currentUser);
             loadDashboardData();
             initRiskTrendChart();
             loadRules();
@@ -869,15 +871,43 @@
         }
 
         // 检查认证
-        function checkAuth() {
+        async function clearSessionAndRedirect() {
+            try {
+                await fetch(`${API_BASE}/api/auth/logout`, {method: 'POST', credentials: 'same-origin'});
+            } catch (_) {
+                // Local session state must still be cleared if the server is unavailable.
+            }
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+
+        async function checkAuth() {
             const token = localStorage.getItem('access_token');
             if (!token) {
-                window.location.href = '/login.html';
-                return;
+                await clearSessionAndRedirect();
+                return null;
             }
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {'Authorization': `Bearer ${token}`},
+                    credentials: 'same-origin'
+                });
+                const result = await response.json().catch(() => ({}));
+                const identity = result?.data || result;
+                const roles = Array.isArray(identity?.roles) ? identity.roles : [];
+                if (!response.ok || !roles.includes('risk_officer')) throw new Error('当前账号不是风控专员');
+                localStorage.setItem('user_id', String(identity.id));
+                localStorage.setItem('username', identity.username || '风控专员');
+                localStorage.setItem('roles', JSON.stringify(roles));
+                return identity;
+            } catch (_) {
+                await clearSessionAndRedirect();
+                return null;
+            }
+        }
 
-            // 显示用户名
-            const username = localStorage.getItem('username');
+        function loadUserInfo(identity = {}) {
+            const username = identity.display_name || identity.username || localStorage.getItem('username');
             if (username) {
                 document.getElementById('userDisplayName').textContent = username;
             }
@@ -1065,9 +1095,9 @@
                             (stats.false_positive_rate || 0) + '%';
                         document.getElementById('statReportedCount').textContent = stats.reported_count || 0;
 
-                        // 趋势（如果后端返回）
-                        document.getElementById('statTotalChange').textContent = '+5';
-                        document.getElementById('statFPRChange').textContent = '-1.2%';
+                        // 统计接口未返回同比时不得展示虚构趋势。
+                        document.getElementById('statTotalChange').textContent = stats.total_change ?? '暂无对比';
+                        document.getElementById('statFPRChange').textContent = stats.false_positive_rate_change ?? '暂无对比';
                         return;
                     }
                 }
@@ -1370,9 +1400,8 @@
         });
 
         // 退出登录
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login.html';
+        async function logout() {
+            await clearSessionAndRedirect();
         }
 
         // ESC键关闭弹窗

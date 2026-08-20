@@ -932,9 +932,10 @@
         let currentResultsData = [];
 
         // 初始化
-        window.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            loadUserInfo();
+        window.addEventListener('DOMContentLoaded', async function() {
+            const currentUser = await checkAuth();
+            if (!currentUser) return;
+            loadUserInfo(currentUser);
             loadStatistics();
             loadAlerts();
             loadWorkorders();
@@ -963,32 +964,44 @@
         }
 
         // 检查认证
-        function checkAuth() {
+        async function clearSessionAndRedirect() {
+            try {
+                await fetch(`${API_BASE}/api/auth/logout`, {method: 'POST', credentials: 'same-origin'});
+            } catch (_) {
+                // Local session state must still be cleared if the server is unavailable.
+            }
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+
+        async function checkAuth() {
             const token = localStorage.getItem('access_token');
             if (!token) {
-                window.location.href = '/login';
-                return;
+                await clearSessionAndRedirect();
+                return null;
             }
-
-            // 验证token和权限
-            fetch(`${API_BASE}/api/auth/me`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            }).then(response => {
-                if (!response.ok) {
-                    localStorage.clear();
-                    window.location.href = '/login';
-                }
-            }).catch(() => {
-                localStorage.clear();
-                window.location.href = '/login';
-            });
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {'Authorization': `Bearer ${token}`},
+                    credentials: 'same-origin'
+                });
+                const result = await response.json().catch(() => ({}));
+                const identity = result?.data || result;
+                const roles = Array.isArray(identity?.roles) ? identity.roles : [];
+                if (!response.ok || !roles.includes('business_admin')) throw new Error('当前账号不是业务管理员');
+                localStorage.setItem('user_id', String(identity.id));
+                localStorage.setItem('username', identity.username || '业务管理员');
+                localStorage.setItem('roles', JSON.stringify(roles));
+                return identity;
+            } catch (_) {
+                await clearSessionAndRedirect();
+                return null;
+            }
         }
 
         // 加载用户信息
-        function loadUserInfo() {
-            const username = localStorage.getItem('username') || '管理员';
+        function loadUserInfo(identity = {}) {
+            const username = identity.display_name || identity.username || localStorage.getItem('username') || '管理员';
             document.getElementById('userName').textContent = username;
             document.getElementById('userAvatar').textContent = username.charAt(0);
             const userKey = localStorage.getItem('user_id') || username;
@@ -1603,10 +1616,9 @@
         }
 
         // 退出登录
-        function logout() {
+        async function logout() {
             if (confirm('确认退出登录吗？')) {
-                localStorage.clear();
-                window.location.href = '/login';
+                await clearSessionAndRedirect();
             }
         }
     </script>

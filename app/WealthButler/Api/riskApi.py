@@ -7,6 +7,7 @@
 """
 from typing import Optional
 from datetime import datetime
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -17,6 +18,7 @@ from app.WealthButler.Models.riskAlertModel import RiskAlertModel
 from app.WealthButler.Models.transactionModel import TransactionModel
 from app.Base.Models.userModel import UserModel
 from app.WealthButler.Models.baseUserExtModel import BaseUserExtModel
+from app.WealthButler.Models.riskRuleConfigModel import RiskRuleConfigModel
 from dataclasses import replace
 from app.WealthButler.Rules.ruleDefinitions import AML_RULES, RuleMeta
 
@@ -24,6 +26,7 @@ from app.WealthButler.Rules.ruleDefinitions import AML_RULES, RuleMeta
 router = APIRouter(prefix="/api/wealth/risk", tags=["风险预警"])
 security = HTTPBearer(auto_error=False)
 _RULE_OVERRIDES: dict[str, RuleMeta] = {}
+logger = logging.getLogger(__name__)
 
 
 # ==================== 请求模型 ====================
@@ -74,23 +77,83 @@ def _check_risk_permission(user_id: int) -> tuple[bool, bool]:
     return is_risk_officer, is_admin
 
 
+def _pending_rule_check(_customer_id, _context=None):
+    """Draft rules are configuration-only until code supplies a reviewed checker."""
+    return None
+
+
+def _next_rule_version(version: str) -> str:
+    try:
+        major, minor = str(version).split(".", 1)
+        return f"{int(major)}.{int(minor) + 1}"
+    except (TypeError, ValueError):
+        return "1.1"
+
+
+def _rule_from_config(config: RiskRuleConfigModel) -> RuleMeta:
+    base = AML_RULES.get(config.rule_id)
+    return RuleMeta(
+        rule_id=config.rule_id,
+        rule_name=config.rule_name,
+        trigger_scope=config.trigger_scope,
+        risk_level=config.risk_level,
+        weight_tier=float(config.weight_tier),
+        priority=config.priority,
+        check_func=base.check_func if base else _pending_rule_check,
+        thresholds=dict(config.thresholds or {}),
+        source_tables=tuple(config.source_tables or ()),
+        source_fields=tuple(config.source_fields or ()),
+        rule_version=config.rule_version,
+        enabled=bool(config.enabled),
+    )
+
+
+def _rule_catalog() -> dict[str, RuleMeta]:
+    """Merge code-owned checkers with durable metadata snapshots."""
+    catalog = dict(AML_RULES)
+    try:
+        for config in RiskRuleConfigModel.load_all():
+            rule = _rule_from_config(config)
+            catalog[rule.rule_id] = rule
+            _RULE_OVERRIDES[rule.rule_id] = rule
+    except Exception as exc:
+        # Read-only availability remains possible during migration/DB outage;
+        # mutations below fail closed instead of pretending to persist.
+        logger.warning("加载持久化风控规则失败，使用代码内置规则: %s", exc)
+        catalog.update(_RULE_OVERRIDES)
+    return catalog
+
+
+def _persist_rule(rule: RuleMeta, updated_by: int) -> None:
+    RiskRuleConfigModel.upsert_snapshot({
+        "rule_id": rule.rule_id,
+        "rule_name": rule.rule_name,
+        "trigger_scope": rule.trigger_scope,
+        "risk_level": rule.risk_level,
+        "weight_tier": rule.weight_tier,
+        "priority": rule.priority,
+        "thresholds": rule.thresholds,
+        "source_tables": list(rule.source_tables),
+        "source_fields": list(rule.source_fields),
+        "rule_version": rule.rule_version,
+        "enabled": rule.enabled,
+        "updated_by": updated_by,
+    })
+    _RULE_OVERRIDES[rule.rule_id] = rule
+
+
 # ==================== API接口 ====================
 
 @router.get("/rules")
 def get_risk_rules(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Return the active rule catalog for the risk workbench.
-
-    This is intentionally read-only: rule execution remains owned by the
-    rule engine until a separately audited persistence workflow is approved.
-    """
+    """Return code-owned rule checkers merged with durable editable metadata."""
     user = _get_current_user(credentials)
     is_risk_officer, is_admin = _check_risk_permission(user.id)
     if not is_risk_officer and not is_admin:
         raise HTTPException(status_code=403, detail="您没有查看风控规则的权限")
 
     rules = []
-    for rule_id, base_rule in AML_RULES.items():
-        rule = _RULE_OVERRIDES.get(rule_id, base_rule)
+    for rule_id, rule in sorted(_rule_catalog().items(), key=lambda item: (item[1].priority, item[0])):
         rules.append({
             "rule_id": rule.rule_id,
             "rule_name": rule.rule_name,
@@ -116,40 +179,53 @@ def _require_rule_admin(credentials):
 
 @router.put("/rules/{rule_id}")
 def update_risk_rule(rule_id: str, request: RuleChangeRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    _require_rule_admin(credentials)
-    base = AML_RULES.get(rule_id)
-    if base is None:
+    user = _require_rule_admin(credentials)
+    current = _rule_catalog().get(rule_id)
+    if current is None:
         raise HTTPException(status_code=404, detail="规则不存在")
-    current = _RULE_OVERRIDES.get(rule_id, base)
-    _RULE_OVERRIDES[rule_id] = replace(current, **request.model_dump(exclude_none=True))
+    changes = request.model_dump(exclude_none=True, exclude={"rule_id"})
+    updated = replace(current, **changes, rule_version=_next_rule_version(current.rule_version))
+    try:
+        _persist_rule(updated, user.id)
+    except Exception as exc:
+        logger.exception("持久化风控规则失败: %s", rule_id)
+        raise HTTPException(status_code=503, detail="规则持久化失败，本次修改未生效") from exc
     return HttpResponse.ok(msg="规则已更新")
 
 
 @router.post("/rules")
 def add_risk_rule(request: RuleChangeRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    _require_rule_admin(credentials)
+    user = _require_rule_admin(credentials)
     if not request.rule_id or not request.rule_name or request.priority is None or not request.risk_level:
         raise HTTPException(status_code=400, detail="新增规则必须填写规则编号、名称、风险等级和优先级")
-    if request.rule_id in AML_RULES:
+    if request.rule_id in _rule_catalog():
         raise HTTPException(status_code=409, detail="规则编号已存在")
-    def _pending_rule_check(_customer_id, _context=None):
-        return None
-    AML_RULES[request.rule_id] = RuleMeta(
+    rule = RuleMeta(
         rule_id=request.rule_id, rule_name=request.rule_name, trigger_scope="daily",
         risk_level=request.risk_level, weight_tier=0.1, priority=request.priority,
         check_func=_pending_rule_check, thresholds={}, source_tables=(), source_fields=(),
         rule_version="draft", enabled=request.enabled if request.enabled is not None else True,
     )
+    try:
+        _persist_rule(rule, user.id)
+    except Exception as exc:
+        logger.exception("持久化新增风控规则失败: %s", request.rule_id)
+        raise HTTPException(status_code=503, detail="规则持久化失败，本次新增未生效") from exc
     return HttpResponse.ok(msg="规则已添加，当前为草稿规则，需配置规则检查逻辑后启用")
 
 
 @router.delete("/rules/{rule_id}")
 def disable_risk_rule(rule_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    _require_rule_admin(credentials)
-    base = AML_RULES.get(rule_id)
-    if base is None:
+    user = _require_rule_admin(credentials)
+    current = _rule_catalog().get(rule_id)
+    if current is None:
         raise HTTPException(status_code=404, detail="规则不存在")
-    _RULE_OVERRIDES[rule_id] = replace(_RULE_OVERRIDES.get(rule_id, base), enabled=False)
+    disabled = replace(current, enabled=False, rule_version=_next_rule_version(current.rule_version))
+    try:
+        _persist_rule(disabled, user.id)
+    except Exception as exc:
+        logger.exception("持久化停用风控规则失败: %s", rule_id)
+        raise HTTPException(status_code=503, detail="规则持久化失败，本次停用未生效") from exc
     return HttpResponse.ok(msg="规则已停用")
 
 @router.get("/alerts")

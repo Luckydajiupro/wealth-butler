@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import Cookie, FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.Base.Service.authService import AuthService
@@ -72,6 +72,11 @@ def register_wealth_frontend_router(app: FastAPI):
         if file.exists():
             return FileResponse(str(file), media_type="text/html")
         return HTMLResponse("<h1>页面未找到</h1>", status_code=404)
+
+    @app.get("/login.html", tags=["财富管家-页面"], include_in_schema=False)
+    def legacy_login_page_alias():
+        """兼容旧前端和书签，统一进入正式登录地址。"""
+        return RedirectResponse(url="/login", status_code=307)
 
     @app.get("/chat/customer", tags=["财富管家-页面"])
     def customer_dashboard():

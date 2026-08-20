@@ -5,7 +5,7 @@
 架构设计文档 §2.4 - 已定义事件类型
 """
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Literal
 
 
 class LargeTransactionEvent(BaseModel):
@@ -77,6 +77,20 @@ class ProfileUpdatedEvent(BaseModel):
     update_reason: str = Field(..., description="更新原因: risk_reassessment | behavior_change | manual")
 
 
+class RecommendationRefreshRequestedEvent(BaseModel):
+    """画像变化后发出的推荐失效/待重算事件。
+
+    当前推荐服务只提供即时只读计算，没有可安全持久化的自动重算入口。因此该事件只声明
+    旧推荐已失效并请求下游重算，不伪造配置方案，也不触发任何资金操作。
+    """
+    event_id: str = Field(..., min_length=1, description="幂等事件标识")
+    customer_id: int = Field(..., gt=0, description="客户ID")
+    profile_event_trace_id: str = Field(..., min_length=1, description="来源画像事件追踪ID")
+    updated_fields: List[str] = Field(..., description="发生变化的画像字段名，不包含字段值")
+    update_reason: str = Field(..., description="画像更新原因")
+    status: Literal["pending"] = Field("pending", description="等待推荐服务消费")
+
+
 class WorkOrderEvent(BaseModel):
     """工单事件（智能客服 Agent → 理财顾问工作台）
 
@@ -110,6 +124,7 @@ EVENT_SCHEMAS = {
     'suspicious_intent': SuspiciousIntentEvent,
     'risk_alert': RiskAlertEvent,
     'profile_updated': ProfileUpdatedEvent,
+    'recommendation_refresh_requested': RecommendationRefreshRequestedEvent,
     'work_order': WorkOrderEvent,
     'work_order_result': WorkOrderResultEvent,
 }

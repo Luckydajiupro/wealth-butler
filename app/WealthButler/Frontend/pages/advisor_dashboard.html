@@ -1803,7 +1803,10 @@
             });
             const result = await response.json().catch(() => ({}));
             if (!response.ok || result.status_code !== 200) {
-                throw new Error(result.detail || result.msg || '数据加载失败');
+                const detail = Array.isArray(result.detail)
+                    ? result.detail.map(item => `${Array.isArray(item.loc) ? item.loc.join('.') : '请求'}：${item.msg || '参数无效'}`).join('；')
+                    : (result.detail || result.msg || '数据加载失败');
+                throw new Error(String(detail));
             }
             return result.data || {};
         }
@@ -2279,9 +2282,14 @@
             });
 
             // 登出按钮
-            document.getElementById('logoutBtn').addEventListener('click', function() {
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                try {
+                    await fetch(`${API_BASE}/api/auth/logout`, {method: 'POST', credentials: 'same-origin'});
+                } catch (_) {
+                    // Local session state must still be cleared if the server is unavailable.
+                }
                 localStorage.clear();
-                window.location.href = '/';
+                window.location.href = '/login';
             });
 
             document.querySelectorAll('[data-nav-view] button').forEach(button => {

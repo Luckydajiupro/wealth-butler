@@ -3,7 +3,7 @@ import re
 from typing import Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -196,6 +196,18 @@ def _get_current_user(credentials: HTTPAuthorizationCredentials):
     return user
 
 
+def _require_consistent_browser_session(user, access_token: Optional[str]):
+    """Reject a browser session whose page cookie and API bearer disagree."""
+    if not access_token:
+        return user
+    cookie_user = AuthService.get_current_user(access_token)
+    if not cookie_user or getattr(cookie_user, "status", None) != "active":
+        raise HTTPException(status_code=401, detail="页面登录状态已失效，请重新登录")
+    if int(cookie_user.id) != int(user.id):
+        raise HTTPException(status_code=401, detail="登录会话不一致，请重新登录")
+    return user
+
+
 def _require_permission(credentials: HTTPAuthorizationCredentials, permission: str):
     user = _get_current_user(credentials)
     ok, msg = AuthService.require_permission(user.id, permission, user.source_module)
@@ -351,11 +363,35 @@ def demo_accounts():
 
 
 @router.post("/refresh")
-def refresh(req: RefreshRequest):
+def refresh(req: RefreshRequest, response: Response):
     ok, new_token, msg = AuthService.refresh_access_token(req.refresh_token)
     if not ok:
         raise HTTPException(status_code=401, detail=msg)
+    # Keep server-authorized page navigation and bearer API calls on the same
+    # refreshed identity.
+    response.set_cookie(
+        key="wealth_access_token",
+        value=new_token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=3600,
+        path="/",
+    )
     return HttpResponse.ok(data={"access_token": new_token})
+
+
+@router.post("/logout")
+def logout(response: Response):
+    """Clear the HttpOnly workbench cookie; the browser clears bearer state."""
+    response.delete_cookie(
+        key="wealth_access_token",
+        path="/",
+        samesite="lax",
+        secure=False,
+        httponly=True,
+    )
+    return HttpResponse.ok(msg="退出登录成功")
 
 
 # =========================
@@ -363,8 +399,12 @@ def refresh(req: RefreshRequest):
 # =========================
 
 @router.get("/me")
-def get_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_me(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    access_token: Optional[str] = Cookie(None, alias="wealth_access_token"),
+):
     user = _get_current_user(credentials)
+    _require_consistent_browser_session(user, access_token)
     role_info = AuthService.get_user_role_info(user.id, user.source_module)
     identity = _user_identity(user)
     return HttpResponse.ok(data={

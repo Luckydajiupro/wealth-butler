@@ -13,6 +13,7 @@ from app.WealthButler.EventBus import consumer
 from app.WealthButler.EventBus.schemas import (
     LargeTransactionEvent,
     ProfileUpdatedEvent,
+    RecommendationRefreshRequestedEvent,
     RiskAlertEvent,
     SuspiciousIntentEvent,
     WorkOrderEvent,
@@ -63,6 +64,18 @@ from app.WealthButler.EventBus.schemas import (
                 "update_reason": "risk_reassessment",
             },
             ProfileUpdatedEvent,
+        ),
+        (
+            "recommendation_refresh_requested",
+            {
+                "event_id": "recommendation-refresh:trace-profile-1",
+                "customer_id": 3,
+                "profile_event_trace_id": "trace-profile-1",
+                "updated_fields": ["risk_level"],
+                "update_reason": "risk_reassessment",
+                "status": "pending",
+            },
+            RecommendationRefreshRequestedEvent,
         ),
         (
             "work_order",
@@ -146,6 +159,89 @@ def test_work_order_result_is_written_only_to_customer_notification_key(monkeypa
     assert notification["handler_name"] == "胡晓东"
     client.ltrim.assert_called_once_with(key, 0, 99)
     client.expire.assert_called_once_with(key, 7 * 24 * 3600)
+
+
+def test_profile_updated_publishes_auditable_refresh_request(monkeypatch):
+    client = MagicMock()
+    client.get.return_value = None
+    monkeypatch.setattr("app.Base.Client.redisClient.redis_client.client", client)
+    publish = MagicMock(return_value="123-0")
+    monkeypatch.setattr(consumer.EventBus, "publish", publish)
+
+    handled = consumer.handle_profile_updated(
+        "profile_updated",
+        {
+            "customer_id": 3,
+            "updated_fields": {"risk_score": 72.0, "risk_level": "C4"},
+            "update_reason": "risk_reassessment",
+        },
+        "trace-profile-1",
+    )
+
+    assert handled is True
+    publish.assert_called_once()
+    assert publish.call_args.kwargs == {
+        "stream_key": "stream:recommendation_refresh",
+        "event_type": "recommendation_refresh_requested",
+        "payload": {
+            "event_id": "recommendation-refresh:trace-profile-1",
+            "customer_id": 3,
+            "profile_event_trace_id": "trace-profile-1",
+            "updated_fields": ["risk_level", "risk_score"],
+            "update_reason": "risk_reassessment",
+            "status": "pending",
+        },
+        "source_agent": "profile_updated_consumer",
+        "trace_id": "trace-profile-1",
+    }
+    assert client.setex.call_count == 2
+    final_state = json.loads(client.setex.call_args.args[2])
+    assert final_state["status"] == "published"
+    assert final_state["message_id"] == "123-0"
+
+
+def test_profile_updated_replay_skips_already_published_refresh(monkeypatch):
+    client = MagicMock()
+    client.get.return_value = json.dumps({"status": "published"})
+    monkeypatch.setattr("app.Base.Client.redisClient.redis_client.client", client)
+    publish = MagicMock()
+    monkeypatch.setattr(consumer.EventBus, "publish", publish)
+
+    handled = consumer.handle_profile_updated(
+        "profile_updated",
+        {
+            "customer_id": 3,
+            "updated_fields": {"risk_level": "C4"},
+            "update_reason": "manual",
+        },
+        "trace-profile-1",
+    )
+
+    assert handled is True
+    publish.assert_not_called()
+    client.setex.assert_not_called()
+
+
+def test_profile_updated_keeps_pending_state_when_refresh_publish_fails(monkeypatch):
+    client = MagicMock()
+    client.get.return_value = None
+    monkeypatch.setattr("app.Base.Client.redisClient.redis_client.client", client)
+    monkeypatch.setattr(consumer.EventBus, "publish", MagicMock(side_effect=RuntimeError("redis down")))
+
+    handled = consumer.handle_profile_updated(
+        "profile_updated",
+        {
+            "customer_id": 3,
+            "updated_fields": {"risk_level": "C4"},
+            "update_reason": "manual",
+        },
+        "trace-profile-failed",
+    )
+
+    assert handled is False
+    assert client.setex.call_count == 1
+    pending_state = json.loads(client.setex.call_args.args[2])
+    assert pending_state["status"] == "pending"
 
 
 def test_publish_serializes_standard_event_envelope():

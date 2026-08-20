@@ -87,11 +87,20 @@ def test_advisor_workflow_is_read_only_and_requires_managed_customer() -> None:
     assert "投顾分析记录" in html
     assert "function generateWorkorderAllocationPlan()" in html
     assert "生成产品配置方案" in html
+    assert 'id="workorderRemark" maxlength="200"' in html
+    assert ".trim().slice(0, 200)" in html
+    assert "Array.isArray(result.detail)" in html
+    assert "item.loc.join('.')" in html
 
 
 def test_operator_workflow_requires_customer_and_supports_confirmation() -> None:
     html = _read("pages/operator_dashboard.html")
 
+    assert "const currentUser = await checkAuth();" in html
+    assert "if (!currentUser) return;" in html
+    assert "roles.includes('operator')" in html
+    assert "/api/auth/logout" in html
+    assert "window.location.href = '/login.html'" not in html
     assert "onclick=\"selectCustomer(this)\"" in html
     assert "尚未选择客户" in html
     assert "openCustomerPicker('选择客户','selectAssistantCustomer')" in html
@@ -204,3 +213,37 @@ def test_customer_confirmation_card_exposes_actions_and_explains_double_record()
     assert 'data-action="confirm"' in html
     assert "双录完成不会自动执行交易" in html
     assert "确认执行/取消" in html
+
+
+def test_employee_workbenches_verify_identity_before_loading_business_data() -> None:
+    expected_roles = {
+        "pages/operator_dashboard.html": "operator",
+        "pages/risk_dashboard.html": "risk_officer",
+        "pages/admin_dashboard.html": "business_admin",
+    }
+    for relative_path, role in expected_roles.items():
+        html = _read(relative_path)
+        auth_position = html.index("const currentUser = await checkAuth();")
+        first_business_load = min(
+            position for marker in ("loadStatistics();", "loadDashboardData();")
+            if (position := html.find(marker, auth_position)) >= 0
+        )
+        assert auth_position < first_business_load
+        assert "if (!currentUser) return;" in html[auth_position:first_business_load]
+        assert "/api/auth/me" in html
+        assert f"roles.includes('{role}')" in html
+        assert "/api/auth/logout" in html
+        assert "window.location.href = '/login.html'" not in html
+
+
+def test_all_role_workbenches_clear_server_cookie_on_logout() -> None:
+    for relative_path in (
+        "pages/customer_dashboard.html",
+        "pages/advisor_dashboard.html",
+        "pages/operator_dashboard.html",
+        "pages/risk_dashboard.html",
+        "pages/admin_dashboard.html",
+    ):
+        html = _read(relative_path)
+        assert "/api/auth/logout" in html
+        assert "credentials: 'same-origin'" in html

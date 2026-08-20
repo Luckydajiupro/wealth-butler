@@ -52,7 +52,9 @@ def run_controlled() -> dict[str, Any]:
     from app.WealthButler.Service.advisorService import AdvisorService
 
     products = [
-        {"id": 1, "product_code": "TECH-R3", "product_name": "科技成长", "risk_level": "R3", "industry": "科技", "return_score": 0.9, "redemption_period_days": 180, "status": "在售"},
+        # 非图排序会被较强的向量相关性和历史收益轻微推向客户已集中持有的科技行业；
+        # 产品级图关系应能纠正这个可解释的边界案例，而不是依赖悬殊的人工分差。
+        {"id": 1, "product_code": "TECH-R3", "product_name": "科技成长", "risk_level": "R3", "industry": "科技", "return_score": 1.0, "redemption_period_days": 180, "status": "在售"},
         {"id": 2, "product_code": "HEALTH-R3", "product_name": "医药均衡", "risk_level": "R3", "industry": "医药", "return_score": 0.7, "redemption_period_days": 90, "status": "在售"},
         {"id": 3, "product_code": "CONSUMER-R2", "product_name": "消费稳健", "risk_level": "R2", "industry": "消费", "return_score": 0.6, "redemption_period_days": 30, "status": "在售"},
     ]

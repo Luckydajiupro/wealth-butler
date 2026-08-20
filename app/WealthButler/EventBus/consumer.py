@@ -12,6 +12,8 @@
 """
 import threading
 import logging
+import hashlib
+import json
 from datetime import datetime
 from typing import Dict, Any
 from app.WealthButler.EventBus.eventBus import EventBus
@@ -214,11 +216,72 @@ def handle_profile_updated(event_type: str, payload: Dict[str, Any], trace_id: s
             f"updated_fields={list(event.updated_fields.keys())}, trace_id={trace_id}"
         )
 
-        # TODO: 触发推荐重新计算
-        # from app.WealthButler.Service.recommendationService import RecommendationService
-        # RecommendationService.refresh_recommendations(event.customer_id)
+        # 当前没有可安全持久化的自动推荐重算服务。先把既有推荐标记为失效，
+        # 再发布结构化待重算事件，由未来的推荐计算器消费；不得在消费者中伪造配置方案。
+        source_trace_id = str(trace_id or "").strip()
+        if not source_trace_id:
+            canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+            source_trace_id = f"profile-{hashlib.sha256(canonical.encode('utf-8')).hexdigest()[:24]}"
+        refresh_event_id = f"recommendation-refresh:{source_trace_id}"
+        state_key = f"recommendation:refresh:{event.customer_id}:{source_trace_id}"
+        updated_field_names = sorted(str(name) for name in event.updated_fields)
+        pending_payload = {
+            "event_id": refresh_event_id,
+            "customer_id": event.customer_id,
+            "profile_event_trace_id": source_trace_id,
+            "updated_fields": updated_field_names,
+            "update_reason": event.update_reason,
+            "status": "pending",
+        }
 
-        logger.info(f"[Consumer] Profile updated processed successfully, trace_id={trace_id}")
+        from app.Base.Client.redisClient import redis_client
+
+        existing = redis_client.client.get(state_key)
+        if existing:
+            try:
+                existing_state = json.loads(existing)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                existing_state = {}
+            if existing_state.get("status") == "published":
+                logger.info(
+                    "[Consumer] 推荐刷新事件已发布，幂等跳过: event_id=%s",
+                    refresh_event_id,
+                )
+                return True
+
+        redis_client.client.setex(
+            state_key,
+            30 * 24 * 3600,
+            json.dumps(pending_payload, ensure_ascii=False),
+        )
+        message_id = EventBus.publish(
+            stream_key="stream:recommendation_refresh",
+            event_type="recommendation_refresh_requested",
+            payload=pending_payload,
+            source_agent="profile_updated_consumer",
+            trace_id=source_trace_id,
+        )
+        if not message_id:
+            raise RuntimeError("推荐刷新事件发布未返回 message_id")
+
+        published_payload = dict(pending_payload)
+        published_payload["status"] = "published"
+        published_payload["message_id"] = (
+            message_id.decode("utf-8") if isinstance(message_id, bytes) else str(message_id)
+        )
+        redis_client.client.setex(
+            state_key,
+            30 * 24 * 3600,
+            json.dumps(published_payload, ensure_ascii=False),
+        )
+
+        logger.info(
+            "[Consumer] Profile updated marked recommendation stale: customer_id=%s, "
+            "refresh_event_id=%s, trace_id=%s",
+            event.customer_id,
+            refresh_event_id,
+            source_trace_id,
+        )
         return True
 
     except Exception as e:

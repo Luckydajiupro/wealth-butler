@@ -11,6 +11,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 
+from app.Base.Models.roleModel import Permission
 from app.Base.RicUtils.httpUtils import HttpResponse
 from app.Base.Service.authService import AuthService
 from app.WealthButler.Models.conversationArchiveModel import ConversationArchiveModel
@@ -31,7 +32,7 @@ class RiskAssessmentSubmit(BaseModel):
 
 
 def _get_current_user(credentials: HTTPAuthorizationCredentials):
-    """获取当前登录用户（JWT认证）"""
+    """获取业务管理员，并同时校验数据分析权限。"""
     if not credentials:
         raise HTTPException(status_code=401, detail="缺少认证信息")
     user = AuthService.get_current_user(credentials.credentials)
@@ -39,6 +40,13 @@ def _get_current_user(credentials: HTTPAuthorizationCredentials):
         raise HTTPException(status_code=401, detail="Token 无效或已过期")
     if user.status != "active":
         raise HTTPException(status_code=403, detail="账户已被禁用")
+    source_module = getattr(user, "source_module", None)
+    role_info = AuthService.get_user_role_info(user.id, source_module)
+    role_names = role_info.get("role_names", []) if isinstance(role_info, dict) else []
+    if "business_admin" not in role_names:
+        raise HTTPException(status_code=403, detail="仅限业务管理员访问")
+    if not AuthService.has_permission(user.id, Permission.DATA_NL2SQL_QUERY, source_module):
+        raise HTTPException(status_code=403, detail=f"缺少权限: {Permission.DATA_NL2SQL_QUERY}")
     return user
 
 

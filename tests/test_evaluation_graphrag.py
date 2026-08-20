@@ -11,6 +11,8 @@ def test_ndcg_rewards_relevant_products_near_top():
 def test_controlled_graphrag_uses_production_ranking_and_improves_relevance():
     result = run_controlled()
 
+    assert result["pure_rag"]["ranking"][0] == "TECH-R3"
+    assert result["graphrag"]["ranking"][0] == "HEALTH-R3"
     assert result["ranking_changed"] is True
     assert result["strict_relevance_improved"] is True
     assert result["ndcg_delta"] > 0
