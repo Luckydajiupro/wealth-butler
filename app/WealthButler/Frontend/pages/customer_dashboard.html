@@ -1015,14 +1015,33 @@
         }
 
         // 检查登录状态
-        function checkAuth() {
+        async function checkAuth() {
             const token = getToken();
             if (!token) {
-                alert('请先登录');
                 window.location.href = '/';
                 return false;
             }
-            return true;
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                if (!response.ok) throw new Error('登录已过期');
+                const result = await response.json().catch(() => ({}));
+                const user = result?.data || result;
+                if (String(user?.user_type || '').toUpperCase() !== 'CUSTOMER') {
+                    throw new Error('当前账号不是客户账号');
+                }
+                if (user.id && localStorage.getItem('user_id') &&
+                    String(user.id) !== String(localStorage.getItem('user_id'))) {
+                    localStorage.removeItem('customer_id');
+                    localStorage.removeItem('customer_name');
+                }
+                return true;
+            } catch (_) {
+                localStorage.clear();
+                window.location.href = '/';
+                return false;
+            }
         }
 
         // 加载用户信息
@@ -1994,8 +2013,8 @@
         document.getElementById('welcomeTime').textContent = formatTime(new Date());
 
         // 页面加载时初始化
-        window.addEventListener('DOMContentLoaded', function() {
-            if (checkAuth()) {
+        window.addEventListener('DOMContentLoaded', async function() {
+            if (await checkAuth()) {
                 loadUserInfo();
                 loadHoldings();
                 showDashboardView(window.location.hash.slice(1));
