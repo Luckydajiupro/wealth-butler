@@ -1523,8 +1523,9 @@
         let chatHistory = {advisor: []};
 
         // 初始化页面
-        window.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
+        window.addEventListener('DOMContentLoaded', async function() {
+            const currentUser = await checkAuth();
+            if (!currentUser) return;
             loadUserInfo();
             loadStatistics();
             loadWorkorders();
@@ -1532,27 +1533,46 @@
         });
 
         // 检查认证
-        function checkAuth() {
+        async function checkAuth() {
             const token = localStorage.getItem('access_token');
             if (!token) {
                 window.location.href = '/';
-                return;
+                return null;
             }
 
-            // 验证token
-            fetch(`${API_BASE}/api/auth/me`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            }).then(response => {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 if (!response.ok) {
                     localStorage.clear();
                     window.location.href = '/';
+                    return null;
                 }
-            }).catch(() => {
+                const result = await response.json().catch(() => ({}));
+                const identity = result?.data || result;
+                const roles = Array.isArray(identity?.roles) ? identity.roles : [];
+                const storedUserId = localStorage.getItem('user_id');
+                // The HTML page is authorized by the HttpOnly cookie while API
+                // calls use the bearer token. Clear stale customer context when
+                // those sessions were created for different users.
+                if (storedUserId && identity?.id && String(storedUserId) !== String(identity.id)) {
+                    localStorage.removeItem('customer_id');
+                    localStorage.removeItem('customer_name');
+                }
+                if (!roles.includes('advisor')) {
+                    localStorage.clear();
+                    window.location.href = '/';
+                    return null;
+                }
+                return identity;
+            } catch (_) {
                 localStorage.clear();
                 window.location.href = '/';
-            });
+                return null;
+            }
         }
 
         // 加载用户信息
@@ -2458,9 +2478,20 @@
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('AI请求失败:', response.status, errorText);
-                    chatHistory[currentAgentType][aiMessageIndex].content = '抱歉，服务暂时不可用，请稍后重试。';
+                    let detail = '';
+                    try {
+                        const errorPayload = JSON.parse(await response.text());
+                        detail = errorPayload?.detail || errorPayload?.msg || '';
+                    } catch (_) {
+                        // Keep a stable fallback for non-JSON gateway errors.
+                    }
+                    console.error('AI请求失败:', response.status, detail);
+                    if (response.status === 403 && /客户.*范围|权限|理财顾问/.test(detail)) {
+                        localStorage.removeItem('customer_id');
+                        localStorage.removeItem('customer_name');
+                    }
+                    chatHistory[currentAgentType][aiMessageIndex].content =
+                        detail ? `投顾助手请求被拒绝：${detail}` : '抱歉，服务暂时不可用，请稍后重试。';
                     renderChatHistory();
                     return;
                 }
