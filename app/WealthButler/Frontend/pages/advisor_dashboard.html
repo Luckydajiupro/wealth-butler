@@ -2201,7 +2201,7 @@
                     </dl>
                     <div class="workorder-actions">
                         ${isProductConfig ? '<button type="button" class="action-btn" id="generateWorkorderPlanBtn" onclick="generateWorkorderAllocationPlan()">生成产品配置方案</button>' : ''}
-                        <input class="workorder-remark" id="workorderRemark" placeholder="填写给客户的处理结果或内部备注">
+                        <input class="workorder-remark" id="workorderRemark" maxlength="200" placeholder="填写给客户的处理结果或内部备注（最多200字）">
                         <button type="button" class="action-btn primary" onclick="updateActiveWorkorder('complete')">完成并回传客户</button>
                         <button type="button" class="action-btn danger" onclick="updateActiveWorkorder('reject')">驳回</button>
                     </div>`;
@@ -2242,7 +2242,13 @@
 
         async function updateActiveWorkorder(action) {
             if (!activeWorkorder) return;
-            const remark = document.getElementById('workorderRemark').value.trim();
+            const remarkInput = document.getElementById('workorderRemark');
+            const remark = String(remarkInput?.value || '').trim().slice(0, 200);
+            if (remarkInput && remarkInput.value.length > 200) {
+                remarkInput.value = remark;
+                alert('处理结果最多填写200字，已截取超出部分，请确认后重新提交。');
+                return;
+            }
             try {
                 await fetchJson(`${API_BASE}/api/wealth/workorder/${activeWorkorder.id}`, {
                     method: 'PUT',
